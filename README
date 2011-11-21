@@ -1,0 +1,6 @@
+
+
+Note : due to a bug into GNU ld 2.21 and earlier, give a recent version.
+The fixos.ld script was tested using binutils 2.22 (11/21/2011)
+If you have some troubles like "fixos.ld:xx cannot move location counter backwards"
+it's probably a ld problem :(
