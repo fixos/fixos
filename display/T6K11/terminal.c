@@ -149,7 +149,7 @@ void write_character(unsigned int posx, unsigned int posy, int front_c, int back
 	x = posx * 4;
 	y = posy * 6;
 	if((c >= 0) && (x>-3) && (x<128) && (y>-5) && (y<64)) {
-		int tmpmap = _iFont3x5[c];
+		int tmpmap = _iFont3x5[(int)c];
 		unsigned int map = (frontcolor&tmpmap) | (backcolor&(~tmpmap));
 		_PCDOT(0, 3); _PCDOT(1, 3); _PCDOT(2, 3); set_pixel(x+3, y+0, backcolor&0x01, vram);
 		_PCDOT(3, 3); _PCDOT(4, 3); _PCDOT(5, 3); set_pixel(x+3, y+1, backcolor&0x01, vram);

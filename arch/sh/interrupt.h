@@ -31,6 +31,9 @@ void interrupt_restore_context(const interrupt_priorities_t ipr_storage);
 // Many interrupt may have the same callback function.
 void interrupt_set_callback(unsigned int interruptID, interrupt_callback_t address);
 
+// Get the callback for an interrupt, usefull to check if an interrupt
+// has already a correspondng callback.
+interrupt_callback_t interrupt_get_callback(unsigned int interruptID);
 
 // macros to access to the interrupts priority (read/write)
 #define INTERRUPT_PRIORITY_IRQ0		(INTX.IPRC.BIT._IRQ0)

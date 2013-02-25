@@ -13,11 +13,11 @@ extern void * fixos_vbr;  // see fixos.ld
 // Real entry point of the OS :
 void init() {
 	unsigned char vram[1024];
-	int i,j;
+	int j;
 	char str[200];
 
 	// init exceptions/interruptions handling
-	interrupt_set_vbr(fixos_vbr); // see fixos.ld
+	interrupt_set_vbr(fixos_vbr); 
 	// tmp stuff
 	 INTERRUPT_PRIORITY_IRQ0 = 0;
 	 INTERRUPT_PRIORITY_IRQ1 = 0;

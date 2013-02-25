@@ -3,8 +3,8 @@ C_FILES="arch/sh/interrupt.c arch/sh/exception_handler.S arch/sh/interrupt_handl
 G1A_NAME="fixos.g1a"
 GNU85_ROOT="/home/leo/GNU85"
 
-INCLUDE_DIRS="-I$GNU85_ROOT/include/sh -I$GNU85_ROOT/include/revolution -I$GNU85_ROOT/include/fxlib"
-LIB_DIRS="-L$GNU85_ROOT/lib"
+INCLUDE_DIRS="-I."  # includes from the current directory
+LIB_DIRS=""
 LIBRARIES=""
 
 sh-elf-gcc -m3 -mb -Os -nostdlib -T"fixos.ld" $C_FILES $LIB_DIRS $INCLUDE_DIRS $LIBRARIES -o myaddin.elf

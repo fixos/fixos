@@ -59,7 +59,7 @@ void interrupt_handler() __attribute__ ((interrupt_handler));
 void interrupt_handler() {
 	int evt = INTX.INTEVT2;	// interrupt code
 
-	/*char str[30];
+	char str[30];
 	Bdisp_AllClr_VRAM();
 	locate(1, 2);
 	Print("Interrupt Handler");
@@ -69,8 +69,8 @@ void interrupt_handler() {
 	locate(1,4);
 	Print("INTEVT2=");
 	Print(intToString(evt, str));
-	Bdisp_PutDisp_DD();*/
-/*
+	Bdisp_PutDisp_DD();
+
 	switch(evt) {
 	case INT_CODE_TMU0:
 		if (g_handler_tmu0 != NULL) g_handler_tmu0();
@@ -101,4 +101,7 @@ void interrupt_set_callback(unsigned int interruptID, interrupt_callback_t addre
 	if(interruptID < INT__NUMBER) g_interrupt_callback[interruptID] = address;
 }
 
-
+interrupt_callback_t interrupt_get_callback(unsigned int interruptID) {
+	if(interruptID < INT__NUMBER) return g_interrupt_callback[interruptID];
+	return (void*)0;
+}
