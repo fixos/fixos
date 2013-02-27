@@ -1,8 +1,10 @@
 #include "interrupt.h"
 #include "interrupt_codes.h"
 #include "7705.h"
-#include <stddef.h>
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
 
 
 // Globals callbacks functions address :
@@ -49,16 +51,17 @@ void interrupt_restore_context(const interrupt_priorities_t ipr_storage) {
 }
  
 
-/*
+
 // This function is used to map each interrupt with the corresponding
 // callback function. These functions' addresses may be set through the
 // set_callback() function.
 // TODO write these routines in assembly!
-void interrupt_handler() __attribute__ ((interrupt_handler));
+void interrupt_handler() __attribute__ ((interrupt_handler, section(".handler.interrupt")));
 
 void interrupt_handler() {
 	int evt = INTX.INTEVT2;	// interrupt code
-
+	interrupt_callback_t handler;
+/*
 	char str[30];
 	Bdisp_AllClr_VRAM();
 	locate(1, 2);
@@ -70,31 +73,45 @@ void interrupt_handler() {
 	Print("INTEVT2=");
 	Print(intToString(evt, str));
 	Bdisp_PutDisp_DD();
-
+*/
 	switch(evt) {
-	case INT_CODE_TMU0:
-		if (g_handler_tmu0 != NULL) g_handler_tmu0();
+	case INT_CODE_TMU0_TUNI0:
+		handler = g_interrupt_callback[INT_TMU0];
+		if (handler != NULL) handler();
 		TMU.TSTR.BIT.STR0 = 0;
 		TMU0.TCR.BIT.UNF=0;
 		TMU.TSTR.BIT.STR0 = 1;
 		break;
-	case INT_CODE_TMU1:
-		if (g_handler_tmu1 != NULL) g_handler_tmu1();
+	case INT_CODE_TMU1_TUNI1:
+		handler = g_interrupt_callback[INT_TMU1];
+		if (handler != NULL) handler();
 		TMU.TSTR.BIT.STR1 = 0;
 		TMU1.TCR.BIT.UNF=0;
 		TMU.TSTR.BIT.STR1 = 1;
 		break;
-	case INT_CODE_TMU2:
-		if (g_handler_tmu2 != NULL) g_handler_tmu2();
+	case INT_CODE_TMU2_TUNI2:
+		handler = g_interrupt_callback[INT_TMU2];
+		if (handler != NULL) handler();
 		TMU.TSTR.BIT.STR2 = 0;
 		TMU2.TCR.BIT.UNF=0;
 		TMU.TSTR.BIT.STR2 = 1;
-		break;	
+		break;
+	case INT_CODE_PINT_0_7:	
+		handler = g_interrupt_callback[INT_PINT_0_7];
+		if (handler != NULL) handler();
+		INTX.IRR0.BIT.PINT0R = 0;
+		break;
+	case INT_CODE_PINT_8_15:	
+		handler = g_interrupt_callback[INT_PINT_8_15];
+		if (handler != NULL) handler();
+		INTX.IRR0.BIT.PINT1R = 0;
+		break;
+		
 	default:
 		break;
 	}
 	return;
-}*/
+}
 
 
 void interrupt_set_callback(unsigned int interruptID, interrupt_callback_t address) {

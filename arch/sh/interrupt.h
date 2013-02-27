@@ -9,11 +9,18 @@ typedef void(*interrupt_callback_t)();
 typedef unsigned int interrupt_priorities_t[8];
 
 // Interruptions IDs :
-#define INT_TMU0	0x00
-#define INT_TMU1	0x01
-#define INT_TMU2	0x02
+#define INT_TMU0		0x00
+#define INT_TMU1		0x01
+#define INT_TMU2		0x02
 
-#define INT__NUMBER	0x03   // interruptions number
+#define INT_PINT_0_7	0x03
+#define INT_PINT_8_15	0x04
+
+#define INT__NUMBER	0x05   // interruptions number
+
+// Inhibit or dishinibit all interruptions/exceptions
+// if mode == 0, interrupts will be inhibited, else they will be handled
+extern void interrupt_inhibit_all(int mode);
 
 void interrupt_set_vbr(void *vbr);
 

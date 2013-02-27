@@ -21,7 +21,6 @@ _initialize:
   rts
   nop
 
-
   .align 4
 init:
   .long _init
