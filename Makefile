@@ -16,9 +16,9 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=arch/sh/interrupt.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
+C_SRC=arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
 
-ASM_SRC=bootstrap.s arch/sh/exception_handler.S arch/sh/interrupt_asm.s arch/sh/interrupt_handler.S arch/sh/tlb_handler.S gcc_fix/udivsi3_i4i.S initialize.s display/T6K11/drawall.s display/T6K11/setpixel.s sys/sh/memcpy.S sys/sh/memset.S sys/sh/strcpy.S sys/sh/strlen.S sys/sh/strcmp.S
+ASM_SRC=bootstrap.s arch/sh/interrupt_asm.s arch/sh/tlb_handler.S gcc_fix/udivsi3_i4i.S initialize.s display/T6K11/drawall.s display/T6K11/setpixel.s sys/sh/memcpy.S sys/sh/memset.S sys/sh/strcpy.S sys/sh/strlen.S sys/sh/strcmp.S
 
 TMPSTUB:=$(ASM_SRC:.s=.o)
 OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.S=.o)

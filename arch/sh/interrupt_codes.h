@@ -1,8 +1,11 @@
 #ifndef INTERRUPT_CODES_H
 #define INTERRUPT_CODES_H
 
+/**
+ * This file contain exception and interruption codes (INTEVT and EXPEVT registers)
+ */
 
-// this is the interrupt INTEVT2 codes 
+// interrupts :  INTEVT2 codes 
 
 #define INT_CODE_NMI			0x1C0
 
@@ -51,5 +54,31 @@
 #define INT_CODE_TPU2_TPI2		0xC80
 #define INT_CODE_TPU3_TPI3		0xCA0
 
+
+// exceotions : EXPEVT codes
+#define EXP_CODE_RESET_POWERON	0x000
+#define EXP_CODE_RESET_MANUAL	0x020
+
+// these two codes may occurs at VBR+0x100 (TLB invalid)
+// and at VBR+0x400 (TLB miss special handler)
+#define EXP_CODE_TLB_READ		0x040
+#define EXP_CODE_TLB_WRITE		0x060
+
+#define EXP_CODE_TLB_INITWRITE	0x080
+
+#define EXP_CODE_TLB_PROTECT_R	0x0A0
+#define EXP_CODE_TLB_PROTECT_W	0x0C0
+
+#define EXP_CODE_ACCESS_READ	0x0E0
+#define EXP_CODE_ACCESS_WRITE	0x100
+
+#define EXP_CODE_TRAPA			0x160
+
+#define EXP_CODE_BAD_INSTR		0x180
+#define EXP_CODE_BAD_SLOTINSTR	0x1A0
+
+#define EXP_CODE_USER_BREAK		0x1E0
+
+#define EXP_CODE_DMA_ERROR		0x5C0
 
 #endif //INTERRUPT_CODES_H

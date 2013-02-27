@@ -52,8 +52,8 @@ void init() {
 	terminal_set_colors(TCOLOR_BLACK, TCOLOR_WHITE);
 	terminal_write("it's working!\n  It's really strange...\n");
 
-	INTERRUPT_PRIORITY_PINT0_7 = 0xF;
-	INTERRUPT_PRIORITY_PINT8_15 = 0xF;
+//	INTERRUPT_PRIORITY_PINT0_7 = 0xF;
+//	INTERRUPT_PRIORITY_PINT8_15 = 0xF;
 
 	interrupt_set_callback(INT_PINT_0_7, &test);
 	interrupt_set_callback(INT_PINT_8_15, &test);
@@ -63,6 +63,13 @@ void init() {
 	while(!is_key_down(K_EXE));
 
 	interrupt_inhibit_all(0);
+
+
+	asm("trapa #50");
+
+	// just for fun
+	asm volatile ("mov #3, r0");
+	asm volatile ("mov.l @r0, r1");
 
 	PFC.PBCR.WORD = 0x5555;
 	PB.DR.BYTE = 0b00000000;

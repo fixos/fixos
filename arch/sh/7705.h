@@ -1134,5 +1134,6 @@ struct st_pfc {                                         /* struct PFC   */
 #define SCIF2  (*(volatile struct st_scif  *)0xA4410000)
 #define STBCR3 (*(volatile union  un_stbcr3*)0xA40A0000)/* STBCR3Address*/
 #define PFC    (*(volatile struct st_pfc   *)0xA4000100)/* PFC   Address*/
+#define TEA    (*(volatile unsigned int    *)0xFFFFFFFC)/* Special TEA register */
 
 #endif //_CPU_SH_7705_H
