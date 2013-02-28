@@ -3,6 +3,9 @@
 #include "sys/terminal.h"
 #include "keyboard/keyboard.h"
 #include "arch/sh/interrupt.h"
+#include "arch/sh/virtual_memory.h"
+#include "arch/sh/mmu.h"
+#include "sys/process.h"
 
 
 char* int2str (int n, char* string);
@@ -57,19 +60,46 @@ void init() {
 
 	interrupt_set_callback(INT_PINT_0_7, &test);
 	interrupt_set_callback(INT_PINT_8_15, &test);
-
 	
+	while(is_key_down(K_EXE));
+	while(!is_key_down(K_EXE));
+
+	mmu_init();
+	process_t *mock = process_from_asid(0xFF);
+
+	vm_page_t page;
+	int magic_integer = 589;
+	int magic_offset;
+	page.cache = 0;
+	page.size = VM_DEFAULT_SIZE;
+	page.valid = 1;
+	page.vpn = (0x01000000 >> 10); // a translatable address
+	page.ppn = ((((int)&magic_integer) & 0x1FFFFFFF) >> 10); // address of a stack page ;)
+
+	magic_offset = ((int)(&magic_integer)) & 0x000003FF;
+
+	vm_init_table(&(mock->vm));
+	vm_add_entry(&(mock->vm), &page);
+
 	while(is_key_down(K_EXE));
 	while(!is_key_down(K_EXE));
 
 	interrupt_inhibit_all(0);
 
 
-	asm("trapa #50");
+	asm volatile ("trapa #50");
+
+	int *surprise = (int*)(0x01000000 + magic_offset);
+
+	terminal_write("Magic? ");
+	terminal_write(int2str(*surprise, str));
+	terminal_write("\n");
+
 
 	// just for fun
-	asm volatile ("mov #3, r0");
+	/*asm volatile ("mov #3, r0");
 	asm volatile ("mov.l @r0, r1");
+*/
 
 	PFC.PBCR.WORD = 0x5555;
 	PB.DR.BYTE = 0b00000000;

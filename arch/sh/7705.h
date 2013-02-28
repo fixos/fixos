@@ -1105,6 +1105,50 @@ struct st_pfc {                                         /* struct PFC   */
                     }           PNCR2;                  /*              */
 };                                                      /*              */
 
+struct st_mmu {
+	union {
+		unsigned int LONG;
+		struct {
+			unsigned int		:23;
+			unsigned char SV	:1;
+			unsigned char		:2;
+			unsigned char RC	:2;
+			unsigned char		:1;
+			unsigned char TF	:1;
+			unsigned char IX	:1;
+			unsigned char AT	:1;
+		} BIT;
+	} MMUCR;
+
+	char wk1[12];
+	union {
+		unsigned int LONG;
+		struct {
+			unsigned int VPN	:22;
+			unsigned char		:2;
+			unsigned char ASID	:8;
+		} BIT;
+	} PTEH;
+		
+	union {
+		unsigned int LONG;
+		struct {
+			unsigned char		:3;
+			unsigned int		:19;
+			unsigned char		:1;
+			unsigned char V		:1;
+			unsigned char		:1;
+			unsigned char PR	:2;
+			unsigned char SZ	:1;
+			unsigned char C		:1;
+			unsigned char D		:1;
+			unsigned char SH	:1;
+			unsigned char		:1;
+		} BIT;
+	} PTEL;
+
+	unsigned int TTB;
+};
 
 #define CPG    (*(volatile struct st_cpg   *)0xFFFFFF80)/* CPG   Address*/
 #define WDT    (*(volatile struct st_wdt   *)0xFFFFFF84)/* WDT   Address*/
@@ -1135,5 +1179,5 @@ struct st_pfc {                                         /* struct PFC   */
 #define STBCR3 (*(volatile union  un_stbcr3*)0xA40A0000)/* STBCR3Address*/
 #define PFC    (*(volatile struct st_pfc   *)0xA4000100)/* PFC   Address*/
 #define TEA    (*(volatile unsigned int    *)0xFFFFFFFC)/* Special TEA register */
-
+#define MMU    (*(volatile struct st_mmu   *)0xFFFFFFE0)/* MMU and TLB registers */
 #endif //_CPU_SH_7705_H
