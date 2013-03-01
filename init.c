@@ -7,8 +7,7 @@
 #include "arch/sh/mmu.h"
 #include "sys/process.h"
 #include "arch/sh/physical_memory.h"
-
-char* int2str (int n, char* string);
+#include "utils/log.h"
 
 extern void * fixos_vbr;  // see fixos.ld
 
@@ -18,8 +17,6 @@ void test();
 void init() {
 	unsigned char vram[1024];
 	int j;
-	char str[200];
-
 
 	// init exceptions/interruptions handling
 	interrupt_set_vbr(&fixos_vbr); // don't forget we want the ADDRESS of linked vbr 
@@ -50,6 +47,9 @@ void init() {
 
 	terminal_set_vram(vram);
 	terminal_clear();
+
+	set_kernel_print(&terminal_write);
+
 	terminal_write("Boostrap... OK!\n");
 	terminal_set_colors(TCOLOR_WHITE, TCOLOR_BLACK);
 	terminal_write("WARNING : ");
@@ -94,15 +94,12 @@ void init() {
 
 	int *surprise = (int*)(0x01000000 + magic_offset);
 
-	terminal_write("Magic? ");
-	terminal_write(int2str(*surprise, str));
-	terminal_write("\n");
+	printk("Magic? %d\n", *surprise);
+	*surprise = 986;
 
 	unsigned int ppn1;
 	if(! pm_get_free_page(&ppn1)) {
-		terminal_write("Page number : ");
-		terminal_write(int2str(ppn1, str));
-		terminal_write("\n");
+		printk("Page number : %d\n", ppn1);
 	}
 
 	// just for fun
@@ -119,9 +116,7 @@ void init() {
 
 	j=0;
 	while(1) {
-		terminal_write("Test a la con : ");
-		terminal_write(int2str(j, str));
-		terminal_write("\n");
+		printk("Test a la con : %d\n", j);
 		j++;
 		//while(is_key_down(K_EXE));
 		//while(!is_key_down(K_EXE));
@@ -132,28 +127,8 @@ void init() {
 
 void test() {
 	static int i = 0;
-	static char str[50];
 
-	terminal_write("Ohohoh! Surprise^!");
-	terminal_write(int2str(i, str));
-	terminal_write("\n");
-	
+	printk("Ohohoh! Surprise^%d!\n", i);
 	i++;
 }
 
-char* int2str (int n, char* string) {
-	int  i;
-	int  cpt;
-	int start = 0;
-  	
-	if (n<0) {
-		start=1;
-		string[0] = '-';
-		n *= -1;
-	}
-	for (i = 1, cpt = 1; n / i >= 10; i *= 10, cpt++);
-	for (cpt = start; i; cpt++, i /= 10) string[cpt] = (n / i) % 10 + '0';
-	string[cpt] = '\0';
-
-	return string;
-}

@@ -1,7 +1,7 @@
 #ifndef _FIXOS_STRUTILS_H
 #define _FIXOS_STRUTILS_H
 
-#include "sys/types.h"
+#include <utils/types.h>
 
 /**
   * strutils allow to use some functions like libc' string.h functions

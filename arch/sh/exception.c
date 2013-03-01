@@ -5,8 +5,8 @@
 #include "mmu.h"
 
 
-#include <sys/terminal.h>
 #include <sys/process.h>
+#include <utils/log.h>
 
 extern void syscall_entry();
 
@@ -22,24 +22,26 @@ void exception_handler()
 {
 	int evt = INTC.EXPEVT;
 	unsigned int tea = TEA;
+	int tra;
 
 	(void)(tea);
 
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		terminal_write("Fatal:\nCPU Access Violation (R/W)\n");
+		printk("Fatal:\nCPU Access Violation (R/W)\n");
 		while(1);
 		break;
 
 	case EXP_CODE_TRAPA:
-		terminal_write("TRAPA catched!\n");
+		tra = INTC.TRA >> 2; 
+		printk("TRAPA (%d) catched!\n", tra);
 		//TODO syscall_entry();
 		break;
 
 	case EXP_CODE_BAD_INSTR:
 	case EXP_CODE_BAD_SLOTINSTR:
-		terminal_write("Fatal:\nIllegal instruction.\n");
+		printk("Fatal:\nIllegal instruction.\n");
 		while(1);
 		break;
 
@@ -50,17 +52,17 @@ void exception_handler()
 		break;
 
 	case EXP_CODE_TLB_INITWRITE:
-		terminal_write("[I] Initial MMU page write.\n");
+		printk("[I] Initial MMU page write.\n");
 		break;
 
 	case EXP_CODE_TLB_PROTECT_R:
 	case EXP_CODE_TLB_PROTECT_W:
-		terminal_write("Fatal:\nTLB protection violation.\n");
+		printk("Fatal:\nTLB protection violation.\n");
 		break;
 
 	case EXP_CODE_TLB_READ:
 	case EXP_CODE_TLB_WRITE:
-		terminal_write("Fatal:\nTLB error.\n");
+		printk("Fatal:\nTLB error.\n");
 		break;
 
 	default:
@@ -91,8 +93,8 @@ void tlbmiss_handler()
 	if(page != (void*)0) {
 		unsigned int register flags;
 		
-		//fill flags
-		flags = TLB_VALID | TLB_NOTSHARED | TLB_PROT_U_RW;
+		//fill flags, don't forget the dirty flag for now ;)
+		flags = TLB_VALID | TLB_NOTSHARED | TLB_PROT_U_RW | TLB_DIRTY;
 		if(page->size)
 			flags |= TLB_SIZE_4K;
 		if(page->cache)
@@ -100,11 +102,11 @@ void tlbmiss_handler()
 
 		// load the TLB entry!
 		mmu_tlb_fillload(page->ppn, flags);
-		terminal_write("Sucessfully mapped page!i\n");
+		printk("Sucessfully mapped page!\nVirtual page @(%p)\n", (void*)(page->vpn << 10));
 	}
 	else
 	{	
-		terminal_write("Fatal:\nAccess to forbiden page.\n");
+		printk("Fatal:\nAccess to forbiden page.\n");
 		while(1);
 	}
 }

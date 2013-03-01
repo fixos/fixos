@@ -1,6 +1,5 @@
 #include "physical_memory.h"
-
-#include <sys/terminal.h>
+#include <utils/log.h>
 
 // symbols and const for computing number of pages...
 extern void * end_static_ram;
@@ -50,11 +49,10 @@ void pm_init_pages()
 		if(i == 0)
 			pm_first_free = page;
 		
-		terminal_write(".");
 		page = page->next;
 	}
 
-	terminal_write("\npages cleared\n");
+	printk("%d pages of %dB\n", nb_pages, PM_PAGE_BYTES);
 }
 
 

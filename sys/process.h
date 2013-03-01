@@ -5,7 +5,7 @@
  * Process managing and difinitions.
  */
 
-#include "types.h"
+#include <utils/types.h>
 #include <arch/sh/virtual_memory.h>
 
 // maximum ASID number at one time

@@ -1,7 +1,7 @@
 #include "../display/T6K11/T6K11.h"
 #include "../display/graphic.h"
 #include "terminal.h"
-#include "strutils.h"
+#include <utils/strutils.h>
 
 // constant variables definition
 static int g_front_c = TCOLOR_BLACK;
