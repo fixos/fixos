@@ -6,7 +6,7 @@
 #include "arch/sh/virtual_memory.h"
 #include "arch/sh/mmu.h"
 #include "sys/process.h"
-
+#include "arch/sh/physical_memory.h"
 
 char* int2str (int n, char* string);
 
@@ -19,6 +19,7 @@ void init() {
 	unsigned char vram[1024];
 	int j;
 	char str[200];
+
 
 	// init exceptions/interruptions handling
 	interrupt_set_vbr(&fixos_vbr); // don't forget we want the ADDRESS of linked vbr 
@@ -55,6 +56,9 @@ void init() {
 	terminal_set_colors(TCOLOR_BLACK, TCOLOR_WHITE);
 	terminal_write("it's working!\n  It's really strange...\n");
 
+	mmu_init();
+	pm_init_pages();
+
 //	INTERRUPT_PRIORITY_PINT0_7 = 0xF;
 //	INTERRUPT_PRIORITY_PINT8_15 = 0xF;
 
@@ -64,7 +68,6 @@ void init() {
 	while(is_key_down(K_EXE));
 	while(!is_key_down(K_EXE));
 
-	mmu_init();
 	process_t *mock = process_from_asid(0xFF);
 
 	vm_page_t page;
@@ -95,11 +98,18 @@ void init() {
 	terminal_write(int2str(*surprise, str));
 	terminal_write("\n");
 
+	unsigned int ppn1;
+	if(! pm_get_free_page(&ppn1)) {
+		terminal_write("Page number : ");
+		terminal_write(int2str(ppn1, str));
+		terminal_write("\n");
+	}
 
 	// just for fun
 	/*asm volatile ("mov #3, r0");
 	asm volatile ("mov.l @r0, r1");
 */
+
 
 	PFC.PBCR.WORD = 0x5555;
 	PB.DR.BYTE = 0b00000000;
