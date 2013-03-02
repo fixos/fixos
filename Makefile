@@ -16,7 +16,7 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=utils/strconv.c utils/log.c arch/sh/physical_memory.c arch/sh/mmu.c sys/process.c arch/sh/virtual_memory.c arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
+C_SRC=fs/casio_smemfs/smemfs_primitives.c fs/casio_smemfs/file_system.c utils/strconv.c utils/log.c arch/sh/physical_memory.c arch/sh/mmu.c sys/process.c arch/sh/virtual_memory.c arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
 
 ASM_SRC=bootstrap.s arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s display/T6K11/drawall.s display/T6K11/setpixel.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S utils/sh/strcmp.S
 
