@@ -35,8 +35,8 @@
 !
 
 	.section ".text"
-	.global memcpy
-	.type memcpy, @function
+	.global _memcpy
+	.type _memcpy, @function
 	.align 2
 
 #ifndef __SH3__
@@ -47,7 +47,7 @@
 	branch##.s dest; in_slot, in_slot_arg2
 
 
-memcpy:
+_memcpy:
 
 #if __SHMEDIA__
 

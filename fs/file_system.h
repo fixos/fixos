@@ -30,11 +30,14 @@ struct _file_system {
 	// optimized method to find a child by its string name
 	inode_t * (*find_sub_node) (inode_t *target, const char *name);
 
-	// try to create a node as child of parent node, using
-	// a partially filled inode (name, flags, type_flags at least must be filled)
-	// if the node is successfuly created, newnode is totaly filled and
-	// the function must return 0, else return -1
-	int (*create_node) (inode_t *parent, inode_t *newnode);
+	// try to create a node as child of parent node, using all the
+	// given information (name, mode_flags, type_flags).
+	// Field 'special' is used for type specific additional info
+	// (major/minor ID for device node).
+	// if the node is successfuly created, return the corresponding inode
+	// else return NULL
+	inode_t * (*create_node) (inode_t *parent, const char *name, uint16 type_flags,
+			uint16 mode_flags, uint32 special);
 
 	// try to generate a VFS inode from the entry of internal node number node
 	// in the given file system instance

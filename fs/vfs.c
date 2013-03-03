@@ -143,6 +143,7 @@ inode_t *vfs_resolve(const char *path)
 		inode_t *current = _root_fs->fs->get_root_node(_root_fs);
 
 		ppos = 1; // we know path start with '/'
+
 		do {
 			inode_t *swap = NULL;
 			char c;
@@ -157,7 +158,7 @@ inode_t *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			printk("resolve: split=%s\n", tmpname);
+			//printk("resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {

@@ -6,8 +6,8 @@
 
 
 	.section ".text"
-	.global strcpy
-	.type strcpy, @function
+	.global _strcpy
+	.type _strcpy, @function
 	.align 2
 
 #ifndef __SH3__
@@ -17,7 +17,7 @@
 #define SL(branch, dest, in_slot, in_slot_arg2) \
 	branch##.s dest; in_slot, in_slot_arg2
 
-strcpy:
+_strcpy:
 #if __SHMEDIA__
 
 	pta/l shortstring,tr1

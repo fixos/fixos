@@ -9,11 +9,19 @@
 #include "arch/sh/physical_memory.h"
 #include "utils/log.h"
 #include "fs/casio_smemfs/file_system.h"
+#include "fs/protofs/file_system.h"
 #include "fs/vfs.h"
+#include "fs/vfs_op.h"
 
 extern void * fixos_vbr;  // see fixos.ld
 
 void test();
+
+/**
+ * Function to help debugging fs's and vfs : print the tree
+ * of ALL the mounted file system (wondereful)
+ */
+void ls_tree();
 
 #define DBG_WAIT while(is_key_down(K_EXE)); \
 	while(!is_key_down(K_EXE))
@@ -116,7 +124,7 @@ void init() {
 
 	vfs_init();
 	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);
-	vfs_mount("smemfs", NULL, VFS_MOUNT_ROOT);
+/*	vfs_mount("smemfs", NULL, VFS_MOUNT_ROOT);
 
 	// test of the SMEM FS
 	DBG_WAIT;
@@ -124,12 +132,32 @@ void init() {
 	// try to access to a file in a directory
 	inode_t *curi;
 	curi = vfs_resolve("/UEDIT/acore.cfg");
+*/
+	vfs_register_fs(& protofs_file_system, VFS_REGISTER_STATIC);
+	vfs_mount("protofs", NULL, VFS_MOUNT_ROOT);
 
+	DBG_WAIT;
+
+	vfs_create("/", "dev", INODE_TYPE_PARENT, INODE_FLAG_READ | INODE_FLAG_EXEC, 0);
+	vfs_create("/dev", "mouahah", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
+	vfs_create("/dev", "pouet", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
+	vfs_create("/", "usr", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/", "fmem", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/usr", "chose1", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/usr/chose1", "bidule2", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/usr/chose1/bidule2", "holy_shit", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
+	vfs_create("/dev", "stdin", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
+	vfs_create("/dev", "sda", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
+	inode_t *curi = vfs_resolve("/dev/mouahah");
 	
 	if(curi != NULL)
 		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
 	else
 		printk("VFS unfound file.\n");
+
+	DBG_WAIT;
+
+	ls_tree();
 
 	/*inode_t *root, *curi;
 	root = smemfs_get_root_node(smem);
@@ -175,3 +203,47 @@ void test() {
 	i++;
 }
 
+
+void print_inode_tree(inode_t *from, int tab)
+{	
+	char space[10] = "         ";
+	inode_t *cur;
+	int i;
+	static int wait = 0;
+
+	space[tab]='\0';
+	i=0;
+
+	cur = from->fs_op->fs->get_sub_node(from, i);
+	while(cur != NULL)
+	{
+		if(cur->type_flags & INODE_TYPE_PARENT) {
+			printk("%s%s/\n", space, cur->name);
+			print_inode_tree(cur, tab+1);
+		}
+		else
+			printk("%s%s\n", space, cur->name);
+
+		vfs_free_inode(cur);
+		i++;
+		cur = from->fs_op->fs->get_sub_node(from, i);
+
+		wait++;
+		if(wait > 7) {
+			DBG_WAIT;
+			wait = 0;
+		}
+	}
+
+}
+
+void ls_tree() {
+	// for now, using low level routines
+	inode_t *cur;
+	
+	cur = vfs_resolve("/");
+	printk("/\n");
+	print_inode_tree(cur, 1);
+
+	vfs_free_inode(cur);
+}

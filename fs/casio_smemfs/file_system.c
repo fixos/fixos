@@ -17,7 +17,8 @@ struct _file_system smemfs_file_system = {
 	.get_sub_node = smemfs_get_sub_node,
 	.get_children_nb = NULL,
 	.find_sub_node = smemfs_find_sub_node,
-	.get_inode = smemfs_get_inode
+	.get_inode = smemfs_get_inode,
+	.create_node = NULL
 };
 
 // 1 if SMEM FS instance is already mounted
