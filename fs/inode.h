@@ -1,4 +1,5 @@
 #ifndef _FS_INODE_H
+#define _FS_INODE_H
 
 #include <utils/types.h>
 

@@ -2,8 +2,8 @@
 
 
 	.section ".text"
-	.global strcmp
-	.type strcmp, @function
+	.global _strcmp
+	.type _strcmp, @function
 	.align 2
 
 #ifndef __SH3__
@@ -11,7 +11,7 @@
 #endif
 
 
-strcmp:
+_strcmp:
 
 #if __SHMEDIA__
 	ld.ub	r2,0,r4

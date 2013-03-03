@@ -9,6 +9,7 @@
  * internal nodes numbers are simply the absolute address of each entry.
  */
 
+extern file_system_t smemfs_file_system;
 
 fs_instance_t *smemfs_mount (unsigned int flags);
 

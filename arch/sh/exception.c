@@ -106,7 +106,11 @@ void tlbmiss_handler()
 	}
 	else
 	{	
-		printk("Fatal:\nAccess to forbiden page.\n");
+		int spcval = 0x1234;
+
+		asm volatile ("stc spc, r0");
+		asm volatile("mov r0, %0":"=r"(spcval)::);
+		printk("Fatal:\nAccess to forbiden page.\nAt address %p\nWith PC=%p\n", (void*)TEA, (void*)spcval);
 		while(1);
 	}
 }

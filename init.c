@@ -8,10 +8,15 @@
 #include "sys/process.h"
 #include "arch/sh/physical_memory.h"
 #include "utils/log.h"
+#include "fs/casio_smemfs/file_system.h"
+#include "fs/vfs.h"
 
 extern void * fixos_vbr;  // see fixos.ld
 
 void test();
+
+#define DBG_WAIT while(is_key_down(K_EXE)); \
+	while(!is_key_down(K_EXE))
 
 // Real entry point of the OS :
 void init() {
@@ -107,13 +112,51 @@ void init() {
 	asm volatile ("mov.l @r0, r1");
 */
 
+	DBG_WAIT;
 
+	vfs_init();
+	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);
+	vfs_mount("smemfs", NULL, VFS_MOUNT_ROOT);
+
+	// test of the SMEM FS
+	DBG_WAIT;
+
+	// try to access to a file in a directory
+	inode_t *curi;
+	curi = vfs_resolve("/UEDIT/acore.cfg");
+
+	
+	if(curi != NULL)
+		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
+	else
+		printk("VFS unfound file.\n");
+
+	/*inode_t *root, *curi;
+	root = smemfs_get_root_node(smem);
+
+	printk("root node=0x%d\n", root->node);
+	DBG_WAIT;
+
+	j=0;
+	curi = smemfs_get_sub_node(root, 0);
+	while(curi != NULL)
+	{
+		printk("entry%d : '%s'\n", j, curi->name);
+		j++;
+		
+		vfs_free_inode(curi);
+		curi = smemfs_get_sub_node(root, j);
+		while(is_key_down(K_EXE));
+		while(!is_key_down(K_EXE));
+	}*/
+
+/*
 	PFC.PBCR.WORD = 0x5555;
 	PB.DR.BYTE = 0b00000000;
 	PFC.PACR.WORD = 0xAAAA;
 
 	INTX.PINTER.WORD = 0b0000000011111111;
-
+*/
 	j=0;
 	while(1) {
 		printk("Test a la con : %d\n", j);
