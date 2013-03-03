@@ -82,7 +82,7 @@ inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
 	const unsigned char *header;
 	header = getAtomicFileHeader(name, target->node);
 	if(header != NULL)
-		return smemfs_fill_inode(target->fs_op, (const unsigned char*)name);
+		return smemfs_fill_inode(target->fs_op, header);
 
 	return NULL;
 }
