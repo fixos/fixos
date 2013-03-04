@@ -20,12 +20,10 @@ struct _file_system {
 	inode_t * (*get_root_node) (fs_instance_t *inst);
 
 	// return the child [index] of the target if exists, NULL else
-	// only some nodes (marked with INODE_TYPE_PARENT) have children
+	// only some nodes (marked with INODE_TYPE_PARENT) may have children
+	// This function allow readdir-like implementation, but is really
+	// hard to optimize in almost all FS, so maybe removed later :/
 	inode_t * (*get_sub_node) (inode_t *target, int index);
-
-	// get number of children in a given node, or -1 if the node can't have
-	// children
-	int (*get_children_nb) (inode_t *target);
 
 	// optimized method to find a child by its string name
 	inode_t * (*find_sub_node) (inode_t *target, const char *name);

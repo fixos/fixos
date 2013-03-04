@@ -12,7 +12,6 @@ struct _file_system protofs_file_system = {
 	.mount = protofs_mount,
 	.get_root_node = protofs_get_root_node,
 	.get_sub_node = protofs_get_sub_node,
-	.get_children_nb = NULL,
 	.find_sub_node = protofs_find_sub_node,
 	.get_inode = protofs_get_inode,
 	.create_node = protofs_create_node
@@ -72,77 +71,70 @@ inode_t * protofs_get_root_node (fs_instance_t *inst)
 inode_t * protofs_get_sub_node (inode_t *target, int index)
 {
 	// the simplest algorithm : test all the page of nodes...
-	int i;
-	int found = -1;
-	void *parent = PROTOFS_NODE_ADDR(target->node);
-	
-	if(target->node == PROTOFS_ROOT_NODE)
-		parent = NULL;
+	if(target->type_flags & INODE_TYPE_PARENT) {
+		int i;
+		int found = -1;
+		void *parent = PROTOFS_NODE_ADDR(target->node);
 
-	for(i=0; i<PROTOFS_PER_PAGE && found < index; i++) {
-		if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
-			if(_protofs_page[i].parent == parent)
-				found++;
+		if(target->node == PROTOFS_ROOT_NODE)
+			parent = NULL;
+
+		for(i=0; i<PROTOFS_PER_PAGE && found < index; i++) {
+			if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
+				if(_protofs_page[i].parent == parent)
+					found++;
+		}
+
+		if(found == index)
+			return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
 	}
-
-	if(found == index)
-		return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
+	
 	return NULL;
-}
-
-
-int protofs_get_children_nb (inode_t *target)
-{
-	// TODO remove from VFS?
-	return -1;
 }
 
 
 inode_t * protofs_find_sub_node (inode_t *target, const char *name)
 {
 	// the simplest algorithm : test all the page of nodes...
-	int i;
-	int found = 0;
-	void *parent = PROTOFS_NODE_ADDR(target->node);
 	
-	if(target->node == PROTOFS_ROOT_NODE)
-		parent = NULL;
+	if(target->type_flags & INODE_TYPE_PARENT) {
+		int i;
+		int found = 0;
+		void *parent = PROTOFS_NODE_ADDR(target->node);
 
-	for(i=0; i<PROTOFS_PER_PAGE && !found; i++) {
-		if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
-			if(_protofs_page[i].parent == parent
-					&& !strcmp(_protofs_page[i].name, name))
-				found = 1;
+		if(target->node == PROTOFS_ROOT_NODE)
+			parent = NULL;
+
+		for(i=0; i<PROTOFS_PER_PAGE && !found; i++) {
+			if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
+				if(_protofs_page[i].parent == parent
+						&& !strcmp(_protofs_page[i].name, name))
+					found = 1;
+		}
+
+		if(found)
+			return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
 	}
-
-	if(found)
-		return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
 	
-	return NULL;	
+	return NULL;
 }
 
 
 inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node)
 {
-	inode_t *ret = NULL;
+	protofs_node_t *nodeptr;
 
 	// translate the node into address
 	if(node == PROTOFS_ROOT_NODE)
-	{
-		ret = vfs_alloc_inode();	
-		ret->type_flags = INODE_TYPE_PARENT;
-		ret->data.abstract = NULL;
-		ret->name[0] = '\0';
-		ret->node = node;
-		ret->parent = PROTOFS_INVALID_NODE;
-		ret->flags = INODE_FLAG_READ | INODE_FLAG_WRITE | INODE_FLAG_EXEC;
-		ret->fs_op = inst;
-	}
-	else if(node < PROTOFS_PER_PAGE) {
-		ret = protofs_fill_inode(inst, &(_protofs_page[node]));
+		nodeptr = NULL;
+	else {
+		if(node < PROTOFS_PER_PAGE) 
+			nodeptr = &(_protofs_page[node]);
+		else
+			return NULL;
 	}
 
-	return ret;
+	return protofs_fill_inode(inst, nodeptr);
 }
 
 
@@ -181,22 +173,37 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node) {
 	inode_t *ret;
 
-	if(node == NULL)
-		return NULL;
+	if(node == NULL) {
+
+	}
 
 	ret = vfs_alloc_inode();	
-	ret->type_flags = node->type_flags & (~PROTOFS_TYPE_EMPTY);
-	if(node->type_flags & INODE_TYPE_DEV) {
-		ret->data.dev.major = node->special.dev.major;
-		ret->data.dev.minor = node->special.dev.minor;
+	if(ret == NULL) {
+		printk("protofs: vfs inode alloc failed\n");
 	}
-	else
-		ret->data.abstract = NULL;
-	strcpy(ret->name, node->name);
-	ret->node = PROTOFS_NODE_NB(node);
-	ret->parent = PROTOFS_NODE_NB(node->parent); 
-	ret->flags = node->mode;
 	ret->fs_op = inst;
+
+	if(node == NULL) {
+		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
+		ret->data.abstract = NULL;
+		ret->name[0] = '\0';
+		ret->node = PROTOFS_ROOT_NODE; 
+		ret->flags = INODE_FLAG_READ | INODE_FLAG_WRITE | INODE_FLAG_EXEC;
+		ret->fs_op = inst;
+	}
+	else {
+		ret->type_flags = node->type_flags & (~PROTOFS_TYPE_EMPTY);
+		if(node->type_flags & INODE_TYPE_DEV) {
+			ret->data.dev.major = node->special.dev.major;
+			ret->data.dev.minor = node->special.dev.minor;
+		}
+		else
+			ret->data.abstract = NULL;
+		strcpy(ret->name, node->name);
+		ret->node = PROTOFS_NODE_NB(node);
+		ret->parent = PROTOFS_NODE_NB(node->parent); 
+		ret->flags = node->mode;
+	}
 
 	return ret;
 }

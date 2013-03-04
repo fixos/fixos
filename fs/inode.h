@@ -12,6 +12,10 @@
 #define INODE_TYPE_PARENT		1
 // device driver node
 #define INODE_TYPE_DEV			2
+// used to mark an inode as root of its file system.
+// entry with this flag must have a node ID, but don't need
+// to have a parent or a name
+#define INODE_TYPE_ROOT			4
 
 
 #define INODE_FLAG_READ			4

@@ -7,6 +7,7 @@
 
 /**
  * Allocate a new VFS inode and fill it with the given header.
+ * if header is NULL, return a node to use as root of the FS
  */
 inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header);
 
@@ -15,7 +16,6 @@ struct _file_system smemfs_file_system = {
 	.mount = smemfs_mount,
 	.get_root_node = smemfs_get_root_node,
 	.get_sub_node = smemfs_get_sub_node,
-	.get_children_nb = NULL,
 	.find_sub_node = smemfs_find_sub_node,
 	.get_inode = smemfs_get_inode,
 	.create_node = NULL
@@ -43,8 +43,12 @@ fs_instance_t *smemfs_mount (unsigned int flags)
 
 inode_t * smemfs_get_root_node (fs_instance_t *inst)
 {
-	uint32 rootnode = 0xFFFF; 
-	return(smemfs_get_inode(inst, rootnode));
+	inode_t *ret;
+	ret = smemfs_get_inode(inst, ROOT_ID);
+	
+	printk("smemfs: root inode=%p\n", ret);
+
+	return ret;
 }
 
 
@@ -70,13 +74,6 @@ inode_t * smemfs_get_sub_node (inode_t *target, int index)
 	return NULL;
 }
 
-int smemfs_get_children_nb (inode_t *target)
-{
-	if(target->flags & INODE_TYPE_PARENT)
-		return -1;
-	// TODO
-	return 0;
-}
 
 inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
 {
@@ -91,7 +88,6 @@ inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
 
 inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
 {
-	inode_t *ret = NULL;
 	const unsigned char *header = NULL;
 	unsigned short node = (unsigned short)lnode;
 
@@ -102,31 +98,16 @@ inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
 
 
 	// check if the given node is the special root node
-	if(node == ROOT_ID) {
-		ret = vfs_alloc_inode();
-		if(ret == NULL)
-		{
-			printk("Error:\nvfs: unable to alloc inode\n");
+	if(node != ROOT_ID) {
+		header = getFileHeader(node);
+		if(header == NULL)
 			return NULL;
-		}
-		ret->data.abstract = NULL;
-
-		ret->fs_op = inst;
-		ret->node = node;
-
-		printk("smemfs: root inode=%p\n", ret);
-
-		ret->flags = INODE_FLAG_READ;
-		ret->parent = INVALID_NODE;
-		ret->type_flags = INODE_TYPE_PARENT;
-		ret->name[0] = '\0';
-
 	}
-	else if ( (header = getFileHeader(node)) != NULL) {
-		return smemfs_fill_inode(inst, header);
+	else {
+		header = NULL;
 	}
 
-	return ret;
+	return smemfs_fill_inode(inst, header);
 }
 
 
@@ -143,20 +124,29 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header)
 		return NULL;
 	}
 
+	ret->fs_op = inst;
 	ret->data.abstract = (void*)header; // more data ?
 
-	ret->fs_op = inst;
-	ret->node = getFileId(header);
+	if(header == NULL)
+	{
+		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
+		ret->name[0] = '\0';
+		ret->node = ROOT_ID;
+		ret->flags = INODE_FLAG_READ | INODE_FLAG_EXEC;
+	}
+	else {
+		ret->node = getFileId(header);
 
-	printk("smemfs: inode=%p\n", ret);
+		printk("smemfs: inode=%p\n", ret);
 
-	ret->flags = INODE_FLAG_READ;
-	ret->parent = getFileParentDirId(header);
-	ret->type_flags = 0;
-	if(isDirectory(header))
-		ret->type_flags |= INODE_TYPE_PARENT;
-	// copy the name
-	getFileName(header, ret->name, CHAR_ASCII_AUTO);
+		ret->flags = INODE_FLAG_READ;
+		ret->parent = getFileParentDirId(header);
+		ret->type_flags = 0;
+		if(isDirectory(header))
+			ret->type_flags |= INODE_TYPE_PARENT;
+		// copy the name
+		getFileName(header, ret->name, CHAR_ASCII_AUTO);
+	}
 
 	printk("smemfs: filename=%s\n", ret->name);
 	
