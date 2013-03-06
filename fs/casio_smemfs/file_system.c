@@ -6,10 +6,10 @@
 
 
 /**
- * Allocate a new VFS inode and fill it with the given header.
+ * Fill a previously allocated inode with the given header.
  * if header is NULL, return a node to use as root of the FS
  */
-inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header);
+inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header, inode_t *ret);
 
 struct _file_system smemfs_file_system = {
 	.name = "smemfs",
@@ -68,7 +68,7 @@ inode_t * smemfs_get_sub_node (inode_t *target, int index)
 	} while(current != NULL && curind <= index);
 
 	if(current != NULL) {
-		return smemfs_fill_inode(target->fs_op, current);
+		return vfs_get_inode(target->fs_op, getFileId(current));
 	}
 
 	return NULL;
@@ -80,7 +80,7 @@ inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
 	const unsigned char *header;
 	header = getAtomicFileHeader(name, target->node);
 	if(header != NULL)
-		return smemfs_fill_inode(target->fs_op, header);
+		return vfs_get_inode(target->fs_op, getFileId(header));
 
 	return NULL;
 }
@@ -107,22 +107,23 @@ inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
 		header = NULL;
 	}
 
-	return smemfs_fill_inode(inst, header);
-}
 
-
-inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header) 
-{
-	inode_t *ret = NULL;
-
-	printk("smemfs: fill_inode: %p\n", header);
-
-	ret = vfs_alloc_inode();
+	inode_t *ret;
+	ret = vfs_alloc_inode(inst, lnode);
 	if(ret == NULL)
 	{
 		printk("Error:\nvfs: unable to alloc inode\n");
 		return NULL;
 	}
+
+	return smemfs_fill_inode(inst, header, ret);
+}
+
+
+inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header, inode_t *ret) 
+{
+	printk("smemfs: fill_inode: %p\n", header);
+
 
 	ret->fs_op = inst;
 	ret->data.abstract = (void*)header; // more data ?

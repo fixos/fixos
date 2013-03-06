@@ -30,7 +30,7 @@ static protofs_node_t* _protofs_page = NULL;
 /**
  * Internal helper
  */
-inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node);
+inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret);
 
 
 
@@ -64,7 +64,7 @@ fs_instance_t *protofs_mount (unsigned int flags)
 
 inode_t * protofs_get_root_node (fs_instance_t *inst)
 {
-	return protofs_get_inode(inst, PROTOFS_ROOT_NODE);
+	return vfs_get_inode(inst, PROTOFS_ROOT_NODE);
 }
 
 
@@ -86,7 +86,7 @@ inode_t * protofs_get_sub_node (inode_t *target, int index)
 		}
 
 		if(found == index)
-			return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
+			return vfs_get_inode(target->fs_op, i-1);
 	}
 	
 	return NULL;
@@ -113,7 +113,7 @@ inode_t * protofs_find_sub_node (inode_t *target, const char *name)
 		}
 
 		if(found)
-			return protofs_fill_inode(target->fs_op, &(_protofs_page[i-1]));
+			return vfs_get_inode(target->fs_op, (uint32) i-1);
 	}
 	
 	return NULL;
@@ -134,7 +134,13 @@ inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node)
 			return NULL;
 	}
 
-	return protofs_fill_inode(inst, nodeptr);
+	inode_t *ret;
+	ret = vfs_alloc_inode(inst, node);	
+	if(ret == NULL) {
+		printk("protofs: vfs inode alloc failed\n");
+	}
+
+	return protofs_fill_inode(inst, nodeptr, ret);
 }
 
 
@@ -162,7 +168,7 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 			node->special.dev.minor = special & 0xFFFF;
 		}
 
-		return protofs_fill_inode(parent->fs_op, node);
+		return vfs_get_inode(parent->fs_op, PROTOFS_NODE_NB(node));
 	}
 	
 	return NULL;
@@ -170,19 +176,9 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 }
 
 
-inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node) {
-	inode_t *ret;
+inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret) {
 
-	if(node == NULL) {
-
-	}
-
-	ret = vfs_alloc_inode();	
-	if(ret == NULL) {
-		printk("protofs: vfs inode alloc failed\n");
-	}
 	ret->fs_op = inst;
-
 	if(node == NULL) {
 		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
 		ret->data.abstract = NULL;

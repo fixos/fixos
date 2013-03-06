@@ -38,6 +38,8 @@
 // for now, VFS has a static allocation file system list
 #define VFS_MAX_FS			4
 
+#define VFS_MAX_MOUNT		6
+
 // static flag for vfs_register_fs()
 #define VFS_REGISTER_STATIC	1
 #define VFS_REGISTER_AUTO	1
@@ -48,15 +50,33 @@
 void vfs_init();
 
 /**
- * Try to allocate a inode_t object.
+ * Try to allocate a inode_t object into the VFS cache.
+ * The FS instance and internal node id are required for the
+ * caching system, and should never change during the life of
+ * this inode.
+ * Also, these values *must* be a unique pair in the entiere VFS!
  * Return its address, or NULL if alloc fails.
  */
-inode_t *vfs_alloc_inode();
+inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node);
 
 /**
- * Free an inode previously allocated by vfs_alloc_inode().
+ * Release one 'instance' of use (decrease the 'count' from 1).
+ * If count is decreased to 0, the inode may be freed.
  */
-void vfs_free_inode(inode_t *inode);
+void vfs_release_inode(inode_t *inode);
+
+
+/**
+ * Get the inode from its fs instance and its internal node id.
+ * The inode is firstly searched in the VFS cache, and the fs-specific
+ * 'get_inode' is called only if not found in the cache.
+ * In all case, count is increased.
+ * (implementations of file systems should use this each time they need
+ * to obtain an inode, even for an entry of the same FS!)
+ * Return NULL if not found in the cache and not allowed by the internal
+ * fs instance.
+ */
+inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid);
 
 
 /**

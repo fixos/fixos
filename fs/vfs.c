@@ -1,78 +1,69 @@
 #include "vfs.h"
+#include "fs_instance.h"
 
 #include <utils/strutils.h>
-// TODO add a generalized get_free_page (for now it's arch-dependant)
-#include <arch/sh/physical_memory.h>
+#include <fs/vfs_cache.h>
 
 #include <utils/log.h>
 
-
-// union used to make linked list of inodes (for inode allocation)
-union _inlist_element {
-	inode_t inode;
-	struct {
-		union _inlist_element *next;
-	} free;
+struct _fs_mount_point {
+	fs_instance_t *inst;
+	inode_t *mountpoint;
 };
 
-// inode allocation page
-static void *vfs_inode_page = NULL;
 
-// first free inode in allocation page (NULL if no more free inode)
-static union _inlist_element *vfs_first_free = NULL;
+static fs_instance_t *_root_fs;
 
-#define INODE_PER_PAGE (PM_PAGE_BYTES/sizeof(inode_t))
+static struct _fs_mount_point _mounted_fs[VFS_MAX_MOUNT];
 
-// list of file systems registered in VFS, a NULL entry is a non used space
-static file_system_t *vfs_fslist[VFS_MAX_FS] = {NULL};
-
-
-static fs_instance_t *_root_fs = NULL;
+static file_system_t *vfs_fslist[VFS_MAX_FS];
 
 
 void vfs_init()
 {
-	unsigned int ppm;
-	union _inlist_element *cur;
-	int i;
-	
-	pm_get_free_page(&ppm);
-
-	printk("vfs: inode/page=%d\n", INODE_PER_PAGE);
-
-	vfs_inode_page = PM_PHYSICAL_ADDR(ppm) + 0x80000000;
-	cur = vfs_first_free = vfs_inode_page;
-	for(i=0; i<INODE_PER_PAGE; i++) {
-		// fill the allocated page with free elements
-		if(i < (INODE_PER_PAGE-1))
-			cur->free.next = (void*)((int)cur + sizeof(inode_t));
-		else
-			cur->free.next = NULL;
-		cur = cur->free.next;
-	}
+	vfs_cache_init();
 }
 
 
 
-inode_t *vfs_alloc_inode()
+inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node)
 {
 	// take the first free inode in the list, and remove it
 	inode_t *ret;
-	ret = &(vfs_first_free->inode);
+	ret = (inode_t*) (vfs_cache_alloc(inst, node));
 	if(ret != NULL)
-		vfs_first_free = vfs_first_free->free.next;
+		ret->count = 0;
 	return ret;
 }
 
 
 
-void vfs_free_inode(inode_t *inode)
+void vfs_release_inode(inode_t *inode)
 {
-	// just put the freed inode at the top of the list
-	union _inlist_element *freed;
-	freed = (void*)inode;
-	freed->free.next = vfs_first_free;
-	vfs_first_free = freed;
+	if(inode->count > 0) inode->count--;
+	if(inode->count == 0)
+		vfs_cache_remove(inode->fs_op, inode->node);
+}
+
+
+inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid)
+{
+	// ask to the vfs_cache in first...
+	inode_t *ret;
+	vfs_cache_entry_t *cached;
+
+	cached = vfs_cache_find(inst, nodeid);
+	if(cached == NULL)
+		ret = inst->fs->get_inode(inst, nodeid);
+	else
+		ret = &(cached->inode);
+
+	if(ret != NULL)
+		ret->count++; // increment counter of usage
+	else 
+		printk("vfs: getinode: !0x%x\n", nodeid);
+	
+	return ret;
 }
 
 
@@ -88,6 +79,7 @@ void vfs_register_fs(file_system_t *fs, int flags)
 		for(i=0; i<VFS_MAX_FS && !ok; i++) {
 			if(vfs_fslist[i] == NULL) {
 				vfs_fslist[i] = fs;
+				
 				ok = 1;
 			}
 		}
@@ -119,17 +111,46 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 		return -1;
 	}
 
-	// TODO MOUNT_NORMAL
-	if((flags & VFS_MOUNT_ROOT) && _root_fs == NULL) {
-		_root_fs = fs->mount(0);
-		if(_root_fs != NULL)
-			return 0;
+	// Mount root
+	if(flags & VFS_MOUNT_ROOT) {
+		if(_root_fs == NULL) {
+			_root_fs = fs->mount(0);
+			if(_root_fs != NULL)
+				return 0;
+		}
+	}
+	// Mount Normal
+	else {
+		struct _fs_mount_point *mntp = NULL;
+		
+		// find a free mount fs data
+		for(i=0; i<VFS_MAX_MOUNT && mntp->inst!=NULL; i++)
+			mntp = &(_mounted_fs[i]);
+		
+		if(i<VFS_MAX_MOUNT) {
+			// find the mount point inode
+			inode_t *mnt_inode = vfs_resolve(path);
+			if(mnt_inode != NULL) {
+				
+				// add the mounted point/fs
+				mntp->inst = fs->mount(0);
+				if(mntp->inst != NULL) {
+					mntp->mountpoint = mnt_inode;
+					// set the INODE_TYPE_MOUNTPOINT in the inode, and never
+					// free it (don't release it)
+					// TODO flag to say an inode must never be un-cached?
+					mnt_inode->type_flags |= INODE_TYPE_MOUNTPOINT;
+				}
+			}
+			
+		}
 	}
 	
 	return -1;
 }
 
 
+// TODO solve '.' and '..' pseudo-entries
 inode_t *vfs_resolve(const char *path)
 {
 	// okey, to do that we need to split the path, and to
@@ -158,12 +179,31 @@ inode_t *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			//printk("resolve: split=%s\n", tmpname);
+			printk("resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {
 				swap = current->fs_op->fs->find_sub_node(current, tmpname);
-				vfs_free_inode(current);
+
+				vfs_release_inode(current);
+
+				// check if the entry is a mount point
+				if(swap != NULL && (swap->type_flags & INODE_TYPE_MOUNTPOINT)) {
+					// replace with the real inode (root of the mounted FS)
+					int i;
+					fs_instance_t *mounted = NULL;
+
+					for(i=0; i<VFS_MAX_MOUNT && mounted != NULL; i++) {
+						if(_mounted_fs[i].mountpoint == swap)
+							mounted = _mounted_fs[i].inst;
+					}
+					vfs_release_inode(swap);
+					
+					if(mounted != NULL)
+						swap = mounted->fs->get_root_node(mounted);
+					else
+						printk("vfs: error: bad mount point\n    path='%s'\n", path);
+				}
 				current = swap;
 			}
 

@@ -15,11 +15,11 @@ int vfs_create(const char *path, const char *name, uint16 type_flags,
 		newnode = target->fs_op->fs->create_node(target, name, type_flags,
 				mode_flags, special);
 		if(newnode != NULL)
-			vfs_free_inode(newnode);
+			vfs_release_inode(newnode);
 
 		printk("vfs_create: new=%p\n", newnode);
 
-		vfs_free_inode(target);
+		vfs_release_inode(target);
 		return newnode == NULL ? -1 : 0;
 	}
 

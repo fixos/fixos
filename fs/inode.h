@@ -16,6 +16,8 @@
 // entry with this flag must have a node ID, but don't need
 // to have a parent or a name
 #define INODE_TYPE_ROOT			4
+// mount point (a file system instance is mounted on this node)
+#define INODE_TYPE_MOUNTPOINT	8
 
 
 #define INODE_FLAG_READ			4
@@ -47,6 +49,7 @@ struct _inode {
 			uint16 minor;
 		} dev;
 	} data;
+	uint16 count;
 };
 
 typedef struct _inode inode_t;

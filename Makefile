@@ -1,5 +1,5 @@
 CC=sh3eb-elf-gcc
-CCFLAGS=-Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
+CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
 
 LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 
@@ -16,7 +16,7 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=fs/vfs_op.c fs/protofs/file_system.c fs/vfs.c fs/casio_smemfs/smemfs_primitives.c fs/casio_smemfs/file_system.c utils/strconv.c utils/log.c arch/sh/physical_memory.c arch/sh/mmu.c sys/process.c arch/sh/virtual_memory.c arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
+C_SRC=fs/vfs_cache.c fs/vfs_op.c fs/protofs/file_system.c fs/vfs.c fs/casio_smemfs/smemfs_primitives.c fs/casio_smemfs/file_system.c utils/strconv.c utils/log.c arch/sh/physical_memory.c arch/sh/mmu.c sys/process.c arch/sh/virtual_memory.c arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c
 
 ASM_SRC=bootstrap.s utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s display/T6K11/drawall.s display/T6K11/setpixel.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S 
 
