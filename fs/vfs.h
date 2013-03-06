@@ -103,6 +103,12 @@ int vfs_mount(const char *fsname, const char *path, int flags);
 inode_t *vfs_resolve(const char *path);
 
 
+/**
+ * Resolve one entry from a given inode.
+ * Return the inode if found, NULL otherwise.
+ */
+inode_t *vfs_walk_entry(inode_t *parent, const char *name);
+
 
 /**
   * Open a file if exists, at the given pathname.

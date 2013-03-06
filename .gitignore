@@ -1,2 +1,7 @@
 *~
 *.swp
+*.o
+fixos.bin
+fixos.g1a
+fixos.elf
+

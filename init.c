@@ -142,14 +142,17 @@ void init() {
 	vfs_create("/dev", "mouahah", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "pouet", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/", "usr", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
-	/*vfs_create("/", "fmem", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/", "fmem", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
 	vfs_create("/usr", "chose1", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
 	vfs_create("/usr/chose1", "bidule2", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
 	vfs_create("/usr/chose1/bidule2", "holy_shit", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "stdin", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "sda", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
-	*/
-	inode_t *curi = vfs_resolve("/dev/mouahah");
+	vfs_create("/", "mnt", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/mnt", "test", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+
+	vfs_mount("smemfs", "/mnt/test", VFS_MOUNT_NORMAL);
+	inode_t *curi = vfs_resolve("/mnt/test/UEDIT/acore.cfg");
 	
 	if(curi != NULL)
 		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
@@ -230,7 +233,7 @@ void print_inode_tree(inode_t *from, int tab)
 		cur = from->fs_op->fs->get_sub_node(from, i);
 
 		wait++;
-		if(wait > 7) {
+		if(wait > 6) {
 			DBG_WAIT;
 			wait = 0;
 		}

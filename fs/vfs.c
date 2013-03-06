@@ -21,7 +21,14 @@ static file_system_t *vfs_fslist[VFS_MAX_FS];
 
 void vfs_init()
 {
+	int i;
 	vfs_cache_init();
+	for(i=0; i<VFS_MOUNT_ROOT; i++) {
+		_mounted_fs[i].inst = NULL;
+		_mounted_fs[i].mountpoint = NULL;
+	}
+	for(i=0; i<VFS_MAX_FS; i++)
+		vfs_fslist[i] = NULL;
 }
 
 
@@ -124,10 +131,10 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 		struct _fs_mount_point *mntp = NULL;
 		
 		// find a free mount fs data
-		for(i=0; i<VFS_MAX_MOUNT && mntp->inst!=NULL; i++)
-			mntp = &(_mounted_fs[i]);
+		for(i=0; i<VFS_MAX_MOUNT && _mounted_fs[i].inst!=NULL; i++);
 		
 		if(i<VFS_MAX_MOUNT) {
+			mntp = &(_mounted_fs[i]);
 			// find the mount point inode
 			inode_t *mnt_inode = vfs_resolve(path);
 			if(mnt_inode != NULL) {
@@ -179,31 +186,12 @@ inode_t *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			printk("resolve: split=%s\n", tmpname);
+			//printk("resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {
-				swap = current->fs_op->fs->find_sub_node(current, tmpname);
-
+				swap = vfs_walk_entry(current, tmpname);
 				vfs_release_inode(current);
-
-				// check if the entry is a mount point
-				if(swap != NULL && (swap->type_flags & INODE_TYPE_MOUNTPOINT)) {
-					// replace with the real inode (root of the mounted FS)
-					int i;
-					fs_instance_t *mounted = NULL;
-
-					for(i=0; i<VFS_MAX_MOUNT && mounted != NULL; i++) {
-						if(_mounted_fs[i].mountpoint == swap)
-							mounted = _mounted_fs[i].inst;
-					}
-					vfs_release_inode(swap);
-					
-					if(mounted != NULL)
-						swap = mounted->fs->get_root_node(mounted);
-					else
-						printk("vfs: error: bad mount point\n    path='%s'\n", path);
-				}
 				current = swap;
 			}
 
@@ -219,6 +207,39 @@ inode_t *vfs_resolve(const char *path)
 
 	return NULL;
 }
+
+
+
+// TODO : how to give the name and other properties from real node
+// to mouted-on FS root???
+inode_t *vfs_walk_entry(inode_t *parent, const char *name)
+{
+	inode_t *ret;
+
+	ret = parent->fs_op->fs->find_sub_node(parent, name);
+
+	// check if the entry is a mount point
+	if(ret != NULL && (ret->type_flags & INODE_TYPE_MOUNTPOINT)) {
+		// replace with the real inode (root of the mounted FS)
+		int i;
+		fs_instance_t *mounted = NULL;
+
+		for(i=0; i<VFS_MAX_MOUNT && mounted == NULL; i++) {
+			if(_mounted_fs[i].mountpoint == ret)
+				mounted = _mounted_fs[i].inst;
+		}
+
+		if(mounted != NULL) {
+			vfs_release_inode(ret);
+			ret = mounted->fs->get_root_node(mounted);
+		}
+		else
+			printk("vfs: error: bad mount point\n    node='%s'\n", name);
+	}
+
+	return ret;
+}
+
 
 
 /**
