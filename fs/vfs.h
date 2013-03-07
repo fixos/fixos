@@ -109,6 +109,14 @@ inode_t *vfs_resolve(const char *path);
  */
 inode_t *vfs_walk_entry(inode_t *parent, const char *name);
 
+/**
+ * Try to resolve a TYPE_MOUNTPOINT or a TYPE_ROOT inode.
+ * If the given inode is a mountpoint, its corresponding root is returned.
+ * If it's a root inode, its mountpoint is returned.
+ * Else, or if a root inode is the VFS root, return NULL.
+ */
+inode_t *vfs_resolve_mount(inode_t *inode);
+
 
 /**
   * Open a file if exists, at the given pathname.

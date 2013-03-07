@@ -47,9 +47,18 @@ inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node)
 
 void vfs_release_inode(inode_t *inode)
 {
-	if(inode->count > 0) inode->count--;
-	if(inode->count == 0)
-		vfs_cache_remove(inode->fs_op, inode->node);
+	if(inode->count > 0) {
+		if(inode->count == 1 && (inode->type_flags & (INODE_TYPE_ROOT | INODE_TYPE_MOUNTPOINT)) )
+			printk("vfs: W: trying free mount|root\n");
+		else {
+			inode->count--;
+			if(inode->count == 0)
+				vfs_cache_remove(inode->fs_op, inode->node);
+		}
+	}
+	else 
+		printk("vfs: W: trying free count=0\n");
+
 }
 
 
@@ -122,8 +131,15 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 	if(flags & VFS_MOUNT_ROOT) {
 		if(_root_fs == NULL) {
 			_root_fs = fs->mount(0);
-			if(_root_fs != NULL)
-				return 0;
+			if(_root_fs != NULL) {
+				// root inode must never be removed from cache
+				inode_t *root_inode = _root_fs->fs->get_root_node(_root_fs);
+				if(root_inode != NULL) {
+					root_inode->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
+					root_inode->typespec.mnt_point = NULL; // no real mount point
+					return 0;
+				}
+			}
 		}
 	}
 	// Mount Normal
@@ -137,18 +153,28 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 			mntp = &(_mounted_fs[i]);
 			// find the mount point inode
 			inode_t *mnt_inode = vfs_resolve(path);
-			if(mnt_inode != NULL) {
+			if(mnt_inode != NULL && (mnt_inode->type_flags & INODE_TYPE_PARENT)) {
 				
 				// add the mounted point/fs
 				mntp->inst = fs->mount(0);
 				if(mntp->inst != NULL) {
-					mntp->mountpoint = mnt_inode;
-					// set the INODE_TYPE_MOUNTPOINT in the inode, and never
-					// free it (don't release it)
-					// TODO flag to say an inode must never be un-cached?
-					mnt_inode->type_flags |= INODE_TYPE_MOUNTPOINT;
+					// root inode must never be removed from cache
+					inode_t *root_inode = mntp->inst->fs->get_root_node(mntp->inst);
+					if(root_inode != NULL) {
+						root_inode->typespec.mnt_point = mnt_inode;
+						root_inode->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
+						mntp->mountpoint = mnt_inode;
+						// set the INODE_TYPE_MOUNTPOINT in the inode, and never
+						// free it (don't release it)
+						// TODO flag to say an inode must never be un-cached?
+						mnt_inode->type_flags |= INODE_TYPE_MOUNTPOINT;
+						mnt_inode->typespec.mnt_root = root_inode;
+						return 0;
+					}
 				}
 			}
+			else
+				printk("vfs: unable to mount (inv. inode)\n");
 			
 		}
 	}
@@ -157,7 +183,6 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 }
 
 
-// TODO solve '.' and '..' pseudo-entries
 inode_t *vfs_resolve(const char *path)
 {
 	// okey, to do that we need to split the path, and to
@@ -186,7 +211,7 @@ inode_t *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			//printk("resolve: split=%s\n", tmpname);
+			printk("resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {
@@ -214,16 +239,50 @@ inode_t *vfs_resolve(const char *path)
 // to mouted-on FS root???
 inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 {
-	inode_t *ret;
+	inode_t *ret = NULL;
+	inode_t *real = parent;
 
-	ret = parent->fs_op->fs->find_sub_node(parent, name);
+	// current entry (".")
+	if(name[0] == '.' && name[1] == '\0') {
+		ret = parent;
+		parent->count++;
+	}
+	// parent entry ("..")
+	else if(name[0] == '.' && name[1] == '.' && name[2] == '\0') {
+		// get the mounted point if its a fs root node
+		if(parent->type_flags & INODE_TYPE_ROOT) { 
+			// don't change the count
+			real = parent->typespec.mnt_point;
+			printk("vfs: rslv root: %s\n", real == NULL ? "nil" : real->name);
+		}
+		// get the parent (may be NULL if parent is the root fs
+		if(real != NULL) {
+			ret = vfs_get_inode(real->fs_op, real->parent);
+		}
+	}
+
+	else {
+		if(parent->type_flags & INODE_TYPE_MOUNTPOINT) {
+			// replace with the real inode (root of the mounted FS)
+			real = parent->typespec.mnt_root;
+			printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
+		}
+		ret = real->fs_op->fs->find_sub_node(real, name);
+	}
+
+	return ret;
+}
+
+
+
+inode_t *vfs_resolve_mount(inode_t *inode) {
+	inode_t *ret = NULL;
 
 	// check if the entry is a mount point
-	if(ret != NULL && (ret->type_flags & INODE_TYPE_MOUNTPOINT)) {
+	if(inode->type_flags & INODE_TYPE_MOUNTPOINT) {
 		// replace with the real inode (root of the mounted FS)
-		int i;
-		fs_instance_t *mounted = NULL;
-
+		ret = inode->typespec.mnt_root;
+/*
 		for(i=0; i<VFS_MAX_MOUNT && mounted == NULL; i++) {
 			if(_mounted_fs[i].mountpoint == ret)
 				mounted = _mounted_fs[i].inst;
@@ -235,11 +294,14 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 		}
 		else
 			printk("vfs: error: bad mount point\n    node='%s'\n", name);
+*/
+	}
+	else if(inode->type_flags & INODE_TYPE_ROOT) {
+		ret = inode->typespec.mnt_point;
 	}
 
 	return ret;
 }
-
 
 
 /**

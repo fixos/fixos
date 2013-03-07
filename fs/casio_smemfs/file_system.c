@@ -126,7 +126,7 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, const unsigned char*header, inod
 
 
 	ret->fs_op = inst;
-	ret->data.abstract = (void*)header; // more data ?
+	ret->abstract = (void*)header; // more data ?
 
 	if(header == NULL)
 	{

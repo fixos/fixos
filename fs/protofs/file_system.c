@@ -159,7 +159,10 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 		protofs_node_t *node = &(_protofs_page[cur]);
 		// TODO TODO strNcpy!!!!
 		strcpy(node->name, name);
-		node->parent = PROTOFS_NODE_ADDR(parent->node);
+		if(parent->node == PROTOFS_ROOT_NODE)
+			node->parent = NULL;
+		else
+			node->parent = PROTOFS_NODE_ADDR(parent->node);
 		node->type_flags = type_flags;
 		node->mode = mode_flags;
 		
@@ -181,7 +184,7 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 	ret->fs_op = inst;
 	if(node == NULL) {
 		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
-		ret->data.abstract = NULL;
+		ret->abstract = NULL;
 		ret->name[0] = '\0';
 		ret->node = PROTOFS_ROOT_NODE; 
 		ret->flags = INODE_FLAG_READ | INODE_FLAG_WRITE | INODE_FLAG_EXEC;
@@ -190,14 +193,17 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 	else {
 		ret->type_flags = node->type_flags & (~PROTOFS_TYPE_EMPTY);
 		if(node->type_flags & INODE_TYPE_DEV) {
-			ret->data.dev.major = node->special.dev.major;
-			ret->data.dev.minor = node->special.dev.minor;
+			ret->typespec.dev.major = node->special.dev.major;
+			ret->typespec.dev.minor = node->special.dev.minor;
 		}
 		else
-			ret->data.abstract = NULL;
+			ret->abstract = NULL;
 		strcpy(ret->name, node->name);
 		ret->node = PROTOFS_NODE_NB(node);
-		ret->parent = PROTOFS_NODE_NB(node->parent); 
+		if(node->parent == NULL)
+			ret->parent = PROTOFS_ROOT_NODE;
+		else
+			ret->parent = PROTOFS_NODE_NB(node->parent); 
 		ret->flags = node->mode;
 	}
 

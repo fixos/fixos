@@ -26,7 +26,7 @@
 
 
 // maximum name size for an inode entry
-#define INODE_MAX_NAME			24
+#define INODE_MAX_NAME			20
 
 struct _fs_instance; // instance of a filesystem
 
@@ -42,13 +42,21 @@ struct _inode {
 	uint16 type_flags;
 	uint16 flags;
 
+	void *abstract; // private data for the FS instance
+
+	// type-specific informations :
 	union {
-		void *abstract; // private data for the FS instance
+		// for TYPE_DEV
 		struct {
 			uint16 major;
 			uint16 minor;
 		} dev;
-	} data;
+		// root of a mounted point (TYPE_MOUNTPOINT)
+		struct _inode *mnt_root;
+		// mounted point of a fs root (TYPE_ROOT)
+		struct _inode *mnt_point;
+	} typespec;
+
 	uint16 count;
 };
 

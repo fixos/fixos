@@ -11,15 +11,21 @@ static int g_posy = 0;
 static vram_t g_terminal_vram = NULL;
 
 
+// tmp
+#include "keyboard/keyboard.h"
+
 void terminal_write(const char *str) {
 	int i;
 	int maxx = termchar_width();
 	int maxy = termchar_height();
+	// TODO remove tmp stuff for blocking the terminal
+	static int line_nb = 0;
 
 	for(i=0; str[i]!='\0'; i++) {
 		if(str[i] == '\n') {
 			g_posx = 0;
 			g_posy++;
+			line_nb++;
 		}
 		else if(str[i] == '\r') g_posx=0;
 		else {
@@ -29,8 +35,23 @@ void terminal_write(const char *str) {
 		if(g_posx>=maxx) {
 			g_posx = 0;
 			g_posy++;
+			line_nb++;
 		}
+
 		if(g_posy>=maxy) {
+			// tmp stuff
+			if(line_nb >= maxy-1) {
+				int j;
+				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
+				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
+				for(j=0; j<warn_strlen; j++)
+					write_character(j, 0, TCOLOR_WHITE, TCOLOR_BLACK, warn_str[j], g_terminal_vram);
+				copy_to_dd(g_terminal_vram);
+				while(!is_key_down(K_EXE));
+				while(is_key_down(K_EXE));
+				line_nb = 0;
+			}
+
 			scroll_up(g_terminal_vram, g_back_c);
 			g_posy = maxy-1;
 		}

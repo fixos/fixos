@@ -161,6 +161,12 @@ void init() {
 
 	DBG_WAIT;
 
+	inode_t *curi2 = vfs_resolve("/mnt/.././mnt/test/../../mnt/test/UEDIT/.././././UEDIT/acore.cfg");
+
+	printk("with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
+
+	DBG_WAIT;
+
 	ls_tree();
 
 	/*inode_t *root, *curi;
