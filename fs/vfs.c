@@ -47,6 +47,7 @@ inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node)
 
 void vfs_release_inode(inode_t *inode)
 {
+	//printk("vfs: --(%s, , 0x%x, %d)\n", inode->name, inode->node, inode->count);
 	if(inode->count > 0) {
 		if(inode->count == 1 && (inode->type_flags & (INODE_TYPE_ROOT | INODE_TYPE_MOUNTPOINT)) )
 			printk("vfs: W: trying free mount|root\n");
@@ -74,8 +75,10 @@ inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid)
 	else
 		ret = &(cached->inode);
 
-	if(ret != NULL)
+	if(ret != NULL) {
+		//printk("vfs: ++(%s, , 0x%x, %d)\n", ret->name, ret->node, ret->count);
 		ret->count++; // increment counter of usage
+	}
 	else 
 		printk("vfs: getinode: !0x%x\n", nodeid);
 	
@@ -211,7 +214,7 @@ inode_t *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			printk("resolve: split=%s\n", tmpname);
+			//printk("resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {
@@ -245,6 +248,7 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 	// current entry (".")
 	if(name[0] == '.' && name[1] == '\0') {
 		ret = parent;
+		//printk("vfs: ++(%s, , 0x%x, %d)\n", parent->name, parent->node, parent->count);
 		parent->count++;
 	}
 	// parent entry ("..")
@@ -253,7 +257,7 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 		if(parent->type_flags & INODE_TYPE_ROOT) { 
 			// don't change the count
 			real = parent->typespec.mnt_point;
-			printk("vfs: rslv root: %s\n", real == NULL ? "nil" : real->name);
+			//printk("vfs: rslv root: %s\n", real == NULL ? "nil" : real->name);
 		}
 		// get the parent (may be NULL if parent is the root fs
 		if(real != NULL) {
@@ -265,7 +269,7 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 		if(parent->type_flags & INODE_TYPE_MOUNTPOINT) {
 			// replace with the real inode (root of the mounted FS)
 			real = parent->typespec.mnt_root;
-			printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
+			//printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
 		}
 		ret = real->fs_op->fs->find_sub_node(real, name);
 	}

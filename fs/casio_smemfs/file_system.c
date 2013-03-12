@@ -44,7 +44,7 @@ fs_instance_t *smemfs_mount (unsigned int flags)
 inode_t * smemfs_get_root_node (fs_instance_t *inst)
 {
 	inode_t *ret;
-	ret = smemfs_get_inode(inst, ROOT_ID);
+	ret = vfs_get_inode(inst, ROOT_ID);
 	
 	printk("smemfs: root inode=%p\n", ret);
 

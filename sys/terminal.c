@@ -40,7 +40,7 @@ void terminal_write(const char *str) {
 
 		if(g_posy>=maxy) {
 			// tmp stuff
-			if(line_nb >= maxy-1) {
+			if(line_nb >= maxy-3) {
 				int j;
 				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
 				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
@@ -49,6 +49,8 @@ void terminal_write(const char *str) {
 				copy_to_dd(g_terminal_vram);
 				while(!is_key_down(K_EXE));
 				while(is_key_down(K_EXE));
+				static volatile int tricks;
+				for(tricks = 0; tricks<100000; tricks++);
 				line_nb = 0;
 			}
 

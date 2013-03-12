@@ -11,8 +11,8 @@
 #define INODE_PER_PAGE (PM_PAGE_BYTES/sizeof(vfs_cache_entry_t))
 
 // hash algorithm
-#define VFS_CACHE_HASH(inst,nodeid) ( ( (((int)(inst)>>16) ^ (int)(inst)) ^ \
-		(((nodeid)>>16) ^ (nodeid)) ) % VFS_CACHE_HASHTABLE_SIZE)
+#define VFS_CACHE_HASH(inst,nodeid) ( ( ( (((int)(inst)>>16) ^ (int)(inst)) ^ \
+		(((nodeid)>>16) ^ (nodeid)) ) & 0xFFFF)  % VFS_CACHE_HASHTABLE_SIZE)
 
 
 // hash table first entries
@@ -106,7 +106,7 @@ void vfs_cache_remove(fs_instance_t *inst, uint32 nodeid)
 		if(prev != NULL)
 			prev->next = cur->next;
 		else
-			_hash_head[hash] = NULL;
+			_hash_head[hash] = cur->next;
 		cur->next = _first_free;
 		_first_free = cur;
 	}

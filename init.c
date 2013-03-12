@@ -17,14 +17,17 @@ extern void * fixos_vbr;  // see fixos.ld
 
 void test();
 
+void print_content(void *addr, int size);
+
 /**
  * Function to help debugging fs's and vfs : print the tree
  * of ALL the mounted file system (wondereful)
  */
 void ls_tree();
 
-#define DBG_WAIT while(is_key_down(K_EXE)); \
-	while(!is_key_down(K_EXE))
+#define DBG_WAIT 
+//while(is_key_down(K_EXE)); \
+	//while(!is_key_down(K_EXE))
 
 // Real entry point of the OS :
 void init() {
@@ -195,6 +198,8 @@ void init() {
 
 	INTX.PINTER.WORD = 0b0000000011111111;
 */
+
+	print_content((void*)0xa4550000, 240);
 	j=0;
 	while(1) {
 		printk("Test a la con : %d\n", j);
@@ -211,6 +216,15 @@ void test() {
 
 	printk("Ohohoh! Surprise^%d!\n", i);
 	i++;
+}
+
+void print_content(void *addr, int size) {
+	unsigned char *mem = addr;
+	int i;
+	for(i=0; i<size; i+=10) {
+		printk("%p : %x %x %x %x %x %x %x %x %x %x\n", mem, mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7], mem[8], mem[9]);
+		mem += 10;
+	}
 }
 
 
