@@ -45,16 +45,20 @@ const unsigned char *getAtomicFileHeader(const char *filename, unsigned short pa
 
 
 
-const unsigned char *getFileHeader(unsigned short fileId) {
+const unsigned char *getFileHeader(unsigned short fileId, int isDir) {
 	const unsigned char *start, *current;
 	int i;
+	unsigned char checkchar = 0x20; // code for a normal file
+
+	if(isDir)
+		checkchar = 0x10;
 
 	start = getFSHeaderAddress();
 	current = start;
 
 	for(i=0;(current[0] == FILE_HEADER_START) || (current[0] == FILE_HEADER_DELETED); i++) {
 		if(!isDeleted(current)) {
-			if(fileId == getFileId(current)) 
+			if(fileId == getFileId(current) && current[1] == checkchar) 
 				return current;
 		}
 		if(!isDirectory(current)) current = 

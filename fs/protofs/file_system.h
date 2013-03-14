@@ -18,7 +18,9 @@ fs_instance_t *protofs_mount (unsigned int flags);
 
 inode_t * protofs_get_root_node (fs_instance_t *inst);
 
-inode_t * protofs_get_sub_node (inode_t *target, int index);
+inode_t * protofs_next_sibling(inode_t *target);
+
+inode_t * protofs_first_child(inode_t *target);
 
 int protofs_get_children_nb (inode_t *target);
 

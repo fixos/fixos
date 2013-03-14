@@ -79,6 +79,11 @@ void vfs_release_inode(inode_t *inode);
 inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid);
 
 
+inode_t *vfs_first_child(inode_t *target);
+
+inode_t *vfs_next_sibling(inode_t *target);
+
+
 /**
  * Register a file system into VFS.
  * Flag should be VFS_REGISTER_AUTO!

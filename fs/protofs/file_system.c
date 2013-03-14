@@ -11,7 +11,8 @@ struct _file_system protofs_file_system = {
 	.name = "protofs",
 	.mount = protofs_mount,
 	.get_root_node = protofs_get_root_node,
-	.get_sub_node = protofs_get_sub_node,
+	.first_child = protofs_first_child,
+	.next_sibling = protofs_next_sibling,
 	.find_sub_node = protofs_find_sub_node,
 	.get_inode = protofs_get_inode,
 	.create_node = protofs_create_node
@@ -68,27 +69,50 @@ inode_t * protofs_get_root_node (fs_instance_t *inst)
 }
 
 
-inode_t * protofs_get_sub_node (inode_t *target, int index)
+inode_t * protofs_first_child(inode_t *target)
 {
-	// the simplest algorithm : test all the page of nodes...
 	if(target->type_flags & INODE_TYPE_PARENT) {
 		int i;
-		int found = -1;
+		int found = 0;
 		void *parent = PROTOFS_NODE_ADDR(target->node);
 
 		if(target->node == PROTOFS_ROOT_NODE)
 			parent = NULL;
 
-		for(i=0; i<PROTOFS_PER_PAGE && found < index; i++) {
+		for(i=0; i<PROTOFS_PER_PAGE && !found; i++) {
 			if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
 				if(_protofs_page[i].parent == parent)
-					found++;
+					found = 1;
 		}
 
-		if(found == index)
+		if(found)
 			return vfs_get_inode(target->fs_op, i-1);
 	}
 	
+	return NULL;
+}
+
+inode_t * protofs_next_sibling(inode_t *target)
+{
+	if(target->node != PROTOFS_ROOT_NODE) {
+		int i;
+		int found = 0;
+		void *parent = PROTOFS_NODE_ADDR(target->parent);
+
+		if(target->parent == PROTOFS_ROOT_NODE)
+			parent = NULL;
+
+		// start to search from the target node ID + 1 (index in the array)
+		for(i=target->node+1; i<PROTOFS_PER_PAGE && !found; i++) {
+			if(!(_protofs_page[i].type_flags & PROTOFS_TYPE_EMPTY))
+				if(_protofs_page[i].parent == parent)
+					found = 1;
+		}
+
+		if(found)
+			return vfs_get_inode(target->fs_op, i-1);
+	}
+
 	return NULL;
 }
 

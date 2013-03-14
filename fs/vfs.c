@@ -86,6 +86,30 @@ inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid)
 }
 
 
+inode_t *vfs_first_child(inode_t *target)
+{
+	if(target->type_flags & INODE_TYPE_PARENT) {
+		inode_t *real = target;
+		if(target->type_flags & INODE_TYPE_MOUNTPOINT) {
+			// replace with the real inode (root of the mounted FS)
+			real = target->typespec.mnt_root;
+			//printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
+		}
+		return real->fs_op->fs->first_child(real);
+	}
+	return NULL;
+}
+
+
+inode_t *vfs_next_sibling(inode_t *target)
+{
+	if(!(target->type_flags & INODE_TYPE_ROOT)) {
+		return target->fs_op->fs->next_sibling(target);
+	}
+	return NULL;
+}
+
+
 
 void vfs_register_fs(file_system_t *fs, int flags)
 {

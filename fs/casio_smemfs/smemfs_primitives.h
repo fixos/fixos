@@ -14,6 +14,11 @@
 
 #define CASIO_STORAGE_MEM ((const unsigned char*)(0xA0000000)) 
 
+#define FULL_NODE_ID(header) (getFileId((header)) | (isDirectory((header)) ? \
+				FILE_FLAG_ISDIR : 0) )
+
+#define FILE_FLAG_ISDIR		0x20000
+
 
 #define PAGESTATUS_NORMAL 		0x0000
 #define PAGESTATUS_UNUSED 		0xFFFF
@@ -59,10 +64,11 @@ const unsigned char *getAtomicFileHeader(const char *filename, unsigned short pa
 
 /**
  * Look for the the file with ID 'fileId' and return his header if exists.
+ * If the required file is a directory, isDir must not be 0.
  * Else return NULL.
  * Note : the header may be a removed file header, use isDeleted to check
  */
-const unsigned char *getFileHeader(unsigned short fileId);
+const unsigned char *getFileHeader(unsigned short fileId, int isDir);
 
 /**
   * Compare the string str to the file/dir header name pointed by fileHeaderName. Return 0 if it match.

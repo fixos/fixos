@@ -19,11 +19,17 @@ struct _file_system {
 	// return the root of given fs instance as a simple inode
 	inode_t * (*get_root_node) (fs_instance_t *inst);
 
-	// return the child [index] of the target if exists, NULL else
-	// only some nodes (marked with INODE_TYPE_PARENT) may have children
-	// This function allow readdir-like implementation, but is really
-	// hard to optimize in almost all FS, so maybe removed later :/
-	inode_t * (*get_sub_node) (inode_t *target, int index);
+	// return the first child of the given inode in this file system
+	// use it with next_sibling() to list all children of an inode
+	// return NULL if the element have no child
+	inode_t * (*first_child) (inode_t *target);
+
+	// return the next element of the fs with the same parent (sibling), or
+	// NULL if the given node is the 'last' or have no sibling ( root node...)
+	// WARNING : for now, this function provide no way to ensure a loop of call
+	// to this function will return the good list if the parent content change
+	// during the loop...
+	inode_t * (*next_sibling) (inode_t *target);
 
 	// optimized method to find a child by its string name
 	inode_t * (*find_sub_node) (inode_t *target, const char *name);

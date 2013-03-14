@@ -238,9 +238,11 @@ void print_inode_tree(inode_t *from, int tab)
 	space[tab]='\0';
 	i=0;
 
-	cur = from->fs_op->fs->get_sub_node(from, i);
+	cur = vfs_first_child(from);
 	while(cur != NULL)
 	{
+		inode_t *swap = NULL;
+
 		if(cur->type_flags & INODE_TYPE_PARENT) {
 			printk("%s%s/\n", space, cur->name);
 			print_inode_tree(cur, tab+1);
@@ -248,9 +250,10 @@ void print_inode_tree(inode_t *from, int tab)
 		else
 			printk("%s%s\n", space, cur->name);
 
-		vfs_release_inode(cur);
 		i++;
-		cur = from->fs_op->fs->get_sub_node(from, i);
+		swap = cur;
+		cur = vfs_next_sibling(cur);
+		vfs_release_inode(swap);
 
 		wait++;
 		if(wait > 6) {
