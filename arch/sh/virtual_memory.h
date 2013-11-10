@@ -14,6 +14,9 @@
 // default size in bytes of a page
 #define VM_DEFAULT_BYTES 1024
 
+#define VM_VIRTUAL_PAGE(addr) ( ((int)(addr)) >> 10 )
+#define VM_VIRTUAL_ADDR(pagenum) ((void*) ((pagenum) << 10) )
+
 /**
  * Virtual memory Page information type, used
  * for load/store page informations

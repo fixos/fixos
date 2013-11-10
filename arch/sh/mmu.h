@@ -27,6 +27,22 @@
 
 #define TLB_CACHEABLE	(1<<3)
 
+/**
+ * IMPORTANT : ASID problems with fx9860 (and other?) processor
+ * On these CPUs, ASID can't be write (probably because doesn't exist
+ * in the hardware inself :/)
+ * Because of that, ASID is still used in the kernel code as if it existed,
+ * but it's value is stored in a RAM variable.
+ * 
+ * The big issue is the MMU which can't diferentiate running processes.
+ * The only way to allow multiple process (with multiple adress space) without
+ * hardware ASID is to flush the TLB between each context switch (in reality only
+ * between two user process, if the kernel itself never use same VM space)...
+ *
+ * TODO confirm that no hardware ASID exists :( 
+ */
+extern unsigned char g_soft_asid;
+
 // flush the TLB (set V bit of each entry to 0)
 extern inline void mmu_tlbflush() {
 	MMU.MMUCR.BIT.TF = 1;
@@ -39,7 +55,14 @@ void mmu_init();
 
 // set the current ASID (dangerous if virtual memory is used consecutivly!)
 extern inline void mmu_setasid(unsigned char asid) {
-	MMU.PTEH.BIT.ASID = asid;
+	//MMU.PTEH.BIT.ASID = asid;
+	g_soft_asid = asid;
+}
+
+// get the current ASID
+extern inline unsigned char mmu_getasid() {
+	//return MMU.PTEH.BIT.ASID;
+	return g_soft_asid;
 }
 
 // fill and load a TLB entry in PTEL without change informations in PTEH

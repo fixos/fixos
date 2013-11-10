@@ -23,13 +23,16 @@ void exception_handler()
 	int evt = INTC.EXPEVT;
 	unsigned int tea = TEA;
 	int tra;
-
+	void *spcval;
+	
 	(void)(tea);
+	asm volatile ("stc spc, %0" : "=r"(spcval) );
 
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		printk("Fatal:\nCPU Access Violation (R/W)\n");
+		printk("Fatal:\nCPU Access Violation (R/W)\n  Adress : %p\n", (void*)tea);
+		printk("SPC Value = %p\n", spcval);
 		while(1);
 		break;
 
@@ -41,14 +44,21 @@ void exception_handler()
 
 	case EXP_CODE_BAD_INSTR:
 	case EXP_CODE_BAD_SLOTINSTR:
-		printk("Fatal:\nIllegal instruction.\n");
+		printk("Fatal:\nIllegal %sinstruction.\n", evt == EXP_CODE_BAD_SLOTINSTR ?
+				"slot " : "");
+		printk("TEA value = %p\n", (void*)tea);
+		printk("SPC Value = %p\n", spcval);
 		while(1);
 		break;
 
 	case EXP_CODE_USER_BREAK:
+		printk("Unexpected (blocking):\nUser Break exception.\n");
+		while(1);
 		break;
 
 	case EXP_CODE_DMA_ERROR:
+		printk("Fatal:\nDMA error.\n");
+		while(1);
 		break;
 
 	case EXP_CODE_TLB_INITWRITE:
@@ -68,6 +78,11 @@ void exception_handler()
 	default:
 		break;
 	}
+	
+	asm volatile ("stc spc, %0" : "=r"(spcval) );
+	printk("@ end of exception\nSPC Value = %p\n", spcval);
+
+	return;
 }
 
 
@@ -86,8 +101,10 @@ void tlbmiss_handler()
 	process_t *curpr;
 	
 	// find the process wich cause the miss :
-	curpr = process_from_asid(MMU.PTEH.BIT.ASID);
+	curpr = process_from_asid(mmu_getasid());
 
+
+	//printk("[I] process id = %d, ptr=%p\n[I] vpn = %d\n", mmu_getasid(), curpr, MMU.PTEH.BIT.VPN);
 	// find the corresponding page, if exists
 	page = vm_find_vpn(&(curpr->vm), MMU.PTEH.BIT.VPN);
 	if(page != (void*)0) {
@@ -99,7 +116,7 @@ void tlbmiss_handler()
 			flags |= TLB_SIZE_4K;
 		if(page->cache)
 			flags |= TLB_CACHEABLE;
-
+		
 		// load the TLB entry!
 		mmu_tlb_fillload(page->ppn, flags);
 		printk("Sucessfully mapped page!\nVirtual page @(%p)\n", (void*)(page->vpn << 10));
