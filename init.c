@@ -13,6 +13,14 @@
 #include "fs/vfs.h"
 #include "fs/vfs_op.h"
 
+#include "loader/ramloader/loader.h"
+#include "arch/sh/process.h"
+
+extern unsigned int * euser;
+extern unsigned int * buser;
+extern unsigned int * osram_buser;
+extern unsigned int * usersize;
+
 extern void * fixos_vbr;  // see fixos.ld
 
 void test();
@@ -25,9 +33,9 @@ void print_content(void *addr, int size);
  */
 void ls_tree();
 
-#define DBG_WAIT 
-//while(is_key_down(K_EXE)); \
-	//while(!is_key_down(K_EXE))
+#define DBG_WAIT  while(is_key_down(K_EXE)); \
+	while(!is_key_down(K_EXE))
+	
 
 // Real entry point of the OS :
 void init() {
@@ -110,6 +118,10 @@ void init() {
 
 	int *surprise = (int*)(0x01000000 + magic_offset);
 
+	printk("s: %p -> %p\nppn = %d, vpn = %d\n", &magic_integer, surprise, page.ppn, page.vpn);
+	printk("[D] ASID = %d\n", mmu_getasid());
+	DBG_WAIT;
+
 	printk("Magic? %d\n", *surprise);
 	*surprise = 986;
 
@@ -124,6 +136,42 @@ void init() {
 */
 
 	DBG_WAIT;
+
+	// test for user process load and run
+	size_t processl = (void*)(&euser) - (void*)(&buser);
+	void *bprocess = &osram_buser;
+	void *eprocess = bprocess + processl;
+	process_init();
+
+	process_t *proc1;
+	proc1 = process_alloc();
+	printk("_buser %p (@%p)\n_euser %p (@%p)\nus %p (@%p)\n", &buser, &buser, &euser, &euser, &usersize, &usersize);
+	printk("loading %p->%p\n", bprocess, eprocess);
+
+	DBG_WAIT;
+
+	ramloader_load(bprocess, processl, proc1);
+	process_set_asid(proc1);
+	mmu_setasid(proc1->asid);
+	printk("[D] ASID = %d\n", mmu_getasid());
+	printk("asid=%d, pid=%d\n", proc1->asid, proc1->pid);
+	
+	DBG_WAIT;
+
+	printk("old pc = %p\n", (void*)(proc1->acnt.pc));
+	// temp issue (the user code may be unaligned on 1024)
+	//proc1->acnt.pc += (int)(bprocess) % 1024;
+	printk("proc code : %p\n  %p\n", (void*)(((int*)(proc1->acnt.pc))[0]),
+				(void*)(((int*)(proc1->acnt.pc))[1]));
+	DBG_WAIT;
+
+	//void (*userfun) () = (void*)(proc1->acnt.pc);
+	//userfun();
+	arch_kernel_contextjmp(&(proc1->acnt));
+
+	
+	DBG_WAIT;
+
 
 	vfs_init();
 	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);

@@ -3,8 +3,10 @@ ENTRY(bootstrap)
 
 MEMORY
 {
-	osram : o = 0x88000000, l = 128k  /* for fx-9860G */
-	rom   : o = 0x00300200, l = 512k
+	osram :   o = 0x88000000, l = 64k  /* for fx-9860G */
+	rom   :   o = 0x00300200, l = 512k
+
+	userram : o = 0x10000000, l = 64k /* for user data (virtual address) */
 }
 
 SECTIONS
@@ -46,9 +48,12 @@ SECTIONS
 		/* The handlers should reside at VBR relative position, in P1 or P2 protected space (0x8* or 0xA*) */
 		/* There are 3 vectors offset called by the processor : VBR + 0x100, 0x400 and 0x600 */
 		/* The bootstrap routine must copy them at these places, and bytes between handlers are undefined */
+		/* Aligned in 0x100 because of ld issue*/
+		. = ALIGN(0x100);
 		_fixos_vbr = . ; /* VBR value. WARNING : VBR must point to P1 or P2 space! */
 		. = _fixos_vbr + 0x100 ;  /* cleaner than "vbr = . - 0x100" */
 		_bexhandler = ABSOLUTE(.) ;
+		*(.handler.exception.pretext);
 		*(.handler.exception);  /* general exception handler, VBR + 0x100 */
 		_exhandler_size = ABSOLUTE(.) - _bexhandler ;
 		. = _fixos_vbr + 0x400 ;
@@ -60,10 +65,26 @@ SECTIONS
 		*(.handler.interrupt);  /* Interrupt Handler, VBR + 0x600 */
 		_inthandler_size = ABSOLUTE(.) - _binthandler ;
 		*(.handler.stuff);
+		
+		. = ALIGN(1024);
+		_osram_buser = . ;
 
-		_ereloc = ABSOLUTE(.) ;
+		_ereloc = ABSOLUTE(.) + SIZEOF(.userdata);
+
+		_usersize = SIZEOF(.userdata) ;
 	} > osram
+
+	.userdata : AT( _romdata + SIZEOF(.rodata)  ) {
+		. = ALIGN(1024);
+		_buser = . ;
+		*(.user.pretext) ;
+		*(.user.*) ;
+		_euser = . ;
+	} > userram
+
 	.bss : {
+		. = . + SIZEOF(.userdata);
+		. = ALIGN(4);
 		_bbss = . ;
 		*(.bss) *(COMMON);
 		_ebss = . ;

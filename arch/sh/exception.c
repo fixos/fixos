@@ -11,7 +11,8 @@
 extern void syscall_entry();
 
 
-void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
+//void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
+void exception_handler() __attribute__ ((section(".handler.exception")));
 
 void tlbmiss_handler() __attribute__ ((interrupt_handler, section(".handler.tlb")));
 

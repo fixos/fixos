@@ -10,6 +10,12 @@
 !
 
 bootstrap:
+	! set up TLB
+	mov.l   Hmem_SetMMU, r3
+	mov.l   address_one, r4 ! 0x8102000
+	mov.l   address_two, r5 ! 0x8801E000
+	jsr     @r3    ! _Hmem_SetMMU
+	mov     #108, r6
 
   ! clear the BSS
   mov.l   bbss, r4   ! start
@@ -37,7 +43,6 @@ L_check_reloc:
   cmp/hs  r5, r4
   bf      L_copy_reloc
  
-
 	mov.l   initialize, r3
   jmp     @r3
   nop
@@ -46,7 +51,19 @@ L_check_reloc:
 	nop
 
 
+! obscure MMU related function of the Casio's OS
+_Hmem_SetMMU:
+	mov.l   sc_addr, r2
+	mov.l   1f, r0
+	jmp     @r2
+	nop
+	1:      .long 0x3FA
+
+
 	.align 4
+
+sc_addr:        .long 0x80010070
+
 breloc:      .long _breloc
 ereloc:      .long _ereloc
 
@@ -56,4 +73,8 @@ ebss:		.long _ebss
 romdata:        .long _romdata
 
 initialize:     .long _initialize
+
+address_two:    .long 0x8801E000
+address_one:    .long 0x8102000
+Hmem_SetMMU:    .long _Hmem_SetMMU
 
