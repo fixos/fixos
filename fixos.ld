@@ -25,7 +25,9 @@ SECTIONS
 	.text : {
 		_bbootstrap = . ;
 		*(.bootstrap)
-			_ebootstrap = . ;
+		*(.bootloader)
+		*(.bootloader.rodata)
+		_ebootstrap = . ;
 		_romdata = . ;  /* relocation position for all data (.text, .data, .rodata... origin sections) */
 	} > rom
 

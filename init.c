@@ -67,6 +67,7 @@ void init() {
 	 INTERRUPT_PRIORITY_TMU2 = 0;
 	 INTERRUPT_PRIORITY_RTC = 0;
 	 INTERRUPT_PRIORITY_WDT = 0;
+
 	 INTERRUPT_PRIORITY_REF = 0;
 
 	terminal_set_vram(vram);
