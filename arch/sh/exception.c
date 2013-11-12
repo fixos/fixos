@@ -14,7 +14,8 @@ extern void syscall_entry();
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
 void exception_handler() __attribute__ ((section(".handler.exception")));
 
-void tlbmiss_handler() __attribute__ ((interrupt_handler, section(".handler.tlb")));
+//void tlbmiss_handler() __attribute__ ((interrupt_handler, section(".handler.tlb")));
+void tlbmiss_handler() __attribute__ ((section(".handler.tlb")));
 
 
 // Exception handler, since SR.MD bit is set to 1, all the calling code

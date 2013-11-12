@@ -60,10 +60,12 @@ SECTIONS
 		_exhandler_size = ABSOLUTE(.) - _bexhandler ;
 		. = _fixos_vbr + 0x400 ;
 		_btlbhandler = ABSOLUTE(.) ;
+		*(.handler.tlb.pretext);
 		*(.handler.tlb);  /* TLB Miss handler, VBR + 0x400 */
 		_tlbhandler_size = ABSOLUTE(.) - _btlbhandler ;
 		. = _fixos_vbr + 0x600 ;
 		_binthandler = ABSOLUTE(.) ;
+		*(.handler.interrupt.pretext);
 		*(.handler.interrupt);  /* Interrupt Handler, VBR + 0x600 */
 		_inthandler_size = ABSOLUTE(.) - _binthandler ;
 		*(.handler.stuff);

@@ -11,6 +11,10 @@ int usertest_main() {
 
 	asm volatile ("trapa #42");
 
+	// force use of stack (check TLB miss from userland)
+	asm volatile ("mov.l r0, @-r15;"
+				  "add #-4, r15;");
+
 	// never return
 	while(1);
 

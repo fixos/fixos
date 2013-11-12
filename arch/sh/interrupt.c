@@ -56,24 +56,14 @@ void interrupt_restore_context(const interrupt_priorities_t ipr_storage) {
 // callback function. These functions' addresses may be set through the
 // set_callback() function.
 // TODO write these routines in assembly!
-void interrupt_handler() __attribute__ ((interrupt_handler, section(".handler.interrupt")));
+//void interrupt_handler() __attribute__ ((interrupt_handler, section(".handler.interrupt")));
+void interrupt_handler() __attribute__ ((section(".handler.interrupt")));
 
 void interrupt_handler() {
 	int evt = INTX.INTEVT2;	// interrupt code
 	interrupt_callback_t handler;
-/*
-	char str[30];
-	Bdisp_AllClr_VRAM();
-	locate(1, 2);
-	Print("Interrupt Handler");
-	locate(1,3);
-	Print("INTEVT =");
-	Print(intToString(INTC.INTEVT, str));
-	locate(1,4);
-	Print("INTEVT2=");
-	Print(intToString(evt, str));
-	Bdisp_PutDisp_DD();
-*/
+
+
 	switch(evt) {
 	case INT_CODE_TMU0_TUNI0:
 		handler = g_interrupt_callback[INT_TMU0];

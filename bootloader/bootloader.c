@@ -44,6 +44,12 @@ extern char bbootstrap;
 extern char romdata;
 
 
+// bss area
+extern char bbss;
+extern char ebss;
+
+
+// entry point (in fact it's possible to start directly from (breloc) address...
 extern void initialize();
 
 
@@ -55,6 +61,7 @@ void bootloader_init() {
 	if(fscasio_fopen_ro(g1a_filename, &file) == 0) {
 		// do the bootstrap itself
 		unsigned int relocl = &ereloc - &breloc;
+		char *bss;
 
 		// seek the begin of romdata in file
 		unsigned int rompos = G1A_OFFSET_HEADER + (&romdata - &bbootstrap);
@@ -63,7 +70,9 @@ void bootloader_init() {
 		// copy from EEPROM to RAM
 		fscasio_fread(&breloc, 1, relocl, &file);
 
-		// TODO bss initialization
+		// TODO better bss initialization
+		for(bss=&bbss; bss!=&ebss; bss++)
+			*bss = 0x00;
 
 		initialize();
 	}

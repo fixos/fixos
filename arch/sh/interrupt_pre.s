@@ -1,34 +1,20 @@
-!
-! Pre-handlers for exceptions (allowing to act before any GCC generated code)
-! The goal is mainly to get the correct stack address before any stack usage,
-! and to store/restore from handling state.
-! These handlers also switch from Register Bank 1 to 0, after stack is set and
-! r0~r7 in bank 0 are saved.
-!
-! The C function is then called as a common function.
-!
+
+! See exception_pre.s
 
 
-	.section ".handler.exception.pretext"
+	.section ".handler.interrupt.pretext"
 
-	.global _pre_exception_handler
-	.type _pre_exception_handler, @function
+	.global _pre_interrupt_handler
+	.type _pre_interrupt_handler, @function
 
-	.global _pre_tlbmiss_handler
-	.type _pre_tlbmiss_handler, @function
-
-
-
-	.extern _exception_handler
-	.extern _tlbmiss_handler
-
+	.extern _interrupt_handler
 	.extern _g_process_current_kstack
 
 	.equ MD_MASK, (1<<30)
 	.equ RB_MASK, (1<<29)
 
 	.align 2
-_pre_exception_handler:
+_pre_interrupt_handler:
 	! save old stack in r4 BANK1 in all case
 	mov r15, r4
 
@@ -67,7 +53,7 @@ stack_set:
 
 
 	! now call the high level exception handler
-	mov.l exception_handler, r0
+	mov.l interrupt_handler, r0
 	jsr @r0
 	nop
 
@@ -89,8 +75,8 @@ stack_set:
 
 
 	.align 4
-exception_handler:
-	.long _exception_handler
+interrupt_handler:
+	.long _interrupt_handler
 g_process_current_kstack:
 	.long _g_process_current_kstack
 

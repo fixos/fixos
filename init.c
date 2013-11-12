@@ -148,6 +148,7 @@ void init() {
 	proc1 = process_alloc();
 	printk("_buser %p (@%p)\n_euser %p (@%p)\nus %p (@%p)\n", &buser, &buser, &euser, &euser, &usersize, &usersize);
 	printk("loading %p->%p\n", bprocess, eprocess);
+	printk("user proc : %p\n", proc1);
 
 	DBG_WAIT;
 
@@ -159,17 +160,7 @@ void init() {
 	
 	DBG_WAIT;
 
-	printk("old pc = %p\n", (void*)(proc1->acnt.pc));
-	// temp issue (the user code may be unaligned on 1024)
-	//proc1->acnt.pc += (int)(bprocess) % 1024;
-	printk("proc code : %p\n  %p\n", (void*)(((int*)(proc1->acnt.pc))[0]),
-				(void*)(((int*)(proc1->acnt.pc))[1]));
-	DBG_WAIT;
-
-	//void (*userfun) () = (void*)(proc1->acnt.pc);
-	//userfun();
 	arch_kernel_contextjmp(&(proc1->acnt));
-
 	
 	DBG_WAIT;
 
