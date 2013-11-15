@@ -10,6 +10,12 @@
 
 extern void syscall_entry();
 
+/*
+ * This variable is used to store/save r0~r7 of user process in case of trapa exception.
+ * 
+ */
+int *g_user_registers = NULL; 
+
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
 void exception_handler() __attribute__ ((section(".handler.exception")));
@@ -18,7 +24,7 @@ void exception_handler() __attribute__ ((section(".handler.exception")));
 void tlbmiss_handler() __attribute__ ((section(".handler.tlb")));
 
 
-// Exception handler, since SR.MD bit is set to 1, all the calling code
+// Exception handler, since SR.BL bit is set to 1, all the calling code
 // must be *ABSOLUTLY* exception-safe (if exception occurs, cpu may resets)
 void exception_handler()
 {
@@ -70,11 +76,13 @@ void exception_handler()
 	case EXP_CODE_TLB_PROTECT_R:
 	case EXP_CODE_TLB_PROTECT_W:
 		printk("Fatal:\nTLB protection violation.\n");
+		while(1);
 		break;
 
 	case EXP_CODE_TLB_READ:
 	case EXP_CODE_TLB_WRITE:
 		printk("Fatal:\nTLB error.\n");
+		while(1);
 		break;
 
 	default:

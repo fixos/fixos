@@ -48,14 +48,14 @@ stack_set:
 	! save BANK1 on stack and switch to BANK0
 	mov.l r4, @-r15		! old stack
 	sts.l pr, @-r15
-	stc.l R0_BANK, @-r15
-	stc.l R1_BANK, @-r15
-	stc.l R2_BANK, @-r15
-	stc.l R3_BANK, @-r15
-	stc.l R4_BANK, @-r15
-	stc.l R5_BANK, @-r15
-	stc.l R6_BANK, @-r15
 	stc.l R7_BANK, @-r15
+	stc.l R6_BANK, @-r15
+	stc.l R5_BANK, @-r15
+	stc.l R4_BANK, @-r15
+	stc.l R3_BANK, @-r15
+	stc.l R2_BANK, @-r15
+	stc.l R1_BANK, @-r15
+	stc.l R0_BANK, @-r15
 
 	mov.l rb_mask, r1
 	not r1, r1

@@ -16,6 +16,8 @@
 #include "loader/ramloader/loader.h"
 #include "arch/sh/process.h"
 
+#include "arch/sh/memory/eeprom.h"
+
 extern unsigned int * euser;
 extern unsigned int * buser;
 extern unsigned int * osram_buser;
@@ -135,6 +137,36 @@ void init() {
 	/*asm volatile ("mov #3, r0");
 	asm volatile ("mov.l @r0, r1");
 */
+
+	DBG_WAIT;
+
+	// eeprom test
+	int deviceid = eeprom_get_device_id();
+	unsigned short eepromsz = eeprom_get_cfi(EEPROM_CFI_DEVICE_SIZE);
+
+	printk("EEPROM DevID = %x\nEEPROM Size = %dB\n", deviceid, 1 << eepromsz);
+
+	// try to erase EEPROM page
+	unsigned int testaddr = 0xA01B0000;
+	volatile unsigned short * shortaddr = (unsigned short *)testaddr;
+	if(*shortaddr != 0xFFFF) {
+		printk("Erasing EEPROM Sector at %p\n", shortaddr);
+		eeprom_erase_sector(testaddr);
+		while(*shortaddr != 0xFFFF);
+		printk("Erased!\n");
+	}
+
+	// test programming eeprom!
+	unsigned short valprev, valafter;
+	valprev = *(volatile unsigned short *)(testaddr);
+	eeprom_program_byte(testaddr, 0x55);
+	valafter = *(volatile unsigned short *)(testaddr);
+
+	printk("EEPROM Write (bfr=%x, aft=%x)\n", valprev, valafter);
+
+	while(*(volatile unsigned char *)(testaddr) != 0x55 || *(volatile unsigned char *)(testaddr) != 0xAA);
+	printk("Done! After = %x\n", *(volatile unsigned short*)testaddr);
+
 
 	DBG_WAIT;
 
