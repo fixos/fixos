@@ -1,4 +1,4 @@
-//#include "arch/sh/7705_Casio.h"
+//#include "arch/sh/7705_casio.h"
 #include "display/T6K11/T6K11.h"
 #include "sys/terminal.h"
 #include "keyboard/keyboard.h"
@@ -37,6 +37,9 @@ void ls_tree();
 
 #define DBG_WAIT  while(is_key_down(K_EXE)); \
 	while(!is_key_down(K_EXE))
+
+
+static unsigned char eepromarray[] = {0x11, 0x12, 0x13, 0x14, 0x69, 0x69, 0x80, 0x0B, 0x50, 0x00, 0x42, 0x88, 0x88, 0x88, 0x88};
 	
 
 // Real entry point of the OS :
@@ -147,7 +150,7 @@ void init() {
 	printk("EEPROM DevID = %x\nEEPROM Size = %dB\n", deviceid, 1 << eepromsz);
 
 	// try to erase EEPROM page
-	unsigned int testaddr = 0xA01B0000;
+	unsigned int testaddr = 0xA01C0000;
 	volatile unsigned short * shortaddr = (unsigned short *)testaddr;
 	if(*shortaddr != 0xFFFF) {
 		printk("Erasing EEPROM Sector at %p\n", shortaddr);
@@ -159,13 +162,19 @@ void init() {
 	// test programming eeprom!
 	unsigned short valprev, valafter;
 	valprev = *(volatile unsigned short *)(testaddr);
-	eeprom_program_byte(testaddr, 0x55);
+	eeprom_program_word(testaddr, 0x55AA);
 	valafter = *(volatile unsigned short *)(testaddr);
 
 	printk("EEPROM Write (bfr=%x, aft=%x)\n", valprev, valafter);
 
-	while(*(volatile unsigned char *)(testaddr) != 0x55 || *(volatile unsigned char *)(testaddr) != 0xAA);
+	while(*(volatile unsigned char *)(testaddr) != 0x55 && *(volatile unsigned char *)(testaddr) != 0xAA);
 	printk("Done! After = %x\n", *(volatile unsigned short*)testaddr);
+
+
+	DBG_WAIT;
+
+	printk("Trying to write abritrary array in EEPROM.\n");
+	eeprom_program_array(testaddr + 0x03, eepromarray, sizeof(eepromarray));
 
 
 	DBG_WAIT;

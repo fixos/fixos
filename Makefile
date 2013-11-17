@@ -1,6 +1,5 @@
 CC=sh3eb-elf-gcc
-# -fnodelayed-branch is a temp solution because of wrong delayed instruction after RTE
-CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin -fno-delayed-branch
+CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
 
 LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 

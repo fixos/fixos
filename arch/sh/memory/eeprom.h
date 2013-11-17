@@ -20,15 +20,26 @@ int eeprom_get_device_id();
 /**
  * CFI Commands (Common Flash Interface)
  */
-#define EEPROM_CFI_DEVICE_SIZE	0x4E
+// return log2(size) in bits (size = 2^ret bits)
+#define EEPROM_CFI_DEVICE_SIZE	0x4E 
 
 unsigned short eeprom_get_cfi(int cfi_query);
 
 
 /**
- * Program byte in EEPROM
+ * Program word (2 bytes length) byte in EEPROM
+ * One of the two bytes may be 0xFF if unused (neutral in EEPROM programming)
  */
-void eeprom_program_byte(unsigned int addr, unsigned char data);
+void eeprom_program_word(unsigned int addr, unsigned short data);
+
+
+/**
+ * Program any byte array in a unique call (may be quicker than multiple
+ * eeprom_program_word() calls )
+ * Byte/Word alignement is checked internaly.
+ */
+void eeprom_program_array(unsigned int addr_dest, unsigned char *from, unsigned int size);
+
 
 
 /**
