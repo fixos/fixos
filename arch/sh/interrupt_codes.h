@@ -55,6 +55,10 @@
 #define INT_CODE_TPU3_TPI3		0xCA0
 
 
+// only for models with SDHI :
+#define INT_CODE_SDHI_SDI		0xE80
+
+
 // exceotions : EXPEVT codes
 #define EXP_CODE_RESET_POWERON	0x000
 #define EXP_CODE_RESET_MANUAL	0x020

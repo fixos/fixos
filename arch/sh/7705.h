@@ -1150,6 +1150,29 @@ struct st_mmu {
 	unsigned int TTB;
 };
 
+
+struct st_dmac {
+	unsigned int SAR_0; // 0
+	unsigned int DAR_0; // 4
+	unsigned int DMATCR_0; // 8 ( transfer count )
+	unsigned int CHCR_0; // 12 (control reg)
+
+	// TODO
+	unsigned short DMAOR; // 64
+};
+
+// DMA extended ressource selectors
+struct st_dmars {
+	unsigned short DMARS0;
+
+	char _wk1[2];
+	unsigned short DMARS1;
+};
+
+
+#define DMAC	(*(volatile struct st_dmac*)		0xA4000020)
+#define DMARS	(*(volatile struct st_dmats*)	0xA4090000)
+
 #define CPG    (*(volatile struct st_cpg   *)0xFFFFFF80)/* CPG   Address*/
 #define WDT    (*(volatile struct st_wdt   *)0xFFFFFF84)/* WDT   Address*/
 #define RTC   (*(volatile struct st_rtc   *)0xFFFFFEC0) /* RTC	 Address*/
@@ -1180,4 +1203,6 @@ struct st_mmu {
 #define PFC    (*(volatile struct st_pfc   *)0xA4000100)/* PFC   Address*/
 #define TEA    (*(volatile unsigned int    *)0xFFFFFFFC)/* Special TEA register */
 #define MMU    (*(volatile struct st_mmu   *)0xFFFFFFE0)/* MMU and TLB registers */
+
+
 #endif //_CPU_SH_7705_H

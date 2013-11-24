@@ -18,10 +18,15 @@
 
 #include "arch/sh/memory/eeprom.h"
 
+#include "device/sd_card.h"
+#include "arch/sh/kdelay.h"
+
 extern unsigned int * euser;
 extern unsigned int * buser;
 extern unsigned int * osram_buser;
 extern unsigned int * usersize;
+
+extern void sd_init_registers();
 
 extern void * fixos_vbr;  // see fixos.ld
 
@@ -39,7 +44,7 @@ void ls_tree();
 	while(!is_key_down(K_EXE))
 
 
-static unsigned char eepromarray[] = {0x11, 0x12, 0x13, 0x14, 0x69, 0x69, 0x80, 0x0B, 0x50, 0x00, 0x42, 0x88, 0x88, 0x88, 0x88};
+//static unsigned char eepromarray[] = {0x11, 0x12, 0x13, 0x14, 0x69, 0x69, 0x80, 0x0B, 0x50, 0x00, 0x42, 0x88, 0x88, 0x88, 0x88};
 	
 
 // Real entry point of the OS :
@@ -142,7 +147,55 @@ void init() {
 */
 
 	DBG_WAIT;
+	
+	// SD Card communication tests
+	printk("Trying to init SD card...\n");
+	//printk("Trying to send SD command...\n");
 
+	struct sd_resp32 resp;
+
+	//sd_init_registers();
+	
+	//printk("SD registers initialized..\n");
+	
+	//int sdret = sd_send_command(0, 0, 0);
+
+	//sd_get_resp32(&resp);
+	//printk("sd_send ret = %d\nCMD0 resp = {%p}\n", sdret, (void*)(resp.w0 + (resp.w1 << 16) ));
+
+	int sdret = sd_init();
+	printk("Done, SD init = %d\n", sdret);
+	
+	sdret = sd_send_command(2, 0, 0);
+
+	sd_get_resp32(&resp);
+	printk("sd_send ret = %d\nCMD2 resp = {%p}\n", sdret, (void*)(resp.w0 + (resp.w1 << 16) ));
+
+
+	DBG_WAIT;
+
+
+	// kdelay/kusleep tests
+/*
+	printk("Trying kusleep(2000000) in infinite loop...\n");
+
+	DBG_WAIT;
+
+	printk("started!");
+
+	int nbdelay = 0;
+	while(1) {
+		kusleep(2000000);
+		nbdelay++;
+		printk("%d done\n", nbdelay);
+	}
+
+	DBG_WAIT;
+*/
+
+
+	// EEPROM-related code commented to avoid useless write cycles ;)
+/*
 	// eeprom test
 	int deviceid = eeprom_get_device_id();
 	unsigned short eepromsz = eeprom_get_cfi(EEPROM_CFI_DEVICE_SIZE);
@@ -178,7 +231,7 @@ void init() {
 
 
 	DBG_WAIT;
-
+*/
 	// test for user process load and run
 	size_t processl = (void*)(&euser) - (void*)(&buser);
 	void *bprocess = &osram_buser;

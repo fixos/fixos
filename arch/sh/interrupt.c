@@ -1,6 +1,8 @@
 #include "interrupt.h"
 #include "interrupt_codes.h"
-#include "7705.h"
+#include "7705_Casio.h"
+
+#include <utils/log.h>
 
 #ifndef NULL
 #define NULL ((void*)0)
@@ -97,7 +99,19 @@ void interrupt_handler() {
 		INTX.IRR0.BIT.PINT1R = 0;
 		break;
 		
+
+	// for now only hard-coded for SDHI SD Interrupt
+	case INT_CODE_SDHI_SDI:
+		printk("SDI interrupt [0x%x]!\n", SDHI.word_u14 & 0x00B8);
+		// TODO reset interrupt bit...
+
+		SDHI.word_u14 &= 0xFF47;
+
+
+		break;
+
 	default:
+		printk("Unknown interrupt catched :\nEVT2=0x%x\n", evt);
 		break;
 	}
 	return;
