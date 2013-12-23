@@ -9,8 +9,8 @@
 
 
 	.section ".text"
-	.global memset
-	.type memset, @function
+	.global _memset
+	.type _memset, @function
 	.align 2
 
 
@@ -21,7 +21,7 @@
 #define SL(branch, dest, in_slot, in_slot_arg2) \
 	branch##.s dest; in_slot, in_slot_arg2
 
-memset:
+_memset:
 
 #if __SHMEDIA__
 	pta/l multiquad, tr0

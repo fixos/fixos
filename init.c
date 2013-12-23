@@ -26,8 +26,6 @@ extern unsigned int * buser;
 extern unsigned int * osram_buser;
 extern unsigned int * usersize;
 
-extern void sd_init_registers();
-
 extern void * fixos_vbr;  // see fixos.ld
 
 void test();
@@ -152,7 +150,8 @@ void init() {
 	printk("Trying to init SD card...\n");
 	//printk("Trying to send SD command...\n");
 
-	struct sd_resp32 resp;
+	sd_resp128_t resp;
+	union sd_reg_csd csd;
 
 	//sd_init_registers();
 	
@@ -166,14 +165,55 @@ void init() {
 	int sdret = sd_init();
 	printk("Done, SD init = %d\n", sdret);
 	
-	sdret = sd_send_command(2, 0, 0);
+	sdret = sd_send_command(2, 0x00000000);
 
-	sd_get_resp32(&resp);
-	printk("sd_send ret = %d\nCMD2 resp = {%p}\n", sdret, (void*)(resp.w0 + (resp.w1 << 16) ));
+	sd_get_resp128(&resp);
+	printk("sd_send ret = %d\nCMD2 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(resp.r0), (void*)(resp.r1), (void*)(resp.r2), (void*)(resp.r3));
 
 
 	DBG_WAIT;
 
+	// publish new RCA
+	
+	unsigned short card_rca;
+	sdret = sd_send_command(3,  0x00000000);
+
+	sd_resp32_t resp32;
+
+	sd_get_resp32(&resp32);
+	card_rca = resp32 >> 16;
+	printk("sd_send ret = %d\nCMD3 resp = {%p}\nNew RCA = %d\n", sdret, (void*)(resp32), card_rca);
+
+
+	DBG_WAIT;
+
+	// get CSD with given RCA
+	sdret = sd_send_command(9, (card_rca << 16) + 0x0000);
+
+	sd_get_resp128(&(csd.resp));
+	printk("sd_send ret = %d\nCMD9 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(csd.resp.r0), (void*)(csd.resp.r1), (void*)(csd.resp.r2), (void*)(csd.resp.r3));
+
+	printk("c_size(%d) sz_mult(%d) len(%d)\n", SD_CSD_GET_C_SIZE(csd), csd.content.c_size_mult, csd.content.read_bl_len);
+
+	// compute max size
+	int card_size = (SD_CSD_GET_C_SIZE(csd)+ 1) * (1 << (csd.content.c_size_mult +2))
+			* (1 << csd.content.read_bl_len);
+	
+	printk("Card Size = %dB (aprox. %dMiB)\n", card_size, card_size >> 20);
+
+	DBG_WAIT;
+
+	// select the given SD card before to send/receive data
+	sdret = sd_send_command(7, (card_rca << 16) + 0x0000);
+
+	printk("Select RCA %d -> %d\n", card_rca, sdret);
+
+	char blockbuf[512];
+	sdret = sd_read_block(0, blockbuf);
+
+	printk("Read return = %d\n{%p %p}\n", sdret, *(void**)(blockbuf), *(void**)(blockbuf + 4));
+
+	DBG_WAIT;
 
 	// kdelay/kusleep tests
 /*

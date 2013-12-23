@@ -1157,7 +1157,21 @@ struct st_dmac {
 	unsigned int DMATCR_0; // 8 ( transfer count )
 	unsigned int CHCR_0; // 12 (control reg)
 
-	// TODO
+	unsigned int SAR_1; // 16
+	unsigned int DAR_1; // 20
+	unsigned int DMATCR_1; // 24 ( transfer count )
+	unsigned int CHCR_1; // 28 (control reg)
+	
+	unsigned int SAR_2; // 32
+	unsigned int DAR_2; // 36
+	unsigned int DMATCR_2; // 40 ( transfer count )
+	unsigned int CHCR_2; // 44 (control reg)
+
+	unsigned int SAR_3; // 48
+	unsigned int DAR_3; // 52
+	unsigned int DMATCR_3; // 56 ( transfer count )
+	unsigned int CHCR_3; // 60 (control reg)
+
 	unsigned short DMAOR; // 64
 };
 
@@ -1171,7 +1185,7 @@ struct st_dmars {
 
 
 #define DMAC	(*(volatile struct st_dmac*)		0xA4000020)
-#define DMARS	(*(volatile struct st_dmats*)	0xA4090000)
+#define DMARS	(*(volatile struct st_dmars*)	0xA4090000)
 
 #define CPG    (*(volatile struct st_cpg   *)0xFFFFFF80)/* CPG   Address*/
 #define WDT    (*(volatile struct st_wdt   *)0xFFFFFF84)/* WDT   Address*/
