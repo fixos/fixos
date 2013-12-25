@@ -1,9 +1,7 @@
 #include "vfs_cache.h"
 
 #include <utils/log.h>
-
-// TODO add a generalized get_free_page (for now it's arch-dependant)
-#include <arch/sh/physical_memory.h>
+#include <sys/memory.h>
 
 
 #define VFS_CACHE_HASHTABLE_SIZE	31
@@ -28,15 +26,13 @@ static void *_inode_page;
 
 void vfs_cache_init()
 {
-	unsigned int ppm;
 	vfs_cache_entry_t *cur;
 	int i;
 	
-	pm_get_free_page(&ppm);
-
 	printk("vfs_cache: inode/page=%d\n", INODE_PER_PAGE);
 
-	_inode_page = PM_PHYSICAL_ADDR(ppm) + 0x80000000;
+	// allocate 1 physical page, with cache if possible
+	_inode_page = mem_pm_get_free_page(MEM_PM_CACHED);
 	cur = _first_free = _inode_page;
 	for(i=0; i<INODE_PER_PAGE; i++) {
 		// fill the allocated page with free elements

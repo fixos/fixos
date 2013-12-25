@@ -5,16 +5,8 @@
  * Utilities for physical memory manipulation.
  */
 
-// size of a physical page
-#define PM_PAGE_BYTES 1024
-// log2(PM_PAGE_BYTES)
-#define PM_PAGE_ORDER 10
+#include "memory_def.h"
 
-// get the physical page number from any (non translatable of course) address
-// with this CPU, physical address space is 29bit length, so the 3rd bits are
-// removed.
-#define PM_PHYSICAL_PAGE(addr) ( ((int)(addr) & 0x1FFFFFFF) >> PM_PAGE_ORDER )
-#define PM_PHYSICAL_ADDR(pagenum) ((void*) ((pagenum) << PM_PAGE_ORDER) )
 
 /**
  * Linked list formed using this struct in the begining of each free page.

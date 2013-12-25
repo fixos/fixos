@@ -1,5 +1,9 @@
 #include "physical_memory.h"
 #include <utils/log.h>
+#include <utils/types.h>
+
+// this file implements mem_pm_xxx functions from sys/memory.h
+#include <sys/memory.h>
 
 // symbols and const for computing number of pages...
 extern void * end_static_ram;
@@ -7,7 +11,10 @@ extern void * end_static_ram;
 #define RAM_SIZE (1024<<6)
 #define RAM_START_ADDRESS 0x08000000
 
-#define P1_SECTION_BASE 0x80000000
+// P1 is cacheable and non-translatable
+#define P1_SECTION_BASE ((void*)0x80000000)
+// P2 is non-cacheable and non-translatable
+#define P2_SECTION_BASE ((void*)0xA0000000)
 
 // TODO better solution
 #define STACK_PAGES	4
@@ -90,3 +97,22 @@ void pm_free_page(unsigned int ppn)
 
 
 
+
+// implementation of functions defined in sys/memory.h
+
+void* mem_pm_get_free_page(int flags) {
+	unsigned int ppn;
+	void *ret = NULL;
+
+	if(pm_get_free_page(&ppn) == 0) {
+		// use P1 or Pé area depending of flags
+		ret = (flags | MEM_PM_UNCACHED) ? P2_SECTION_BASE : P1_SECTION_BASE;
+		ret += (unsigned int)PM_PHYSICAL_ADDR(ppn);
+	}
+	return ret;
+}
+
+
+void mem_pm_release_page(void *page) {
+	pm_free_page(PM_PHYSICAL_PAGE(page));
+}
