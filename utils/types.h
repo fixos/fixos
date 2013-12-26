@@ -9,6 +9,7 @@
 
 
 typedef unsigned int size_t;
+typedef int off_t;
 
 #define NULL ((void*)0)
 

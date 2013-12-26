@@ -1,5 +1,7 @@
 #include "file_system.h"
 #include "smemfs_primitives_ng.h"
+#include "file.h"
+
 #include <fs/vfs.h>
 
 #include <utils/log.h>
@@ -152,6 +154,7 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 
 
 	ret->fs_op = inst;
+	ret->file_op = &smemfs_file_operations;
 	ret->abstract = (void*)header; // more data ?
 
 	if(header == NULL)

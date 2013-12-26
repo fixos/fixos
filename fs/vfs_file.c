@@ -62,6 +62,7 @@ struct file *vfs_open(inode_t *inode) {
 	// the inode-specific open()
 
 	filep = vfs_file_alloc();
+	//printk("vfs_open: allocate file %p\n", filep);
 	if(filep != NULL) {
 		// TODO
 		filep->flags = 0;
@@ -69,11 +70,13 @@ struct file *vfs_open(inode_t *inode) {
 		filep->open_mode = _FILE_READ | _FILE_WRITE;
 		filep->pos = 0;
 
+		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
 		if((inode->file_op->open(inode, filep)) == 0) {
 			// file is correctly openned
 
 		}
 		else {
+			printk("vfs_open: inode-specific open() failed\n");
 			// free file structure
 			vfs_file_free(filep);
 			filep = NULL;
@@ -83,7 +86,7 @@ struct file *vfs_open(inode_t *inode) {
 }
 
 
-struct file *vfs_close(struct file *filep) {
+void vfs_close(struct file *filep) {
 	// release the file and free it
 	if(filep->inode->file_op->release != NULL) {
 		filep->inode->file_op->release(filep);
@@ -103,4 +106,13 @@ size_t vfs_read(struct file *filep, void *dest, size_t nb) {
 	}
 }
 
+
+off_t vfs_lseek(struct file *filep, off_t offset, int whence) {
+	if(filep->inode->file_op->lseek != NULL) {
+		return filep->inode->file_op->lseek(filep, offset, whence);
+	}
+	else {
+		return filep->pos;
+	}
+}
 

@@ -46,7 +46,7 @@ struct file_operations {
 	 * If the device/file do not support seeking, please set to NULL or do nothing
 	 * and return the position.
 	 */
-	size_t (*lseek) (struct file *filep, size_t offset, int whence);
+	off_t (*lseek) (struct file *filep, off_t offset, int whence);
 	
 };
 

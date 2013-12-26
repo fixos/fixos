@@ -164,11 +164,20 @@ struct smemfs_file_preheader* smemfs_prim_get_next_child(struct smemfs_file_preh
  */
 int smemfs_prim_get_frag_num(struct smemfs_file_preheader *header);
 
+/**
+ * Returns total size of the file (sum of all fragment size).
+ * If header is a directory header, returns 0.
+ */
+size_t smemfs_prim_get_file_size(struct smemfs_file_preheader *header);
 
 /**
  * Return block header for given block ID, or NULL if not found.
  */
 struct smemfs_block_entry* smemfs_prim_get_block_header(uint16 block_id);
 
+/**
+ * Returns address of first fragment byte (offset in block + block offset + base address)
+ */
+void* smemfs_prim_get_frag_data(struct smemfs_frag_header *frag);
 
 #endif //_FS_SMEMFS_PRIMITIVES_NG_H

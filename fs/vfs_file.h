@@ -40,7 +40,7 @@ struct file *vfs_open(inode_t *inode);
 /**
  * Close an openned file (or simply release it in some case).
  */
-struct file *vfs_close(struct file *filep);
+void vfs_close(struct file *filep);
 
 
 /**
@@ -49,5 +49,9 @@ struct file *vfs_close(struct file *filep);
 size_t vfs_read(struct file *filep, void *dest, size_t nb);
 
 
+/**
+ * Seek position in file or device.
+ */
+off_t vfs_lseek(struct file *filep, off_t offset, int whence); 
 
 #endif //_FS_VFS_FILE_H
