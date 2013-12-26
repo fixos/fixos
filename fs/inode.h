@@ -34,6 +34,7 @@ struct _inode {
 	char name[INODE_MAX_NAME];
 
 	struct _fs_instance *fs_op;
+	struct file_operations *file_op;
 
 	// corresponding internal number and parent number in the FS instance
 	uint32 node;
