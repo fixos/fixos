@@ -1,4 +1,4 @@
-#include "../arch/sh/7705_Casio.h"
+#include <arch/sh/7705_Casio.h>
 
 static void delay() {
 	unsigned char i;

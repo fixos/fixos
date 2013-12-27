@@ -1,5 +1,5 @@
-#include "../display/T6K11/T6K11.h"
-#include "../display/graphic.h"
+#include <device/display/T6K11/T6K11.h>
+#include <device/display/graphic.h>
 #include "terminal.h"
 #include <utils/strutils.h>
 
@@ -12,7 +12,7 @@ static vram_t g_terminal_vram = NULL;
 
 
 // tmp
-#include "keyboard/keyboard.h"
+#include <device/keyboard/keyboard.h>
 
 void terminal_write(const char *str) {
 	int i;

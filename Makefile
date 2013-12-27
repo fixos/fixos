@@ -20,9 +20,22 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=loader/ramloader/loader.c user/first_test.c fs/vfs_cache.c fs/vfs_op.c fs/protofs/file_system.c fs/vfs.c fs/casio_smemfs/smemfs_primitives_ng.c fs/casio_smemfs/file_system.c utils/strconv.c utils/log.c arch/sh/physical_memory.c arch/sh/mmu.c sys/process.c arch/sh/virtual_memory.c arch/sh/interrupt.c arch/sh/exception.c keyboard/iskeydown.c init.c display/T6K11/terminal.c sys/terminal.c arch/sh/memory/c_s29jl032h.c arch/sh/kdelay.c arch/sh/modules/sdhi.c fs/vfs_file.c fs/casio_smemfs/file.c
+C_SRC=loader/ramloader/loader.c \
+	  user/first_test.c \
+	  fs/vfs_cache.c fs/vfs_op.c fs/vfs.c fs/vfs_file.c \
+	  fs/protofs/file_system.c \
+	  fs/casio_smemfs/smemfs_primitives_ng.c fs/casio_smemfs/file_system.c fs/casio_smemfs/file.c \
+	  utils/strconv.c utils/log.c \
+	  arch/sh/physical_memory.c arch/sh/mmu.c arch/sh/virtual_memory.c arch/sh/interrupt.c \
+	  arch/sh/exception.c arch/sh/memory/c_s29jl032h.c arch/sh/kdelay.c arch/sh/modules/sdhi.c \
+	  sys/process.c sys/terminal.c \
+	  device/device_registering.c \
+	  device/keyboard/iskeydown.c \
+	  device/display/T6K11/terminal.c \
+	  init.c
 
-ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s display/T6K11/drawall.s display/T6K11/setpixel.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s
+ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \
+		device/display/T6K11/drawall.s device/display/T6K11/setpixel.s 
 
 
 # Specific rules are applied to bootloader object files (no usage of .data/.bss

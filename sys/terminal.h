@@ -1,7 +1,7 @@
 #ifndef SYS_TERMINAL_H
 #define SYS_TERMINAL_H
 
-#include "../display/terminal.h"
+#include <device/display/terminal.h>
 
 
 // write something into the terminal

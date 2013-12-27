@@ -8,7 +8,7 @@
 #include <utils/types.h>
 // debug
 #include <utils/log.h>
-#include "keyboard/keyboard.h"
+#include <device/keyboard/keyboard.h>
 
 // Default values for user mode process :
 // MD, BL, RB = 0, Interrupt Mask = 0x0...
