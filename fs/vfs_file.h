@@ -50,8 +50,20 @@ size_t vfs_read(struct file *filep, void *dest, size_t nb);
 
 
 /**
+ * Write data to openned file.
+ */
+size_t vfs_write(struct file *filep, void *source, size_t nb);
+
+
+/**
  * Seek position in file or device.
  */
 off_t vfs_lseek(struct file *filep, off_t offset, int whence); 
+
+
+/**
+ * I/O control.
+ */
+int vfs_ioctl(struct file *filep, int cmd, void *data);
 
 #endif //_FS_VFS_FILE_H

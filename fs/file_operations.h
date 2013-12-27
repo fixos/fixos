@@ -42,12 +42,25 @@ struct file_operations {
 	size_t (*read) (struct file *filep, void *dest, size_t len);
 
 	/**
+	 * Write data from file.
+	 */
+	size_t (*write) (struct file *filep, void *source, size_t len);
+
+	/**
 	 * Seek position.
 	 * If the device/file do not support seeking, please set to NULL or do nothing
 	 * and return the position.
 	 */
 	off_t (*lseek) (struct file *filep, off_t offset, int whence);
-	
+
+
+	/**
+	 * Input Output Control.
+	 * Used mainly for devices, NULL if the device or filesystem doesn't use any
+	 * specific ioctl...
+	 * data is specific to command and device, may be not used.
+	 */
+	int (*ioctl) (struct file *filep, int cmd, void *data);
 };
 
 #endif //_FS_FILE_OPERATIONS_H
