@@ -1,23 +1,27 @@
-#include <device/display/T6K11/T6K11.h>
-#include <device/display/graphic.h>
-#include "terminal.h"
+#include <device/display/generic_mono.h>
 #include <utils/strutils.h>
+#include "print_primitives.h"
+#include <device/terminal/generic_early_term.h>
+
+
+/**
+ * Implementation of early terminal (interface in device/terminal/early_terminal.h)
+ * for fx9860-like platform.
+ */
 
 // constant variables definition
-static int g_front_c = TCOLOR_BLACK;
-static int g_back_c = TCOLOR_WHITE;
+static int g_front_c = EARLYTERM_COLOR_BLACK;
+static int g_back_c = EARLYTERM_COLOR_WHITE;
 static int g_posx = 0;
 static int g_posy = 0;
-static vram_t g_terminal_vram = NULL;
+static void *g_terminal_vram = NULL;
 
 
 // tmp
 #include <device/keyboard/keyboard.h>
 
-void terminal_write(const char *str) {
+void earlyterm_write(const char *str) {
 	int i;
-	int maxx = termchar_width();
-	int maxy = termchar_height();
 	// TODO remove tmp stuff for blocking the terminal
 	static int line_nb = 0;
 
@@ -29,24 +33,24 @@ void terminal_write(const char *str) {
 		}
 		else if(str[i] == '\r') g_posx=0;
 		else {
-			write_character(g_posx, g_posy, g_front_c, g_back_c, str[i], g_terminal_vram);
+			term_prim_write_character(g_posx, g_posy, g_front_c, g_back_c, str[i], g_terminal_vram);
 			g_posx++;
 		}
-		if(g_posx>=maxx) {
+		if(g_posx>=FX9860_TERM_WIDTH) {
 			g_posx = 0;
 			g_posy++;
 			line_nb++;
 		}
 
-		if(g_posy>=maxy) {
+		if(g_posy>=FX9860_TERM_HEIGHT) {
 			// tmp stuff
-			if(line_nb >= maxy-3) {
+			if(line_nb >= FX9860_TERM_HEIGHT-3) {
 				int j;
 				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
 				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
 				for(j=0; j<warn_strlen; j++)
-					write_character(j, 0, TCOLOR_WHITE, TCOLOR_BLACK, warn_str[j], g_terminal_vram);
-				copy_to_dd(g_terminal_vram);
+					term_prim_write_character(j, 0, EARLYTERM_COLOR_WHITE, EARLYTERM_COLOR_BLACK, warn_str[j], g_terminal_vram);
+				disp_mono_copy_to_dd(g_terminal_vram);
 				while(!is_key_down(K_EXE));
 				while(is_key_down(K_EXE));
 				static volatile int tricks;
@@ -54,25 +58,25 @@ void terminal_write(const char *str) {
 				line_nb = 0;
 			}
 
-			scroll_up(g_terminal_vram, g_back_c);
-			g_posy = maxy-1;
+			term_prim_scroll_up(g_terminal_vram, g_back_c);
+			g_posy = FX9860_TERM_HEIGHT-1;
 		}
 	}
 
-	copy_to_dd(g_terminal_vram);
+	disp_mono_copy_to_dd(g_terminal_vram);
 }
 
 
-void terminal_set_colors(int front_c, int back_c) {
+void earlyterm_set_colors(int front_c, int back_c) {
 	g_back_c = back_c;
 	g_front_c = front_c;
 }
 
 
-void terminal_clear() {
+void earlyterm_clear() {
 	// for now, direct VRAM access, only compatible with fx-9860 like models!
 	// TODO a better system of course!
-	unsigned int back = mask_color(g_back_c);
+	unsigned int back = term_prim_mask_color(g_back_c);
 	int i;
 	unsigned int *l_vram = (unsigned int *)g_terminal_vram;
 	for(i=0; i<4*64; i++) {
@@ -80,27 +84,27 @@ void terminal_clear() {
 	}
 	g_posx = 0;
 	g_posy = 0;
-	copy_to_dd(g_terminal_vram);
+	disp_mono_copy_to_dd(g_terminal_vram);
 }
 
 
-void terminal_set_pos(int posx, int posy) {
+void earlyterm_set_pos(int posx, int posy) {
 	g_posx = posx;
 	g_posy = posy;
 }
 
 
-int terminal_posx() {
+int earlyterm_posx() {
 	return g_posx;
 }
 
-int terminal_posy() {
+int earlyterm_posy() {
 	return g_posy;
 }
 
 
 
-void terminal_set_vram(vram_t vram) {
+void earlyterm_init(void *vram) {
 	g_terminal_vram = vram;
 }
 

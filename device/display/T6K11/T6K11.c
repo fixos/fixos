@@ -1,11 +1,12 @@
-#include "../graphics.h"
+#include <device/display/generic_mono.h>
 
-int graphic_width() {
+size_t disp_mono_width() {
 	return 128;
 }
 
 
-int graphic_height() {
+size_t disp_mono_height() {
 	return 64;
 }
+
 

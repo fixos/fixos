@@ -15,10 +15,10 @@
 !
 
 	.section ".text"
-	.global _copy_to_dd
-	.type _copy_to_dd, @function
+	.global _disp_mono_copy_to_dd
+	.type _disp_mono_copy_to_dd, @function
 
-_copy_to_dd:
+_disp_mono_copy_to_dd:
 	mov.l	r12, @-r15
 	mov.l	r11, @-r15
 	mov.l	r10, @-r15

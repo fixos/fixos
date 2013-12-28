@@ -1,6 +1,6 @@
 //#include "arch/sh/7705_casio.h"
 #include "device/display/T6K11/T6K11.h"
-#include "sys/terminal.h"
+#include "device/terminal/generic_early_term.h"
 #include "device/keyboard/keyboard.h"
 #include "arch/sh/interrupt.h"
 #include "arch/sh/virtual_memory.h"
@@ -78,16 +78,16 @@ void init() {
 
 	 INTERRUPT_PRIORITY_REF = 0;
 
-	terminal_set_vram(vram);
-	terminal_clear();
+	earlyterm_init(vram);
+	earlyterm_clear();
 
-	set_kernel_print(&terminal_write);
+	set_kernel_print(&earlyterm_write);
 
-	terminal_write("Boostrap... OK!\n");
-	terminal_set_colors(TCOLOR_WHITE, TCOLOR_BLACK);
-	terminal_write("WARNING : ");
-	terminal_set_colors(TCOLOR_BLACK, TCOLOR_WHITE);
-	terminal_write("it's working!\n  It's really strange...\n");
+	earlyterm_write("Boostrap... OK!\n");
+	earlyterm_set_colors(EARLYTERM_COLOR_WHITE, EARLYTERM_COLOR_BLACK);
+	earlyterm_write("WARNING : ");
+	earlyterm_set_colors(EARLYTERM_COLOR_BLACK, EARLYTERM_COLOR_WHITE);
+	earlyterm_write("it's working!\n  It's really strange...\n");
 
 	mmu_init();
 	pm_init_pages();

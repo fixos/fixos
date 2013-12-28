@@ -1,11 +1,11 @@
 	.section ".text"
-	.global _set_pixel
-	.type _set_pixel, @function
+	.global _disp_mono_set_pixel
+	.type _disp_mono_set_pixel, @function
 	.align 2
 
 ! setPixel() function, C prototype : void set_pixel(int x, int y, int color, unsigned char *vram)
 ! color is 0 for white, 1 for black, 2 for XOR
-_set_pixel:
+_disp_mono_set_pixel:
 	! Clipping : (x>=0 && y>=0 && 63>=y && 127>=x)
 	mov	#0, r1
 	cmp/ge	r1, r4

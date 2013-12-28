@@ -1,9 +1,10 @@
 #ifndef DISPLAY_T6K11_TERMINAL_H
 #define DISPLAY_T6K11_TERMINAL_H
 
-#include "T6K11.h"
-#include "../terminal.h"
-#include "../graphic.h"
+#include <device/display/generic_mono.h>
+#include <device/terminal/generic_early_term.h>
+
+#include "print_primitives.h"
 
 // Font 3x5 data
 unsigned int _iFont3x5[128]={
@@ -138,36 +139,36 @@ unsigned int _iFont3x5[128]={
 };
 
 
-#define _PCDOT(n, cwidth) set_pixel(((n)%(cwidth))+x,((n)/(cwidth))+y,(map & (1<<(n)))>>(n),vram)
+#define _PCDOT(n, cwidth) disp_mono_set_pixel(((n)%(cwidth))+x,((n)/(cwidth))+y,(map & (1<<(n)))>>(n),(unsigned char*)vram)
 
-void write_character(unsigned int posx, unsigned int posy, int front_c, int back_c, char c, vram_t vram) {
+void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c, int back_c, char c, void *vram) {
 
 	unsigned int backcolor, frontcolor;
 	int x, y;
-	backcolor = mask_color(back_c);
-	frontcolor = mask_color(front_c);
+	backcolor = term_prim_mask_color(back_c);
+	frontcolor = term_prim_mask_color(front_c);
 	x = posx * 4;
 	y = posy * 6;
 	if((c >= 0) && (x>-3) && (x<128) && (y>-5) && (y<64)) {
 		int tmpmap = _iFont3x5[(int)c];
 		unsigned int map = (frontcolor&tmpmap) | (backcolor&(~tmpmap));
-		_PCDOT(0, 3); _PCDOT(1, 3); _PCDOT(2, 3); set_pixel(x+3, y+0, backcolor&0x01, vram);
-		_PCDOT(3, 3); _PCDOT(4, 3); _PCDOT(5, 3); set_pixel(x+3, y+1, backcolor&0x01, vram);
-		_PCDOT(6, 3); _PCDOT(7, 3); _PCDOT(8, 3); set_pixel(x+3, y+2, backcolor&0x01, vram);
-		_PCDOT(9, 3); _PCDOT(10, 3); _PCDOT(11, 3); set_pixel(x+3, y+3, backcolor&0x01, vram);
-		_PCDOT(12, 3); _PCDOT(13, 3); _PCDOT(14, 3); set_pixel(x+3, y+4, backcolor&0x01, vram);
-		set_pixel(x+0, y+5, backcolor&0x01, vram);
-		set_pixel(x+1, y+5, backcolor&0x01, vram);
-		set_pixel(x+2, y+5, backcolor&0x01, vram);
-		set_pixel(x+3, y+5, backcolor&0x01, vram);
+		_PCDOT(0, 3); _PCDOT(1, 3); _PCDOT(2, 3); disp_mono_set_pixel(x+3, y+0, backcolor&0x01, vram);
+		_PCDOT(3, 3); _PCDOT(4, 3); _PCDOT(5, 3); disp_mono_set_pixel(x+3, y+1, backcolor&0x01, vram);
+		_PCDOT(6, 3); _PCDOT(7, 3); _PCDOT(8, 3); disp_mono_set_pixel(x+3, y+2, backcolor&0x01, vram);
+		_PCDOT(9, 3); _PCDOT(10, 3); _PCDOT(11, 3); disp_mono_set_pixel(x+3, y+3, backcolor&0x01, vram);
+		_PCDOT(12, 3); _PCDOT(13, 3); _PCDOT(14, 3); disp_mono_set_pixel(x+3, y+4, backcolor&0x01, vram);
+		disp_mono_set_pixel(x+0, y+5, backcolor&0x01, vram);
+		disp_mono_set_pixel(x+1, y+5, backcolor&0x01, vram);
+		disp_mono_set_pixel(x+2, y+5, backcolor&0x01, vram);
+		disp_mono_set_pixel(x+3, y+5, backcolor&0x01, vram);
 	}
 }
 
 
-void scroll_up(vram_t vram, int back_c) {
+void term_prim_scroll_up(void *vram, int back_c) {
 	int i;
 	unsigned int *l_vram = (unsigned int*)vram;
-	unsigned int backcolor = mask_color(back_c);
+	unsigned int backcolor = term_prim_mask_color(back_c);
 	for(i=0; i<(4*(64-10)); i++) {
 		l_vram[i] = l_vram[i+4*6];
 	}
@@ -177,19 +178,8 @@ void scroll_up(vram_t vram, int back_c) {
 }
 
 
-int termchar_width() {
-	return 32;
-};
-
-
-int termchar_height() {
-	return 10;
-};
-
-
-
-unsigned int mask_color(int color) {
-	if((color==TCOLOR_BLACK) || (color==TCOLOR_RED) || (color==TCOLOR_GREEN) || (color==TCOLOR_BLUE))
+unsigned int term_prim_mask_color(int color) {
+	if(color == EARLYTERM_COLOR_BLACK)
 		return 0xFFFFFFFF;
 	return 0x00000000; 
 }

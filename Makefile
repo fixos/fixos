@@ -28,10 +28,10 @@ C_SRC=loader/ramloader/loader.c \
 	  utils/strconv.c utils/log.c \
 	  arch/sh/physical_memory.c arch/sh/mmu.c arch/sh/virtual_memory.c arch/sh/interrupt.c \
 	  arch/sh/exception.c arch/sh/memory/c_s29jl032h.c arch/sh/kdelay.c arch/sh/modules/sdhi.c \
-	  sys/process.c sys/terminal.c \
+	  sys/process.c \
 	  device/device_registering.c \
 	  device/keyboard/iskeydown.c \
-	  device/display/T6K11/terminal.c \
+	  device/terminal/fx9860/early_term.c device/terminal/fx9860/print_primitives.c \
 	  init.c
 
 ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \
