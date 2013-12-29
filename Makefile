@@ -31,7 +31,8 @@ C_SRC=loader/ramloader/loader.c \
 	  sys/process.c \
 	  device/device_registering.c \
 	  device/keyboard/iskeydown.c \
-	  device/terminal/fx9860/early_term.c device/terminal/fx9860/print_primitives.c \
+	  device/terminal/fx9860/early_term.c device/terminal/fx9860/print_primitives.c device/terminal/fx9860/terminal.c \
+	  device/display/T6K11/T6K11.c \
 	  init.c
 
 ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \
