@@ -1,6 +1,7 @@
 #include "log.h"
 #include "types.h"
 #include "strconv.h"
+#include <fs/vfs_file.h>
 
 // normally provide by GCC, with only builtins calls...
 #include <stdarg.h>
@@ -8,6 +9,12 @@
 #define BUFFER_SIZE 256
 
 static print_callback_t current_kernel_print = NULL;
+
+// used by print_to_file()
+static struct file *current_log_file = NULL;
+
+static void print_to_file(const char *str);
+
 
 void printk(const char *str, ...)
 {
@@ -88,4 +95,25 @@ void printk(const char *str, ...)
 void set_kernel_print(print_callback_t func)
 {
 	current_kernel_print = func;
+}
+
+
+void set_kernel_print_file(struct file *logfile) {
+	current_log_file = logfile;
+	if(current_log_file != NULL) {
+		current_kernel_print = &print_to_file;
+	}
+	else {
+		current_kernel_print = NULL;
+	}
+}
+
+void print_to_file(const char *str) {
+	size_t len = 0;
+	
+	// no strlen() for now, basic implementation
+	while(str[len]!='\0')
+		len++;
+
+	vfs_write(current_log_file, str, len);
 }

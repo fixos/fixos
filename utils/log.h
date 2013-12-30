@@ -4,6 +4,8 @@
 
 typedef void(*print_callback_t)(const char*);
 
+struct file;
+
 /**
  * printf-like function to log misc kernel messages
  * Currently, only some modifier are allowed : %s, %x, %p, %d
@@ -16,5 +18,11 @@ void printk(const char *str, ...) __attribute__ ((format (printf, 1, 2)));
  */
 void set_kernel_print(print_callback_t func);
 
+
+/**
+ * Set printk callback function to vfs_write(logfile, msg, strlen(msg)).
+ * This function override the callback defined by set_kernel_print().
+ */
+void set_kernel_print_file(struct file *logfile);
 
 #endif //_UTILS_LOG_H

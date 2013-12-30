@@ -107,9 +107,9 @@ size_t vfs_read(struct file *filep, void *dest, size_t nb) {
 }
 
 
-size_t vfs_write(struct file *filep, void *source, size_t nb) {
+size_t vfs_write(struct file *filep, const void *source, size_t nb) {
 	if(filep->inode->file_op->write != NULL) {
-		return filep->inode->file_op->write(filep, source, nb);
+		return filep->inode->file_op->write(filep, (void*)source, nb);
 	}
 	else {
 		// TODO return -1 (and change return type to a signed type -> off_t)

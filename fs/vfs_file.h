@@ -52,7 +52,7 @@ size_t vfs_read(struct file *filep, void *dest, size_t nb);
 /**
  * Write data to openned file.
  */
-size_t vfs_write(struct file *filep, void *source, size_t nb);
+size_t vfs_write(struct file *filep, const void *source, size_t nb);
 
 
 /**

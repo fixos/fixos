@@ -74,11 +74,11 @@ void init() {
 
 	//test_keyboard_int();
 
-	test_virtual_mem();
+	//test_virtual_mem();
 
-	asm volatile ("trapa #50");
+	//asm volatile ("trapa #50");
 
-	DBG_WAIT;
+	//DBG_WAIT;
 	
 	// Initializing VFS and device sub-sytems, mount platform filesystems,
 	// register platform devices...
@@ -100,6 +100,31 @@ void init() {
 
 	DBG_WAIT;
 
+	// switch from early_terminal to fx9860 console 
+	printk("Trying to use fx9860-terminal device...\n");
+
+	inode_t *console_inode = vfs_resolve("/dev/console");
+	if(console_inode != NULL) {
+		 struct file *console = vfs_open(console_inode);
+		 if(console != NULL) {
+			 printk("fx9860 terminal ready...\nThe display will be cleared.\n");
+			 DBG_WAIT;
+
+			 // vfs_write(filep, "Hello!\n", 7); 
+
+			 // set printk() callback func
+			 set_kernel_print_file(console);
+			 printk("From fx9860 terminal : Hello!\nNow using /dev/console device!\n");
+		 }
+		 else {
+			 printk("[W] Unable to open fx9860 term\n");
+		}
+	}
+	else {
+		printk("[W] Not found node /dev/console\n");
+	}
+	DBG_WAIT;
+
 	test_vfs();
 
 	//test_sdcard();
@@ -114,5 +139,9 @@ void init() {
 
 	process_init();
 	//test_process();
+	
+
+	printk("End of init job, sleeping...\n");
+	while(1);
 }
 
