@@ -3,7 +3,7 @@
 #include <arch/sh/physical_memory.h>
 #include <utils/strutils.h>
 #include <fs/vfs.h>
-
+#include <device/device_registering.h>
 #include "primitives.h"
 
 
@@ -206,6 +206,7 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret) {
 
 	ret->fs_op = inst;
+	ret->file_op = NULL; // no file operation, except if it's a device
 	if(node == NULL) {
 		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
 		ret->abstract = NULL;
@@ -217,6 +218,14 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 	else {
 		ret->type_flags = node->type_flags & (~PROTOFS_TYPE_EMPTY);
 		if(node->type_flags & INODE_TYPE_DEV) {
+			// use the device-specific file operations
+			struct device *dev = dev_device_from_major(node->special.dev.major);
+			if(dev == NULL) {
+				printk("protofs: invalid device inode (major %d)\n", node->special.dev.major);
+			}
+			else {
+				ret->file_op = dev->get_file_op(node->special.dev.minor);
+			}
 			ret->typespec.dev.major = node->special.dev.major;
 			ret->typespec.dev.minor = node->special.dev.minor;
 		}

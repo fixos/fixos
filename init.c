@@ -12,6 +12,7 @@
 #include "fs/protofs/file_system.h"
 #include "fs/vfs.h"
 #include "fs/vfs_op.h"
+#include "fs/vfs_file.h"
 
 #include "loader/ramloader/loader.h"
 #include "arch/sh/process.h"
@@ -20,6 +21,9 @@
 
 #include "device/sd_card.h"
 #include "arch/sh/kdelay.h"
+
+#include "device/device_registering.h"
+#include "device/terminal/fx9860/terminal.h"
 
 extern unsigned int * euser;
 extern unsigned int * buser;
@@ -146,6 +150,7 @@ void init() {
 
 	DBG_WAIT;
 	
+	/*
 	// SD Card communication tests
 	printk("Trying to init SD card...\n");
 	//printk("Trying to send SD command...\n");
@@ -214,6 +219,7 @@ void init() {
 	printk("Read return = %d\n{%p %p}\n", sdret, *(void**)(blockbuf), *(void**)(blockbuf + 4));
 
 	DBG_WAIT;
+	*/
 
 	// kdelay/kusleep tests
 /*
@@ -272,6 +278,8 @@ void init() {
 
 	DBG_WAIT;
 */
+
+	/*
 	// test for user process load and run
 	size_t processl = (void*)(&euser) - (void*)(&buser);
 	void *bprocess = &osram_buser;
@@ -297,9 +305,16 @@ void init() {
 	arch_kernel_contextjmp(&(proc1->acnt));
 	
 	DBG_WAIT;
-
+*/
 
 	vfs_init();
+	vfs_file_init();
+
+	// add fx9860 terminal in device list, with major number 20
+	dev_init();
+	_fx9860_term_device.init();
+	dev_register_device(&_fx9860_term_device, 20);
+
 	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);
 /*	vfs_mount("smemfs", NULL, VFS_MOUNT_ROOT);
 
@@ -316,6 +331,7 @@ void init() {
 	DBG_WAIT;
 
 	vfs_create("/", "dev", INODE_TYPE_PARENT, INODE_FLAG_READ | INODE_FLAG_EXEC, 0);
+	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00140001);
 	vfs_create("/dev", "mouahah", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "pouet", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/", "usr", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
@@ -341,6 +357,37 @@ void init() {
 	inode_t *curi2 = vfs_resolve("/mnt/.././mnt/test/../../mnt/test/UEDIT/.././././UEDIT/acore.cfg");
 
 	printk("with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
+
+	DBG_WAIT;
+
+	// try to open a file in SMEM using vfs's functions
+	struct file *filep;
+	char file_buf[50];
+	int nbread;
+
+	filep = vfs_open(curi);
+
+	nbread = vfs_read(filep, file_buf, 49);
+	file_buf[nbread] = '\0';
+
+	printk("Trying to read 49(%d) bytes :\n%s\n", nbread, file_buf);
+
+	vfs_close(filep);
+
+	printk("Done.\n");
+
+	DBG_WAIT;
+
+	// trying to open /dev/console device
+	printk("Trying to use fx9860-terminal device...\n");
+
+	inode_t *console = vfs_resolve("/dev/console");
+	filep = vfs_open(console);
+
+	vfs_write(filep, "This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n", sizeof("This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n")-1); 
+	DBG_WAIT;
+
+	vfs_close(filep);
 
 	DBG_WAIT;
 
