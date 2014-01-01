@@ -6,6 +6,7 @@
 
 
 #include <sys/process.h>
+#include <syscalls/arch/syscall.h>
 #include <utils/log.h>
 
 extern void syscall_entry();
@@ -15,6 +16,9 @@ extern void syscall_entry();
  * 
  */
 int *g_user_registers = NULL; 
+
+// used to refer to last stack-saved BANK0 register (array of {r0, r1, ..., r7}
+extern int *_bank0_context;
 
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
@@ -48,6 +52,24 @@ void exception_handler()
 		tra = INTC.TRA >> 2; 
 		printk("TRAPA (%d) catched!\n", tra);
 		//TODO syscall_entry();
+
+		{
+			void *func;
+			func = syscall_get_function(tra);
+			if(func == NULL) {
+				printk("Not a reconized syscall!\n");
+			}
+			else {
+				// call given function
+				asm volatile ("mov %0, r0;"
+						"mov.l @(16, r0), r4;"
+						"mov.l @(20, r0), r5;"
+						"mov.l @(24, r0), r6;"
+						"mov.l @(28, r0), r7;"
+						"jsr @%1; nop;" : : "r"(_bank0_context), "r"(func) : "r0", "r4", "r5", "r6", "r7");
+
+			}
+		}
 		break;
 
 	case EXP_CODE_BAD_INSTR:

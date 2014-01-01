@@ -125,7 +125,7 @@ void init() {
 	}
 	DBG_WAIT;
 
-	test_vfs();
+	//test_vfs();
 
 	//test_sdcard();
 
@@ -138,7 +138,7 @@ void init() {
 
 
 	process_init();
-	//test_process();
+	test_process();
 	
 
 	printk("End of init job, sleeping...\n");

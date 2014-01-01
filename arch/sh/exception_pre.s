@@ -19,6 +19,8 @@
 
 
 
+	.global __bank0_context
+
 	.extern _exception_handler
 	.extern _tlbmiss_handler
 
@@ -56,6 +58,10 @@ stack_set:
 	stc.l R2_BANK, @-r15
 	stc.l R1_BANK, @-r15
 	stc.l R0_BANK, @-r15
+
+	! save stored address (for trapa syscall)
+	mov.l bank0_context, r1
+	mov.l r15, @r1
 
 	mov.l rb_mask, r1
 	not r1, r1
@@ -98,3 +104,11 @@ md_mask:
 	.long MD_MASK
 rb_mask:
 	.long RB_MASK
+bank0_context:
+	.long __bank0_context
+
+
+	.section ".data"
+	.align 4
+__bank0_context:
+	.long 0
