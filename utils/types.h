@@ -28,4 +28,12 @@ typedef uint8 asid_t;
 // Process IDendifier
 typedef uint32 pid_t;
 
+
+// temporary location
+// TODO move them to a more consistant place
+//lseek constants
+#define SEEK_SET	1
+#define SEEK_CUR	2
+#define SEEK_END	3
+
 #endif // FIXOS_SYS_TYPES_H

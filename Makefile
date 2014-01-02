@@ -20,7 +20,7 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=loader/ramloader/loader.c \
+C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  user/first_test.c \
 	  fs/vfs_cache.c fs/vfs_op.c fs/vfs.c fs/vfs_file.c \
 	  fs/protofs/file_system.c \
@@ -58,7 +58,7 @@ OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.S=.o) $(BOOTLOADER_OBJ_MODIFIED)
 
 
 
-all: $(G1A)
+all: $(G1A) user
 
 $(G1A): $(BINARY)
 	$(G1A_WRAPPER) $< -o $@ -i $(G1A_ICON) -n $(BASENAME)
@@ -82,12 +82,18 @@ $(BOOTLOADER_OBJ_MODIFIED): %_modified.o: %.o
 	$(CC) -c $(CCFLAGS) -o $@ $<
 
 
-.PHONY: clean distclean re all
+# Userland stuff sub-makefile
+user:
+	$(MAKE) -C user/ all
+
+.PHONY: clean distclean re all user
 
 clean:
 	rm -f $(OBJ) $(BOOTLOADER_OBJ) $(ELF) $(BINARY)
+	$(MAKE) -C user/ clean
 
 distclean: clean
 	rm -f $(G1A)
+	$(MAKE) -C user/ distclean
 
 re: distclean all

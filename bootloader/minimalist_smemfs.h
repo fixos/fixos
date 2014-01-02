@@ -15,9 +15,10 @@
 
 #define CASIO_STORAGE_MEM ((const unsigned char*)(0xA0000000)) 
 
-#define SEEK_CUR 0
+/*#define SEEK_CUR 0
 #define SEEK_END 1
 #define SEEK_SET 2
+*/
 
 //Flags :
 #define _FILE_WRITTEN 1  //Used for files openned with '+' mode

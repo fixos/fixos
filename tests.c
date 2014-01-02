@@ -16,6 +16,7 @@
 #include "fs/vfs_file.h"
 
 #include "loader/ramloader/loader.h"
+#include "loader/elfloader/loader.h"
 #include "arch/sh/process.h"
 
 #include "arch/sh/memory/eeprom.h"
@@ -160,7 +161,7 @@ void test_eeprom() {
 }
 
 
-
+/*
 extern unsigned int * euser;
 extern unsigned int * buser;
 extern unsigned int * osram_buser;
@@ -192,6 +193,37 @@ void test_process() {
 	
 	DBG_WAIT;
 }
+*/
+
+void test_process() {
+	// test for user process load and run
+	inode_t *elf_inode;
+	struct file *elf_file;
+
+	elf_inode = vfs_resolve("/mnt/smem/test.elf");
+	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
+		printk("Not found /mnt/smem/test.elf\n");
+	}
+	else {
+		process_t *proc1;
+		proc1 = process_alloc();
+		printk("loading test.elf\n");
+
+		DBG_WAIT;
+
+		elfloader_load(elf_file, proc1);
+		process_set_asid(proc1);
+		mmu_setasid(proc1->asid);
+		printk("[D] ASID = %d\n", mmu_getasid());
+		printk("asid=%d, pid=%d\n", proc1->asid, proc1->pid);
+
+		DBG_WAIT;
+
+		arch_kernel_contextjmp(&(proc1->acnt));
+
+		DBG_WAIT;
+	}
+}
 
 
 void test_vfs() {
@@ -204,11 +236,8 @@ void test_vfs() {
 	vfs_create("/usr/chose1/bidule2", "holy_shit", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "stdin", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "sda", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
-	vfs_create("/", "mnt", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
-	vfs_create("/mnt", "test", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
 
-	vfs_mount("smemfs", "/mnt/test", VFS_MOUNT_NORMAL);
-	inode_t *curi = vfs_resolve("/mnt/test/UEDIT/acore.cfg");
+	inode_t *curi = vfs_resolve("/mnt/smem/UEDIT/acore.cfg");
 	
 	if(curi != NULL)
 		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
@@ -217,7 +246,7 @@ void test_vfs() {
 
 	DBG_WAIT;
 
-	inode_t *curi2 = vfs_resolve("/mnt/.././mnt/test/../../mnt/test/UEDIT/.././././UEDIT/acore.cfg");
+	inode_t *curi2 = vfs_resolve("/mnt/.././mnt/smem/../../mnt/smem/UEDIT/.././././UEDIT/acore.cfg");
 
 	printk("with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
 

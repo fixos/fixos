@@ -123,6 +123,15 @@ void init() {
 	else {
 		printk("[W] Not found node /dev/console\n");
 	}
+
+
+	// mount additional filesystems
+	vfs_create("/", "mnt", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+	vfs_create("/mnt", "smem", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
+
+	vfs_mount("smemfs", "/mnt/smem", VFS_MOUNT_NORMAL);
+	
+
 	DBG_WAIT;
 
 	//test_vfs();
