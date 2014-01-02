@@ -26,6 +26,8 @@ int usertest_main() {
 	fd = open("/dev/console", chabada);
 	chabada = 12;
 
+	write(fd, "*** Hey! I'm a User process!\n*** I AM ALIVE!\n", sizeof("*** Hey! I'm a User process!\n*** I AM ALIVE!\n")-1);
+
 	// never return
 	while(1);
 

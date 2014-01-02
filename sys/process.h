@@ -24,6 +24,11 @@ struct _virtual_mem;
 #define PROCESS_STATE_STOP		4
 
 
+// maximum files opened at a time by a process
+#define PROCESS_MAX_FILE		5
+
+struct file;
+
 struct _process_info {
 	pid_t pid;
 	asid_t asid;
@@ -33,6 +38,10 @@ struct _process_info {
 	
 	// information for saving/restoring context : 
 	struct _context_info acnt;
+
+	// files opened by process, index is file descriptor
+	struct file *files[PROCESS_MAX_FILE];
+	
 
 	int state;
 };
@@ -78,5 +87,9 @@ process_t *process_alloc();
 int process_set_asid(process_t *proc);
 
 
+/**
+ * Return the running process at the time this function is called.
+ */
+process_t *process_get_current();
 
 #endif //_SYS_PROCESS_H

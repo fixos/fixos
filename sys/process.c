@@ -1,4 +1,5 @@
 #include "process.h"
+#include <arch/sh/mmu.h>
 
 
 void * g_process_current_kstack = NULL;
@@ -58,6 +59,10 @@ process_t *process_from_pid(pid_t pid)
 
 process_t *process_alloc() {
 	if(!_test_proc_used) {
+		int i;
+
+		for(i=0; i<PROCESS_MAX_FILE; i++)
+			_test_proc.files[i] = NULL;
 		_test_proc.pid = _pid_next_value++;
 		_test_proc.state = PROCESS_STATE_CREATE;
 		_test_proc_used = 1;
@@ -88,3 +93,7 @@ int process_set_asid(process_t *proc)
 	}
 }
 
+
+process_t *process_get_current() {
+	return process_from_asid(mmu_getasid());
+}

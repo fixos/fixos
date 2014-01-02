@@ -43,7 +43,7 @@ void exception_handler()
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		printk("Fatal:\nCPU Access Violation (R/W)\n  Adress : %p\n", (void*)tea);
+		printk("Fatal:\nCPU Access Violation (R/W)\n  Address : %p\n", (void*)tea);
 		printk("SPC Value = %p\n", spcval);
 		while(1);
 		break;
@@ -66,7 +66,10 @@ void exception_handler()
 						"mov.l @(20, r0), r5;"
 						"mov.l @(24, r0), r6;"
 						"mov.l @(28, r0), r7;"
-						"jsr @%1; nop;" : : "r"(_bank0_context), "r"(func) : "r0", "r4", "r5", "r6", "r7");
+						"jsr @%1;"
+						"nop;"
+						"mov %0, r1;"
+						"mov.l r0, @(0, r1);" : : "r"(_bank0_context), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7");
 
 			}
 		}
