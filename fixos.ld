@@ -73,11 +73,11 @@ SECTIONS
 		. = ALIGN(1024);
 		_osram_buser = . ;
 
-		_ereloc = ABSOLUTE(.) + SIZEOF(.userdata);
+		_ereloc = ABSOLUTE(.); /* + SIZEOF(.userdata);*/
 
-		_usersize = SIZEOF(.userdata) ;
+/*		_usersize = SIZEOF(.userdata) ;*/
 	} > osram
-
+/*
 	.userdata : AT( _romdata + SIZEOF(.rodata)  ) {
 		. = ALIGN(1024);
 		_buser = . ;
@@ -85,9 +85,9 @@ SECTIONS
 		*(.user.*) ;
 		_euser = . ;
 	} > userram
-
+*/
 	.bss : {
-		. = . + SIZEOF(.userdata);
+/*		. = . + SIZEOF(.userdata);*/
 		. = ALIGN(4);
 		_bbss = . ;
 		*(.bss) *(COMMON);

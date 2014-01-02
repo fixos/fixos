@@ -10,13 +10,13 @@
 #include <utils/types.h>
 
 
-extern int open(const char *file, int mode);
+//extern int open(const char *file, int mode);
 #define SYSCALL_OPEN	1
 
-extern ssize_t read(int fd, char *dest, size_t nb);
+//extern ssize_t read(int fd, char *dest, size_t nb);
 #define SYSCALL_READ	2
 
-extern ssize_t write(int fd, const char *source, size_t nb);
+//extern ssize_t write(int fd, const char *source, size_t nb);
 #define SYSCALL_WRITE	3
 
 
