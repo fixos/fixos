@@ -3,10 +3,7 @@
 #include "7705_Casio.h"
 
 #include <utils/log.h>
-
-#ifndef NULL
-#define NULL ((void*)0)
-#endif
+#include <utils/types.h>
 
 
 // Globals callbacks functions address :
@@ -97,6 +94,12 @@ void interrupt_handler() {
 		handler = g_interrupt_callback[INT_PINT_8_15];
 		if (handler != NULL) handler();
 		INTX.IRR0.BIT.PINT1R = 0;
+		break;
+	case INT_CODE_USB_USI0:
+	case INT_CODE_USB_USI1:
+		handler = g_interrupt_callback[INT_USB];
+		if (handler != NULL) handler();
+		// TODO add flag clear?
 		break;
 		
 

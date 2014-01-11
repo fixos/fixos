@@ -32,6 +32,7 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  device/keyboard/iskeydown.c \
 	  device/terminal/fx9860/early_term.c device/terminal/fx9860/print_primitives.c device/terminal/fx9860/terminal.c \
 	  device/display/T6K11/T6K11.c \
+	  arch/sh/modules/usb.c \
 	  syscalls/arch/syscall.c \
 	  init.c tests.c
 

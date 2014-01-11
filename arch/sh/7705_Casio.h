@@ -92,8 +92,9 @@ union un_sdclkr {
 union un_uknport {
 	unsigned char BYTE;
 	struct {
-		unsigned char u1	:1;
-		unsigned char		:7;
+		unsigned char u1	:1; // seems to be related to SD card
+		unsigned char u2	:1; // seems to be related to USB port
+		unsigned char		:6;
 	} BIT;
 };
 

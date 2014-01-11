@@ -116,21 +116,24 @@ size_t fx9860_term_write(struct file *filep, void *source, size_t len) {
 			line_nb++;
 		}
 
+		
 		if(_term_posy>=FX9860_TERM_HEIGHT) {
 			// tmp stuff
-			if(line_nb >= FX9860_TERM_HEIGHT-3) {
+			/*if(line_nb >= FX9860_TERM_HEIGHT-3) {
 				int j;
 				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
 				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
 				for(j=0; j<warn_strlen; j++)
 					term_prim_write_character(j, 0, TERM9860_COLOR_WHITE, TERM9860_COLOR_BLACK, warn_str[j], _term_vram);
 				disp_mono_copy_to_dd(_term_vram);
+
+				
 				while(!is_key_down(K_EXE));
 				while(is_key_down(K_EXE));
 				static volatile int tricks;
 				for(tricks = 0; tricks<100000; tricks++);
 				line_nb = 0;
-			}
+			}*/
 
 			term_prim_scroll_up(_term_vram, _term_back_c);
 			_term_posy = FX9860_TERM_HEIGHT-1;
