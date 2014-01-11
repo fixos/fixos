@@ -1,6 +1,7 @@
 #include <device/usb/usb_device_protocol.h>
 #include <arch/sh/7705_Casio.h>
 #include <arch/sh/interrupt.h>
+#include <utils/strutils.h>
 
 #include <utils/log.h>
 
@@ -11,10 +12,13 @@
  */
 
 // buffer for received data
-static char _usb_buffer_ep0[128];
-static int _usb_bufsize_ep0;
-static char _usb_buffer_ep1[512];
-static int _usb_bufsize_ep1;
+#define USB_EP0o_BUFFER_SIZE	128
+static char _usb_buffer_ep0o[USB_EP0o_BUFFER_SIZE];
+static int _usb_bufsize_ep0o;
+
+#define USB_EP1o_BUFFER_SIZE	512
+static char _usb_buffer_ep1o[USB_EP1o_BUFFER_SIZE];
+static int _usb_bufsize_ep1o;
 
 
 // setup callback
@@ -94,20 +98,70 @@ int usb_send(int endpoint, const char *data, size_t size) {
 
 
 int usb_receive(int endpoint, char *data, size_t size, int flags) {
+	// variables used to get data from any endpoint
+	volatile int *bufsize;
+	volatile char *buffer;
+	ssize_t ret = -1;
+	int tried_once = 0;
+
 	switch(endpoint) {
 	case USB_EP_ADDR_EP0OUT:
 		//TODO
+		bufsize = &_usb_bufsize_ep0o;
+		buffer = _usb_buffer_ep0o;
 		break;
 	
 	case USB_EP_ADDR_EP1OUT:
 		//TODO
+		bufsize = &_usb_bufsize_ep1o;
+		buffer = _usb_buffer_ep1o;
 		break;
 
 	default:
 		return -1;
 	}
 
-	return -2;
+
+	// real job depends of flags
+	ret = 0;
+
+	while(ret>=0 && ret<size && !((flags & USB_RECV_PARTIAL) && ret!=0)
+			&& !((flags & USB_RECV_NONBLOCK) && tried_once) )
+	{
+		unsigned char prio = INTERRUPT_PRIORITY_USB;
+		int nbbytes;
+
+		INTERRUPT_PRIORITY_USB = 0x00; // stop interrupt for USB!
+
+		nbbytes = *bufsize + ret;
+		nbbytes = nbbytes > size ? size - ret : nbbytes - ret;
+		if(nbbytes > 0) {
+			memcpy(data + ret, buffer, nbbytes);
+			ret += nbbytes;
+
+			// be careful : if all the buffer is not read, we must copy its
+			// content at the begining of the array
+			if(*bufsize > nbbytes) {
+				// TODO we NEED to use memmove() and not memcpy() because of
+				// overlap!!!
+				// TODO bis : implement "cyclic buffer" to have a light FIFO-like structure
+				// memcpy(buffer, buffer + nbbytes, *busize - nbbytes);
+				int i;
+				for(i=0; i < *bufsize - nbbytes; i++)
+					buffer[i] = buffer[i+nbbytes];
+			}
+
+			*bufsize = *bufsize - nbbytes;
+		}
+
+		// re-enable interrupts
+		INTERRUPT_PRIORITY_USB = prio;
+		// TODO wait some useconds...
+
+		tried_once = 1;
+	}
+
+	return ret;
 }
 
 
@@ -254,29 +308,31 @@ void usb_sh3_interrupt_handler() {
 	}
 
 	if(USB.IER0.BIT.EP1FULL == 1 && USB.IFR0.BIT.EP1FULL == 1) {
-		char inbuf[129];
 		int i;
 		int nbreceived = USB.EPSZ1;
 
-		for(i=0; i<nbreceived; i++)
-			inbuf[i] = USB.EPDR1;
+		// try to copy received data to ep1 buffer
+		if(_usb_bufsize_ep1o + nbreceived < USB_EP1o_BUFFER_SIZE) {
+			for(i=0; i<nbreceived; i++)
+				_usb_buffer_ep1o[_usb_bufsize_ep1o + i] = USB.EPDR1;
+			//memcpy(_usb_buffer_ep1o + _usb_bufsize_ep1o, inbuf, nbreceived);
+			_usb_bufsize_ep1o += nbreceived;
 
-		if(i>64) {
-			printk("### Problem will occur :o\n");
+			USB.TRG.BIT.EP1RDFN = 1;
 		}
-		USB.TRG.BIT.EP1RDFN = 1;
-		inbuf[i] = '\0';
-		printk(">'%s'\n", inbuf);
-		//DBG_WAIT;
+		else {
+			printk("usb: no enougth space for ep1o\n");
+			// TODO do not set EP1RDFN to force endpoint to reply by NACK ?
+		}
 
-		// wait for EP2 transmited :
+/*		// wait for EP2 transmited :
 		while(USB.IFR0.BIT.EP2EMPTY != 1);
 
 		// echo'ed on EP2
 		for(i=0; i<nbreceived && i<64; i++)
 			USB.EPDR2 = inbuf[i];
 		USB.TRG.BIT.EP2PKTE = 1;
-
+*/
 		// remove magic lock to allow USB printk tests ;)
 		_magic_lock = 1;
 

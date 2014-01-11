@@ -164,6 +164,16 @@ void init() {
 	// USB initialisation
 	usb_init();
 	cdc_acm_init();
+
+	char mybuf[128];
+	int len;
+
+	len = usb_receive(USB_EP_ADDR_EP1OUT, mybuf, 10, 0);
+	printk("usb_receive ret=%d\n", len);
+	if(len > 0) {
+		mybuf[len] = '\0';
+		printk("content = '%s'\n", mybuf);
+	}
 	
 
 	while(!_magic_lock);
