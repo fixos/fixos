@@ -1,4 +1,4 @@
-//#include "arch/sh/7705_casio.h"
+#include "arch/sh/7705_Casio.h"
 #include "device/terminal/generic_early_term.h"
 #include "device/keyboard/keyboard.h"
 #include "arch/sh/interrupt.h"
@@ -17,9 +17,26 @@
 #include "device/device_registering.h"
 #include "device/terminal/fx9860/terminal.h"
 
+#include "device/usb/usb_device_protocol.h"
+#include "device/usb/cdc_acm/cdc_acm.h"
+
 #include "tests.h"
+#include "utils/strutils.h"
 
 extern void * fixos_vbr;  // see fixos.ld
+
+
+volatile int _magic_lock = 0;
+
+void print_usb_ep2(const char *str) {
+	int i;
+
+	for(i=0; str[i]!=0; i++);
+
+	usb_send(USB_EP_ADDR_EP2IN/*_epdesc2.b_endpoint_addr*/, str, i);
+}
+
+
 
 
 // Real entry point of the OS :
@@ -143,14 +160,24 @@ void init() {
 
 	// EEPROM-related code commented to avoid useless write cycles ;)
 	//test_eeprom();
+	
+	// USB initialisation
+	usb_init();
+	cdc_acm_init();
+	
 
+	while(!_magic_lock);
+	set_kernel_print(&print_usb_ep2);
+
+	test_vfs();
 
 
 	process_init();
-	test_process();
+	//test_process();
 	
 
 	printk("End of init job, sleeping...\n");
 	while(1);
+		printk("IER: 0x%x 0x%x\n", USB.IFR0.BYTE, USB.IFR1.BYTE);
 }
 
