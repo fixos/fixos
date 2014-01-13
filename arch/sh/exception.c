@@ -3,6 +3,7 @@
 #include "7705.h"
 #include "interrupt_codes.h"
 #include "mmu.h"
+#include "interrupt.h"
 
 
 #include <sys/process.h>
@@ -36,21 +37,23 @@ void exception_handler()
 	unsigned int tea = TEA;
 	int tra;
 	void *spcval;
+	void *stackval;
 	
 	(void)(tea);
 	asm volatile ("stc spc, %0" : "=r"(spcval) );
+	asm volatile ("mov r15, %0" : "=r"(stackval) );
 
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
 		printk("Fatal:\nCPU Access Violation (R/W)\n  Address : %p\n", (void*)tea);
-		printk("SPC Value = %p\n", spcval);
+		printk("SPC Value = %p\nStack = %p\n", spcval, stackval);
 		while(1);
 		break;
 
 	case EXP_CODE_TRAPA:
 		tra = INTC.TRA >> 2; 
-		printk("TRAPA (%d) catched!\n", tra);
+		//printk("TRAPA (%d) catched!\n", tra);
 		//TODO syscall_entry();
 
 		{
@@ -60,6 +63,10 @@ void exception_handler()
 				printk("Not a reconized syscall!\n");
 			}
 			else {
+				// set BL bit or status register, allowing interrupt/exception
+				// to be generated inside a syscall processing!
+				interrupt_inhibit_all(0);
+
 				// call given function
 				asm volatile ("mov %0, r0;"
 						"mov.l @(16, r0), r4;"
@@ -70,6 +77,8 @@ void exception_handler()
 						"nop;"
 						"mov %0, r1;"
 						"mov.l r0, @(0, r1);" : : "r"(_bank0_context), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7");
+
+				interrupt_inhibit_all(1);
 
 			}
 		}
@@ -115,7 +124,10 @@ void exception_handler()
 	}
 	
 	asm volatile ("stc spc, %0" : "=r"(spcval) );
-	printk("@ end of exception\nSPC Value = %p\n", spcval);
+
+	// avoid verbosity for TRAPA
+	if(evt != EXP_CODE_TRAPA)
+		printk("@ end of exception\nSPC Value = %p\n", spcval);
 
 	return;
 }
@@ -158,11 +170,12 @@ void tlbmiss_handler()
 	}
 	else
 	{	
-		int spcval = 0x1234;
+		int spcval;
+		void *stack;
 
-		asm volatile ("stc spc, r0");
-		asm volatile("mov r0, %0":"=r"(spcval)::);
-		printk("Fatal:\nAccess to forbiden page.\nAt address %p\nWith PC=%p\n", (void*)TEA, (void*)spcval);
+		asm volatile("stc spc, %0":"=r"(spcval));
+		asm volatile("mov r15, %0":"=r"(stack));
+		printk("Fatal:\nAccess to forbiden page.\nAt address %p\nWith PC=%p\nStack=%p\n", (void*)TEA, (void*)spcval, stack);
 		while(1);
 	}
 }

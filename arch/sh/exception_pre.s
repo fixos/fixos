@@ -50,6 +50,8 @@ stack_set:
 	! save BANK1 on stack and switch to BANK0
 	mov.l r4, @-r15		! old stack
 	sts.l pr, @-r15
+	stc.l spc, @-r15
+	stc.l ssr, @-r15
 	stc.l R7_BANK, @-r15
 	stc.l R6_BANK, @-r15
 	stc.l R5_BANK, @-r15
@@ -61,7 +63,10 @@ stack_set:
 
 	! save stored address (for trapa syscall)
 	mov.l bank0_context, r1
+	mov.l @r1, r2
 	mov.l r15, @r1
+	! save the old value on the top of the stack
+	mov.l r2, @-r15
 
 	mov.l rb_mask, r1
 	not r1, r1
@@ -77,6 +82,11 @@ stack_set:
 	jsr @r0
 	nop
 
+
+	mov.l bank0_context, r1
+	mov.l @r15+, r2
+	mov.l r2, @r1
+
 	! restore full context (we still are in BANK0)
 	mov.l @r15+, r0
 	mov.l @r15+, r1
@@ -86,6 +96,8 @@ stack_set:
 	mov.l @r15+, r5
 	mov.l @r15+, r6
 	mov.l @r15+, r7
+	ldc.l @r15+, ssr
+	ldc.l @r15+, spc
 	lds.l @r15+, pr
 
 	mov.l @r15, r15

@@ -34,6 +34,8 @@ stack_set:
 	! save BANK1 on stack and switch to BANK0
 	mov.l r4, @-r15		! old stack
 	sts.l pr, @-r15
+	stc.l spc, @-r15
+	stc.l ssr, @-r15
 	stc.l R7_BANK, @-r15
 	stc.l R6_BANK, @-r15
 	stc.l R5_BANK, @-r15
@@ -66,6 +68,8 @@ stack_set:
 	mov.l @r15+, r5
 	mov.l @r15+, r6
 	mov.l @r15+, r7
+	ldc.l @r15+, ssr
+	ldc.l @r15+, spc
 	lds.l @r15+, pr
 
 	mov.l @r15, r15

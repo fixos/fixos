@@ -69,7 +69,8 @@ int elfloader_load(struct file *filep, process_t *dest) {
 				return -1;
 			}
 
-			dest->acnt.kernel_stack = pageaddr; 
+			// kernel stack begins at the end of pageaddr
+			dest->acnt.kernel_stack = pageaddr + PM_PAGE_BYTES; 
 			dest->acnt.reg[15] = ARCH_UNEWPROC_DEFAULT_STACK;
 			dest->acnt.pc = header.entry;
 			dest->acnt.sr = ARCH_UNEWPROC_DEFAULT_SR;
