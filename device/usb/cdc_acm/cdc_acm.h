@@ -7,6 +7,10 @@
  * used wrapped into a device.
  */
 
+
+#include <utils/types.h>
+
+
 struct usb_setup;
 
 
@@ -15,6 +19,24 @@ struct usb_setup;
  */
 void cdc_acm_init();
 
+
+/**
+ * Get the CDC/ACM connection status.
+ * Returns 1 if USB connection is configured and host seems ready,
+ * 0 in all other cases (for exemple USB not connected at all).
+ */
+int cdc_acm_is_ready();
+
+
+/**
+ * Send data using cdc_acm, and return number of bytes writen.
+ */
+size_t cdc_acm_send(const char *data, size_t size);
+
+/**
+ * Receive data using cdc_acm, return number of bytes read.
+ */
+size_t cdc_acm_receive(char *dest, size_t size);
 
 /**
  * USB Setup handler (see usb_setup_handler_t and usb_set_setup_handler())

@@ -12,6 +12,11 @@ static int cdc_acm_setup_getdescriptor(const struct usb_setup *setup);
 static int cdc_acm_setup_other(const struct usb_setup *setup);
 
 
+// retains the state of the configuration, to allow to know if CDC is
+// initialized (device descriptor sent, etc...)
+// TODO for now it's based on 
+static int _cdc_acm_configured = 0;
+
 
 static const struct usb_device_desc _desc = {
 	.b_length = 18,
@@ -307,6 +312,9 @@ static int cdc_acm_setup_other(const struct usb_setup *setup) {
 
 	switch(setup->b_request) {
 	case CDC_REQ_SET_LINE_CODING:
+		// consider this request is a good way to know if the ACM is now configured
+		_cdc_acm_configured = 1;
+
 		// return line coding structure
 		usb_send(USB_EP_ADDR_EP0IN, (char*)&_line_coding, 7);
 		break;
@@ -326,4 +334,27 @@ static int cdc_acm_setup_other(const struct usb_setup *setup) {
 	return 0;
 }
 
+
+int cdc_acm_is_ready() {
+	// TODO better implementation (for now, USB disconnection do not reset
+	// the return value).
+	return _cdc_acm_configured != 0;
+}
+
+
+size_t cdc_acm_send(const char *data, size_t size) {
+	if(_cdc_acm_configured) {
+		return usb_send(_epdesc2.b_endpoint_addr, data, size);
+	}
+	return 0;
+}
+
+
+size_t cdc_acm_receive(char *dest, size_t size) {
+	if(_cdc_acm_configured) {
+		// blocking receive
+		return usb_receive(_epdesc1.b_endpoint_addr, dest, size, 0);
+	}
+	return 0;
+}
 

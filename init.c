@@ -18,6 +18,7 @@
 #include "device/terminal/fx9860/terminal.h"
 
 #include "device/usb/usb_device_protocol.h"
+#include "device/usb/cdc_acm/acm_device.h"
 #include "device/usb/cdc_acm/cdc_acm.h"
 
 #include "tests.h"
@@ -108,12 +109,19 @@ void init() {
 	_fx9860_term_device.init();
 	dev_register_device(&_fx9860_term_device, 20);
 
+	// add usb-acm device, major number 3
+	// USB initialisation
+	usb_init();
+	_acm_usb_device.init();
+	dev_register_device(&_acm_usb_device, 3);
+
 	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);
 	vfs_register_fs(&protofs_file_system, VFS_REGISTER_STATIC);
 	vfs_mount("protofs", NULL, VFS_MOUNT_ROOT);
 
 	vfs_create("/", "dev", INODE_TYPE_PARENT, INODE_FLAG_READ | INODE_FLAG_EXEC, 0);
 	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00140001);
+	vfs_create("/dev", "serial", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00030000);
 
 	DBG_WAIT;
 
@@ -161,11 +169,7 @@ void init() {
 	// EEPROM-related code commented to avoid useless write cycles ;)
 	//test_eeprom();
 	
-	// USB initialisation
-	usb_init();
-	cdc_acm_init();
-
-	char mybuf[128];
+	/*char mybuf[128];
 	int len;
 
 	len = usb_receive(USB_EP_ADDR_EP1OUT, mybuf, 10, 0);
@@ -180,10 +184,10 @@ void init() {
 	set_kernel_print(&print_usb_ep2);
 
 	test_vfs();
-
+*/
 
 	process_init();
-	//test_process();
+	test_process();
 	
 
 	printk("End of init job, sleeping...\n");

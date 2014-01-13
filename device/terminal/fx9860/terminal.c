@@ -99,7 +99,7 @@ size_t fx9860_term_write(struct file *filep, void *source, size_t len) {
 	// TODO remove tmp stuff for blocking the terminal
 	static int line_nb = 0;
 
-	for(i=0; str[i]!='\0'; i++) {
+	for(i=0; i<len; i++) {
 		if(str[i] == '\n') {
 			_term_posx = 0;
 			_term_posy++;
