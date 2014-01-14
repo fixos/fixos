@@ -26,6 +26,7 @@
  */
 
 #include "minimalist_smemfs.h"
+#include "casio_syscalls.h"
 
 // need to be the name of the genereated G1A itself
 // so, for now it's not possible to rename or to place the G1A file at
@@ -52,10 +53,15 @@ extern char ebss;
 // entry point (in fact it's possible to start directly from (breloc) address...
 extern void initialize();
 
-
 void bootloader_init() {
 	const char *g1a_filename = G1A_FILE_PATH;
 	struct _fscasio_file file;
+
+	casio_Bdisp_AllClr_VRAM();
+	casio_PrintXY(3, 3, "This is a test.", 0);
+	casio_Bdisp_PutDisp_DD();
+
+	while(1);
 
 	// look for the OS G1A file
 	if(fscasio_fopen_ro(g1a_filename, &file) == 0) {
@@ -74,7 +80,8 @@ void bootloader_init() {
 		for(bss=&bbss; bss!=&ebss; bss++)
 			*bss = 0x00;
 
-		initialize();
+		//initialize();
+		while(1);
 	}
 	else {
 		// file probably doesn't exists
