@@ -1,50 +1,29 @@
 OUTPUT_ARCH(sh3)
-ENTRY(bootstrap)
+ENTRY(_initialize)
+
+/*
+   Now, with an external bootloader, and targetting ELF output instead of
+   raw binary, the linker script is realy simpler.
+   For the kernel, most important things to know is were the RAM begins,
+   because it will be fully copied in RAM by the bootloader.
+   Sections can follow freely (.text, .rodata, .data and .bss)
+
+   So, now, the main goal of this file is to reduce the number of sections
+   and to order them if needed (VBR purpose for example).
+ */
+
 
 MEMORY
 {
 	osram :   o = 0x88000000, l = 64k  /* for fx-9860G */
-	rom   :   o = 0x00300200, l = 512k
-
-	userram : o = 0x10000000, l = 64k /* for user data (virtual address) */
 }
 
 SECTIONS
 {
-	/*
-	   For the OS, the memory mapping of the sections is a bit strange.
-	   If FiXos is launched by the Casio OS, we need to copy it from the
-	   ROM storage (mapped in 0x00300200 by the MMU) to the real start of
-	   the RAM (0x88000000 using section P1, or 0xA8000000 using P2)
-	   So, all OS data (.text, .rodata, .data values... sections of FiXos)
-	   are dumped by the .bootstrap section code into the RAM, and then
-	   the bootstrap function call initialize().
-	   Due to objcopy operation from ELF to binary, we must rename some sections...
-	 */
-
 	.text : {
-		_bbootstrap = . ;
-		*(.bootstrap)
-		*(.bootloader)
-		*(.bootloader.rodata)
-		_ebootstrap = . ;
-		_romdata = . ;  /* relocation position for all data (.text, .data, .rodata... origin sections) */
-	} > rom
-
-	.rodata : AT( _romdata ) {
-		_breloc = ABSOLUTE(.) ;
-		_btext = . ;
-		*(.pretext)     /* init stuff */
-			*(.text)
-			*(.text.*)
-			_etext = . ;
-
-		_bdata = . ;
-		*(.rodata);
-		*(.rodata.*);
-		*(.data);
-		*(.data.*);
-		_edata = . ;
+		*(.pretext);     /* init stuff */
+		*(.text);
+		*(.text.*);
 
 		/* Exceptions and Interrupt handlers : due tu the SH3 VBR system, we have some restrictions */
 		/* The handlers should reside at VBR relative position, in P1 or P2 protected space (0x8* or 0xA*) */
@@ -69,25 +48,19 @@ SECTIONS
 		*(.handler.interrupt);  /* Interrupt Handler, VBR + 0x600 */
 		_inthandler_size = ABSOLUTE(.) - _binthandler ;
 		*(.handler.stuff);
-		
-		. = ALIGN(1024);
-		_osram_buser = . ;
-
-		_ereloc = ABSOLUTE(.); /* + SIZEOF(.userdata);*/
-
-/*		_usersize = SIZEOF(.userdata) ;*/
 	} > osram
-/*
-	.userdata : AT( _romdata + SIZEOF(.rodata)  ) {
-		. = ALIGN(1024);
-		_buser = . ;
-		*(.user.pretext) ;
-		*(.user.*) ;
-		_euser = . ;
-	} > userram
-*/
+
+	.rodata : {
+		*(.rodata);
+		*(.rodata.*);
+	} > osram
+
+	.data : {
+		*(.data);
+		*(.data.*);
+	} > osram
+
 	.bss : {
-/*		. = . + SIZEOF(.userdata);*/
 		. = ALIGN(4);
 		_bbss = . ;
 		*(.bss) *(COMMON);

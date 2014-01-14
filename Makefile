@@ -4,21 +4,12 @@ CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
 LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 
 OBJCOPY=sh3eb-elf-objcopy
-ELFTOBIN_OBJCOPY_FLAGS=-R .comment -R .bss -O binary
-
-BOOTLOADER_OBJCOPY_FLAGS=--rename-section .rodata.str1.4=.bootloader.rodata \
-						 --rename-section .text=.bootloader
+OBJCOPY_FLAGS=-S
 
 INCLUDE_PATH=-I.
 LDSCRIPT=fixos.ld
 
-G1A_WRAPPER=c_g1awrapper
-G1A_ICON=icon.bmp
-
-BASENAME=fixos
-BINARY=$(BASENAME).bin
-ELF=$(BASENAME).elf
-G1A=$(BASENAME).g1a
+KERNELNAME=fixos
 
 C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  fs/vfs_cache.c fs/vfs_op.c fs/vfs.c fs/vfs_file.c \
@@ -41,37 +32,17 @@ ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initiali
 		device/display/T6K11/drawall.s device/display/T6K11/setpixel.s 
 
 
-# Specific rules are applied to bootloader object files (no usage of .data/.bss
-# is allowed, and .rodata must be renamed to be mapped near the bootloader code)
-BOOTLOADER_C_SRC=bootloader/bootloader.c bootloader/minimalist_smemfs.c
-
-BOOTLOADER_ASM_SRC=bootloader/bootloader_pre.s bootloader/bootloader_memcpy.S
-
-
-
-BOOTLOADER_TMPSTUB:=$(BOOTLOADER_ASM_SRC:.s=.o)
-BOOTLOADER_OBJ=$(BOOTLOADER_C_SRC:.c=.o) $(BOOTLOADER_TMPSTUB:.S=.o)
-BOOTLOADER_OBJ_MODIFIED=$(BOOTLOADER_OBJ:.o=_modified.o)
-
 TMPSTUB:=$(ASM_SRC:.s=.o)
-OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.S=.o) $(BOOTLOADER_OBJ_MODIFIED)
+OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.S=.o)
 
 
+all: $(KERNELNAME) user bootloader
 
+$(KERNELNAME): $(OBJ)
+	$(CC) $(LDFLAGS) -o $@.big $^
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $@.big $@
+	rm $@.big
 
-all: $(G1A) user
-
-$(G1A): $(BINARY)
-	$(G1A_WRAPPER) $< -o $@ -i $(G1A_ICON) -n $(BASENAME)
-
-$(BINARY): $(ELF)
-	$(OBJCOPY) $(ELFTOBIN_OBJCOPY_FLAGS) $< $@
-
-$(ELF): $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^
-
-$(BOOTLOADER_OBJ_MODIFIED): %_modified.o: %.o
-	$(OBJCOPY) $(BOOTLOADER_OBJCOPY_FLAGS) $< $@
 
 %.o: %.c
 	$(CC) -c $(CCFLAGS) -o $@ $<
@@ -87,14 +58,21 @@ $(BOOTLOADER_OBJ_MODIFIED): %_modified.o: %.o
 user:
 	$(MAKE) -C user/ all
 
-.PHONY: clean distclean re all user
+# Bootloader makefile
+bootloader:
+	$(MAKE) -C bootloader/ all
+
+
+.PHONY: clean distclean re all user bootloader
 
 clean:
-	rm -f $(OBJ) $(BOOTLOADER_OBJ) $(ELF) $(BINARY)
+	rm -f $(OBJ) $(ELF) $(BINARY)
 	$(MAKE) -C user/ clean
+	$(MAKE) -C bootloader/ clean
 
 distclean: clean
 	rm -f $(G1A)
 	$(MAKE) -C user/ distclean
+	$(MAKE) -C bootloader/ distclean
 
 re: distclean all
