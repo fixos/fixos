@@ -16,8 +16,11 @@
 
 
 // print msg at (x;y), normal if type == 0, reversed if type == 1
-void casio_PrintXY(int x, int y, char *msg, int type);
+// size of the font used is 6*8 (21*8 characters)
+void casio_PrintXY(int x, int y, const char *msg, int type);
 
+// same as casio_PrintXY, but font is 4*6 (32*10 characters)
+void casio_PrintMini(int x, int y, const char *msg, int type);
 
 // clear VRAM
 void casio_Bdisp_AllClr_VRAM();
