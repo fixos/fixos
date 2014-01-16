@@ -765,6 +765,8 @@ struct st_intx {                                        /* struct INTX  */
                      struct {                           /*  Bit  Access */
                             unsigned short     :8;      /*              */
                             unsigned short _USB:4;      /*    USB       */
+							unsigned short _TMU3:4;     /* TMU4, special Casio
+														   version feature... */
                             }       BIT;                /*              */
                      }          IPRF;                   /*              */
                union {                                  /* IPRG         */
