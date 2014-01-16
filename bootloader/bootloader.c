@@ -25,44 +25,41 @@
  * issue at runtime...
  */
 
-#include "minimalist_smemfs.h"
 #include "casio_syscalls.h"
+#include "smem_file.h"
+#include <fs/casio_smemfs/smemfs_primitives_ng.h>
 
-// need to be the name of the genereated G1A itself
-// so, for now it's not possible to rename or to place the G1A file at
-// any other place than the root on storage memory
-#define G1A_FILE_PATH	"/fls0/FIXOS.g1a"
+// absolute path of configuration file in SMEM
+#define CFG_FILE_PATH	"/bootldr.cfg"
 
-
-// symbols for relocation & co
-extern char breloc;
-extern char ereloc;
-
-
-// compute offsets in G1A file
-#define G1A_OFFSET_HEADER	512
-extern char bbootstrap;
-extern char romdata;
-
-
-// bss area
-extern char bbss;
-extern char ebss;
-
-
-// entry point (in fact it's possible to start directly from (breloc) address...
-extern void initialize();
+#define _CASIO_FS ((void*)(0xA0270000))
+#define _CASIO_STORAGE_MEM ((void*)(0xA0000000)) 
 
 void bootloader_init() {
-	const char *g1a_filename = G1A_FILE_PATH;
-	struct _fscasio_file file;
+	struct smem_file cfgfile;
 
 	casio_Bdisp_AllClr_VRAM();
-	casio_PrintXY(3, 3, "This is a test.", 0);
+	casio_PrintXY(0, 0, "This is a test.", 0);
 	casio_Bdisp_PutDisp_DD();
 
-	while(1);
+	smemfs_prim_init(_CASIO_FS, _CASIO_STORAGE_MEM);
+	if(smem_open(CFG_FILE_PATH, &cfgfile) == 0) {
+		char test[10];
+		int i;
 
+		casio_PrintXY(0, 9, "bootloader.cfg opened!", 0);
+		casio_Bdisp_PutDisp_DD();
+
+		for(i=0; i<9; i++)
+			test[i] = smem_readchar(&cfgfile);
+		test[i] = '\0';
+
+		casio_PrintXY(6, 18, test, 0);
+		casio_Bdisp_PutDisp_DD();
+	}
+
+	while(1);
+/*
 	// look for the OS G1A file
 	if(fscasio_fopen_ro(g1a_filename, &file) == 0) {
 		// do the bootstrap itself
@@ -86,7 +83,7 @@ void bootloader_init() {
 	else {
 		// file probably doesn't exists
 	}
-
+*/
 }
 
 
