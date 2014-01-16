@@ -7,27 +7,32 @@
  * for accessing to SMEM fs, find the good file, and doing same work than the
  * old 'bootstrap.s' (copying each sectio in the good place, etc...).
  *
+ * A user interface and configuration file were added to provide some
+ * flexibility to the bootloader, and it's now possible to load kernel directly
+ * from an ELF file.
+ *
  * In the medium-term, some evolution may be considered :
- *   - Make an independant G1A bootloader, wich allow to select manually the
- *     kernel file in the SMEM FS.
- *     In this case, relocation symbols need to be added as a header for the
- *     kernel binary (instead of G1A).
  *   - Improve this one to bootstrap itself, and then running without any
  *     virtual memory usage.
  *   - Allow to running kernel directly from EEPROM (this can be done using a
  *     special copying in the SMEM fs, with a hand-made optimisation of storage
  *     memory, to put the kernel binary in a continuous area and to hide this
  *     area to the Casio's OS).
+ *   - Add some informative text if any error occurs during config file parsing
+ *     or kernel loading...
  *
  * Technical notes :
- * the stack is set at the end of ram by bootloader_pre.s, but no area is set
- * for .bss, .rodata and .data, so any usage of these area here can cause an
- * issue at runtime...
+ * The .data and .bss sections are limited to few KiB (see bootloader.ld for
+ * details). In addition, stack must be as small as possible.
+ * Later, additionnal tests on kernel destination address and size should be
+ * added to ensure it will not overwrite bootloader data before to be fully
+ * loaded.
  */
 
 #include "casio_syscalls.h"
 #include "smem_file.h"
 #include "config_parser.h"
+#include "elf_loader.h"
 #include <fs/casio_smemfs/smemfs_primitives_ng.h>
 #include <utils/strutils.h>
 
@@ -65,7 +70,6 @@ struct boot_entry _entries[ENTRY_NUMBER];
 static void parse_config_file(struct smem_file *file) {
 	int curtag;
 	char tagbuf[50];
-	unsigned int key;
 	int i;
 	int line = 1;
 	struct boot_entry *cur_entry = NULL;
@@ -158,6 +162,7 @@ static void parse_config_file(struct smem_file *file) {
 }
 
 
+
 void bootloader_init() {
 	struct smem_file cfgfile;
 	int i;
@@ -241,33 +246,10 @@ void bootloader_init() {
 
 		else if(key == KEY_CTRL_EXE  || key == KEY_CTRL_SHIFT) {
 			// boot on current entry
+			// TODO test entry type
+			elf_load_kernel(_entries[selected-1].kernel);
 		}
 	}
-/*
-	// look for the OS G1A file
-	if(fscasio_fopen_ro(g1a_filename, &file) == 0) {
-		// do the bootstrap itself
-		unsigned int relocl = &ereloc - &breloc;
-		char *bss;
-
-		// seek the begin of romdata in file
-		unsigned int rompos = G1A_OFFSET_HEADER + (&romdata - &bbootstrap);
-		fscasio_fseek(&file, rompos, SEEK_SET);
-
-		// copy from EEPROM to RAM
-		fscasio_fread(&breloc, 1, relocl, &file);
-
-		// TODO better bss initialization
-		for(bss=&bbss; bss!=&ebss; bss++)
-			*bss = 0x00;
-
-		//initialize();
-		while(1);
-	}
-	else {
-		// file probably doesn't exists
-	}
-*/
 }
 
 

@@ -18,10 +18,10 @@ BINARY=$(BASENAME).bin
 ELF=$(BASENAME).elf
 G1A=$(BASENAME).g1a
 
-C_SRC=bootloader.c smem_file.c config_parser.c \
+C_SRC=bootloader.c smem_file.c config_parser.c elf_loader.c \
 	  ../fs/casio_smemfs/smemfs_primitives_ng.c
 ASM_SRC=bootloader_pre.s casio_syscalls.S \
-		../utils/sh/memcpy.S ../utils/sh/strcmp.S
+		../utils/sh/memcpy.S ../utils/sh/strcmp.S ../utils/sh/memset.S
 
 TMPSTUB:=$(ASM_SRC:.S=.o)
 OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.s=.o)

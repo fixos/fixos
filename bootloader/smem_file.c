@@ -1,5 +1,6 @@
 #include "smem_file.h"
 #include <fs/casio_smemfs/smemfs_primitives_ng.h>
+#include <utils/strutils.h>
 
 
 int smem_open(const char *path, struct smem_file *dest) {
@@ -100,9 +101,43 @@ off_t smem_seek(struct smem_file *file, off_t offset, int whence) {
 
 
 
-ssize_t smem_read(struct smem_file *file, char *buf, size_t nb) {
-	// TODO
-	return -1;
+ssize_t smem_read(struct smem_file *file, char *dest, size_t len) {
+	if(file->pos >= file->size) {
+		return -1;
+	}
+	else {
+		int j, n;
+		size_t max_read;
+		size_t pos_buf;
+
+		max_read = file->size - file->pos;
+		max_read = max_read < len ? max_read : len;
+
+		n = file->pos + max_read;
+		j = file->pos;
+
+		// read data fragment after fragment
+		pos_buf = 0;
+		while(j<n) {
+			// chunk_size is the number of bytes to read in the current fragment
+			size_t chunk_size = file->cur_frag->data_size - file->frag_pos;
+			size_t toread = (j+chunk_size) < n ? chunk_size : n-j;
+
+			memcpy((char*)dest + pos_buf, (char*)(smemfs_prim_get_frag_data(file->cur_frag)) + file->frag_pos, toread);
+			j += toread;
+			pos_buf += toread;
+
+			if(toread == chunk_size) {
+				// full fragment read, go to next
+				file->frag_pos = 0;
+				file->cur_frag++;
+			}
+			else file->frag_pos += toread;
+		}
+
+		file->pos += max_read;
+		return max_read;
+	}
 }
 
 
