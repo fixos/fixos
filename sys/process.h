@@ -92,4 +92,12 @@ int process_set_asid(process_t *proc);
  */
 process_t *process_get_current();
 
+
+/**
+ * Run given process, switching context from current kernel context to
+ * process context_info.
+ * ASID and other things are changed before the real context jump is done.
+ */
+void process_contextjmp(process_t *proc);
+
 #endif //_SYS_PROCESS_H

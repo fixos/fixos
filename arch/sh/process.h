@@ -43,20 +43,14 @@ struct _context_info {
 
 // 
 extern inline void arch_kernel_contextjmp(struct _context_info *cnt) {
-
-	// TODO set ASID in PTEH !!! (see mmu.h)
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
+
 	//printk("kstack = %p\n", cnt->kernel_stack);
 	while(is_key_down(K_EXE));
 	while(!is_key_down(K_EXE));
 
 	// set current kernel stack for next mode switching (interrupt)
 	g_process_current_kstack = cnt->kernel_stack;
-	
-	// read stack to check if all is okay
-	//printk("kstack[0] = %p\n", ((void**)(cnt->kernel_stack))[0]);
-	//while(is_key_down(K_EXE));
-	//while(!is_key_down(K_EXE));
 	
 	// TODO kernel / user stack setting
 
@@ -91,18 +85,6 @@ extern inline void arch_kernel_contextjmp(struct _context_info *cnt) {
 			"rte;"
 			"nop" : : "r"(cnt) :  
 	);
-
-/*	
-	asm volatile (
-			"mov %0, r0 ;"
-			"add #76, r0;"
-			"ldc.l @r0+, spc;"
-			"ldc.l @r0+, ssr;"
-			"rte;"
-			"nop" : : "r"(cnt) :  
-	);
-*/
-	
 }
 
 #endif //_ARCH_SH_PROCESS_H

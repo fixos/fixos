@@ -208,18 +208,11 @@ void test_process() {
 		process_t *proc1;
 		proc1 = process_alloc();
 		printk("loading test.elf\n");
-
-		DBG_WAIT;
-
 		elfloader_load(elf_file, proc1);
-		process_set_asid(proc1);
-		mmu_setasid(proc1->asid);
-		printk("[D] ASID = %d\n", mmu_getasid());
-		printk("asid=%d, pid=%d\n", proc1->asid, proc1->pid);
 
 		DBG_WAIT;
 
-		arch_kernel_contextjmp(&(proc1->acnt));
+		process_contextjmp(proc1);
 
 		DBG_WAIT;
 	}

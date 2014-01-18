@@ -97,3 +97,17 @@ int process_set_asid(process_t *proc)
 process_t *process_get_current() {
 	return process_from_asid(mmu_getasid());
 }
+
+
+
+void process_contextjmp(process_t *proc) {
+	// get a new ASID and set its value to the given process
+	process_set_asid(proc);
+
+	// just before context jump, set MMU current ASID to process' ASID
+	mmu_setasid(proc->asid);
+	printk("[D] ASID = %d\n", mmu_getasid());
+	printk("asid=%d, pid=%d\n", proc->asid, proc->pid);
+
+	arch_kernel_contextjmp(&(proc->acnt));
+}
