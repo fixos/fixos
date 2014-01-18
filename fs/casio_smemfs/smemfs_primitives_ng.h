@@ -76,6 +76,8 @@ struct smemfs_frag_header {
 	uint16 data_block_id; // ID of blocks containing data for this fragment
 	uint16 data_offset; // offset of fragment data in the given block
 
+	// WARNING : the size is (real_size-1), so *do not forget* to add 1 to
+	// have the real size of data!
 	uint16 data_size; // size of this fragment data
 
 	uint8 _fill[12] ; // contains only 0xFF

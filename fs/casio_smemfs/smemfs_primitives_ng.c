@@ -213,7 +213,7 @@ size_t smemfs_prim_get_file_size(struct smemfs_file_preheader *header) {
 	frag = (void*)(header+1);
 	
 	for(i=0; i<fragnb; i++, frag++)
-		ret += frag->data_size;
+		ret += frag->data_size + 1;
 
 	return ret;
 }

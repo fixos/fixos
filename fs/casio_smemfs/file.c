@@ -68,8 +68,8 @@ size_t smemfs_read (struct file *filep, void *dest, size_t len) {
 
 		// look for fragment containing the first byte
 		pos_tmp = 0;
-		while(pos_tmp + frag->data_size <= filep->pos) {
-			pos_tmp += frag->data_size;
+		while(pos_tmp + frag->data_size+1 <= filep->pos) {
+			pos_tmp += frag->data_size + 1;
 			frag++;
 		}
 
@@ -80,7 +80,7 @@ size_t smemfs_read (struct file *filep, void *dest, size_t len) {
 		pos_buf = 0;
 		while(j<n) {
 			// chunk_size is the number of bytes to read in the current fragment
-			size_t chunk_size = frag->data_size - pos_frag;
+			size_t chunk_size = frag->data_size + 1 - pos_frag;
 			size_t toread = (j+chunk_size) < n ? chunk_size : n-j;
 
 			memcpy((char*)dest + pos_buf, (char*)(smemfs_prim_get_frag_data(frag)) + pos_frag, toread);

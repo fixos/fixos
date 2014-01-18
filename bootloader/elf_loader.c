@@ -36,6 +36,7 @@ int elf_load_segment(struct smem_file *filep, const struct elf_prog_header *ph) 
 
 	// copy segment directy in physical RAM (trust ELF informations)
 	smem_read(filep, (void*)(ph->paddr), ph->filesz);
+	
 	// memset to 0 for the diff between memsz and filesz
 	memset((void*)(ph->paddr + ph->filesz), 0, ph->memsz - ph->filesz);
 
@@ -47,16 +48,22 @@ int elf_load_segment(struct smem_file *filep, const struct elf_prog_header *ph) 
 int elf_load_kernel(const char *path) {
 	struct smem_file kernel;
 	struct elf_header header;
+	int ret = -1;
+
+	unsigned int old_sr;
+	unsigned int new_sr;
 
 	// TODO avoid any exception during kernel copy!!!
+	asm volatile ("stc sr, %0" : "=r"(old_sr) );
+	new_sr = old_sr | (1 << 28); // BL bit set to 1
+	asm volatile ("ldc %0, sr" : : "r"(new_sr) );
+
 	if(smem_open(path, &kernel) == 0) {
 		// check for ELF informations
 
 		if(smem_read(&kernel, (void*)&header, sizeof(header)) != sizeof(header)) {
-			return -1;
 		}
 		else if(elf_check_header(&header) != 0) {
-			return -1;
 		}
 		else {
 			struct elf_prog_header pheader;
@@ -65,28 +72,28 @@ int elf_load_kernel(const char *path) {
 			// TODO
 			smem_seek(&kernel, header.phoff, SEEK_SET);
 			if(smem_read(&kernel, (void*)&pheader, sizeof(pheader)) != sizeof(pheader)) {
-				return -1;
 			}
-
-			if(pheader.type == ELFP_TYPE_LOAD
+			else if(pheader.type == ELFP_TYPE_LOAD
 					&& elf_load_segment(&kernel, &pheader) == 0)
 			{
 				// success, jump to entry point!
 				void (*entry)() = (void*)header.entry;
 				entry();
-				// never reached, but avoid a warning
-				return 0;
+				// never reach this line...
 			}
 			else {
 				// not a loadable segment
-				return -3;
+				ret = -2;
 			}
 		}
 
 	}
 	else {
 		// error
-		return -2;
+		ret = -2;
 	}
+
+	asm volatile ("ldc %0, sr" : : "r"(old_sr) );
+	return ret;
 }
 
