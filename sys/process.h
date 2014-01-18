@@ -12,6 +12,9 @@
 // maximum ASID number at one time
 #define MAX_ASID	32
 
+// ASID for 'not valid ASID'
+#define ASID_INVALID	0xFE
+
 // tmp TODO real implementation of virtual memory
 struct _virtual_mem;
 

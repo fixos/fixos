@@ -61,6 +61,7 @@ int vm_add_entry(vm_table_t *table, vm_page_t *page)
 		return 0;
 	}
 
+	printk("vm: unable to add a new page!\n");
 	return -1;
 }
 

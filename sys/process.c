@@ -1,7 +1,20 @@
 #include "process.h"
 #include <arch/sh/mmu.h>
+#include <sys/memory.h>
 
+// entry in free linked list
+union proc_entry {
+	process_t p;
+	union proc_entry *next;
+};
 
+#define PROCESS_PER_PAGE (PM_PAGE_BYTES/sizeof(union proc_entry))
+
+static void *_proc_page;
+
+static union proc_entry *_first_free;
+
+// TODO move that to an arch-specific part
 void * g_process_current_kstack = NULL;
 
 // array of process ptr for corresponding ASIDs
@@ -23,18 +36,30 @@ static process_t mock_process =
 	.state = PROCESS_STATE_RUN
 };
 
-// test for user process...
-static process_t _test_proc;
-static int _test_proc_used = 0;
-
 
 void process_init()
 {
 	int i;
+	union proc_entry *cur;
+
+	// init ASID -> process table
 	for(i=0; i<MAX_ASID; i++) {
 		_asid_proc_array[i] = NULL;
 	}
-}	
+
+	printk("process: proc/page=%d\n", PROCESS_PER_PAGE);
+
+	_proc_page = mem_pm_get_free_page(MEM_PM_CACHED);
+	cur = _first_free = _proc_page;
+
+	// init free linked list
+	for(i=0; i<PROCESS_PER_PAGE; i++) {
+		cur->next = cur+1;
+		cur++;
+	}
+	
+	(cur-1)->next = NULL;
+}
 
 
 
@@ -58,15 +83,24 @@ process_t *process_from_pid(pid_t pid)
 
 
 process_t *process_alloc() {
-	if(!_test_proc_used) {
+	if(_first_free != NULL) {
+		process_t *proc;
+		union proc_entry *next;
 		int i;
 
+		next = _first_free->next;
+		proc = &(_first_free->p);
+
 		for(i=0; i<PROCESS_MAX_FILE; i++)
-			_test_proc.files[i] = NULL;
-		_test_proc.pid = _pid_next_value++;
-		_test_proc.state = PROCESS_STATE_CREATE;
-		_test_proc_used = 1;
-		return &_test_proc;
+			proc->files[i] = NULL;
+		proc->pid = _pid_next_value++;
+		proc->state = PROCESS_STATE_CREATE;
+		proc->asid = ASID_INVALID;
+		vm_init_table(&(proc->vm));
+
+		// set first free to next one
+		_first_free = next;
+		return proc;
 	}
 	return NULL;
 }
@@ -101,8 +135,10 @@ process_t *process_get_current() {
 
 
 void process_contextjmp(process_t *proc) {
-	// get a new ASID and set its value to the given process
-	process_set_asid(proc);
+	// if ASID is not valid (first contextjmp, or process was remove from 'active'
+	// process, we need to set it's ASID before to run it
+	if(proc->asid == ASID_INVALID)
+		process_set_asid(proc);
 
 	// just before context jump, set MMU current ASID to process' ASID
 	mmu_setasid(proc->asid);
