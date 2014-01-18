@@ -1,7 +1,8 @@
 *~
 *.swp
 *.o
-fixos.bin
-fixos.g1a
-fixos.elf
-
+fixos
+*.elf
+bootloader/bootldr.bin
+bootloader/bootldr.elf
+bootloader/bootldr.g1a

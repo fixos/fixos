@@ -2,6 +2,7 @@
 #include <arch/sh/7705_Casio.h>
 #include <arch/sh/interrupt.h>
 #include <utils/strutils.h>
+#include <utils/cyclic_fifo.h>
 
 #include <utils/log.h>
 
@@ -14,11 +15,15 @@
 // buffer for received data
 #define USB_EP0o_BUFFER_SIZE	128
 static char _usb_buffer_ep0o[USB_EP0o_BUFFER_SIZE];
-static int _usb_bufsize_ep0o;
+static struct cyclic_fifo _usb_fifo_ep0o = {
+	USB_EP0o_BUFFER_SIZE, 0, 0, _usb_buffer_ep0o
+};
 
 #define USB_EP1o_BUFFER_SIZE	512
 static char _usb_buffer_ep1o[USB_EP1o_BUFFER_SIZE];
-static int _usb_bufsize_ep1o;
+static struct cyclic_fifo _usb_fifo_ep1o = {
+	USB_EP1o_BUFFER_SIZE, 0, 0, _usb_buffer_ep1o
+};
 
 
 // setup callback
@@ -101,24 +106,21 @@ int usb_send(int endpoint, const char *data, size_t size) {
 }
 
 
+volatile int chose1;
+
 int usb_receive(int endpoint, char *data, size_t size, int flags) {
 	// variables used to get data from any endpoint
-	int *pbufsize;
-	char *buffer;
+	struct cyclic_fifo *fifo;
 	ssize_t ret = -1;
 	int tried_once = 0;
 
 	switch(endpoint) {
 	case USB_EP_ADDR_EP0OUT:
-		//TODO
-		pbufsize = &_usb_bufsize_ep0o;
-		buffer = _usb_buffer_ep0o;
+		fifo = &_usb_fifo_ep0o;
 		break;
 	
 	case USB_EP_ADDR_EP1OUT:
-		//TODO
-		pbufsize = &_usb_bufsize_ep1o;
-		buffer = _usb_buffer_ep1o;
+		fifo = &_usb_fifo_ep1o;
 		break;
 
 	default:
@@ -139,35 +141,22 @@ int usb_receive(int endpoint, char *data, size_t size, int flags) {
 		int bufsize;
 
 		INTERRUPT_PRIORITY_USB = 0x00; // stop interrupt for USB!
-		bufsize = (volatile int)*pbufsize;
+		bufsize = (volatile int)(fifo->size);
 
 		nbbytes = bufsize + ret;
 		nbbytes = nbbytes > size ? size - ret : nbbytes - ret;
 		if(nbbytes > 0) {
-			memcpy(data + ret, buffer, nbbytes);
+			cfifo_pop(fifo, data + ret, nbbytes);
 			ret += nbbytes;
-
-			// be careful : if all the buffer is not read, we must copy its
-			// content at the begining of the array
-			if(bufsize > nbbytes) {
-				// TODO we NEED to use memmove() and not memcpy() because of
-				// overlap!!!
-				// TODO bis : implement "cyclic buffer" to have a light FIFO-like structure
-				// memcpy(buffer, buffer + nbbytes, *busize - nbbytes);
-				int i;
-				for(i=0; i < bufsize - nbbytes; i++)
-					buffer[i] = buffer[i+nbbytes];
-			}
 
 			if(endpoint == USB_EP_ADDR_EP1OUT)
 				usb_sh3_ep1_read(nbbytes);
 
-			*pbufsize = bufsize - nbbytes;
+			//printk("recv: [%d] %d/%d\n", nbbytes, fifo->size, fifo->max_size);
 		}
 
 		// re-enable interrupts
 		INTERRUPT_PRIORITY_USB = prio;
-		// TODO wait some useconds...
 
 		tried_once = 1;
 	}
@@ -180,7 +169,7 @@ static void usb_sh3_ep1_read(int nbread) {
 	(void)nbread; // not used for now
 
 	// if enough space is present in buffer
-	if(USB_EP1o_BUFFER_SIZE - _usb_bufsize_ep1o > USB.EPSZ1)
+	if(_usb_fifo_ep1o.max_size - _usb_fifo_ep1o.size > USB.EPSZ1)
 		USB.IER0.BIT.EP1FULL = 1;
 }
 
@@ -331,16 +320,19 @@ void usb_sh3_interrupt_handler() {
 		int nbreceived = USB.EPSZ1;
 
 		// try to copy received data to ep1 buffer
-		if(_usb_bufsize_ep1o + nbreceived < USB_EP1o_BUFFER_SIZE) {
-			for(i=0; i<nbreceived; i++)
-				_usb_buffer_ep1o[_usb_bufsize_ep1o + i] = USB.EPDR1;
-			//memcpy(_usb_buffer_ep1o + _usb_bufsize_ep1o, inbuf, nbreceived);
-			_usb_bufsize_ep1o += nbreceived;
+		if(_usb_fifo_ep1o.size + nbreceived <= _usb_fifo_ep1o.max_size) {
+
+			// copy in cyclic FIFO need some additionnal things :
+			int bufpos = (_usb_fifo_ep1o.top + _usb_fifo_ep1o.size) % _usb_fifo_ep1o.max_size;
+			for(i=0; i<nbreceived; i++, bufpos = bufpos >= _usb_fifo_ep1o.max_size - 1 ? 0 : bufpos+1 ) {
+				_usb_fifo_ep1o.buffer[bufpos] = USB.EPDR1;
+			}
+			_usb_fifo_ep1o.size += nbreceived;
 
 			USB.TRG.BIT.EP1RDFN = 1;
 		}
 		else {
-			printk("usb: no enougth space for ep1o\n");
+			//printk("usb: no enougth space for ep1o\n");
 			// in addition, EP1FULL interrupt is disabled
 			// the function usb_sh3_ep1_read() is used to signal some part of
 			// the buffer was read, and maybe EP1FULL can be re-enabled
