@@ -7,8 +7,6 @@
 #define MMU_TLB_INDEX_0	(0<<1)
 #define MMU_ENABLE		(1<<0)
 
-unsigned char g_soft_asid = 0;
-
 
 void mmu_init()
 {
@@ -16,13 +14,26 @@ void mmu_init()
 
 	mmu = MMU_MULTIPLE_VM | MMU_TLB_FLUSH | MMU_TLB_INDEX_0 | MMU_ENABLE;
 	MMU.MMUCR.LONG = mmu;
-	printk("[I] MMU init : 0x%x\n     (real=0x%x)\nPTEH=%p\n", mmu, MMU.MMUCR.LONG, &(MMU.PTEH.LONG));
+	mmu_setasid(0xFF);
+
+	printk("[I] MMU init : 0x%x\n     (real=0x%x)\nPTEH=%p\n", mmu, MMU.MMUCR.LONG, (void*)(MMU.PTEH.LONG));
 
 	MMU.TTB = 0;
-
-	printk("[I] set adress : %p\n", &mmu_init);
-	mmu_setasid(0xFF);
 }
 
 
+
+void mmu_setasid(unsigned char asid) {
+	MMU.PTEH.BIT.ASID = asid;
+
+	//MMU.MMUCR.BIT.TF = 1;
+	//g_soft_asid = asid;
+}
+
+
+
+unsigned char mmu_getasid() {
+	return MMU.PTEH.BIT.ASID;
+	//return g_soft_asid;
+}
 

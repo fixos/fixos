@@ -1128,7 +1128,7 @@ struct st_mmu {
 		struct {
 			unsigned int VPN	:22;
 			unsigned char		:2;
-			unsigned char ASID	:8;
+			unsigned int ASID	:8;
 		} BIT;
 	} PTEH;
 		
