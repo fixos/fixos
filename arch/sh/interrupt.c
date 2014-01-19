@@ -17,7 +17,6 @@ void interrupt_set_vbr(void *vbr)
 
 
 	
-
 void* interrupt_get_vbr(void)
 {
       void *ptr;
@@ -25,6 +24,27 @@ void* interrupt_get_vbr(void)
       asm("mov.l r2, %0":"=m"(ptr));
       return ptr;
 }
+
+
+
+void arch_int_weak_atomic_block(int mode) {
+	// use I3~I0 of SR register to set interrupt priorities
+	int value = mode == 0 ? INTERRUPT_PVALUE_LOW-1 : INTERRUPT_PVALUE_CRITICAL-1;
+
+	asm volatile (	"stc sr, r1;"
+					"mov %0, r0;"
+					"and #0xF, r0;"
+					"shll2 r0;"
+					"shll2 r0;"
+					"mov #0xF0, r2;"
+					"extu.b r2, r2;"
+					"not r2, r2;"
+					"and r2, r1;"
+					"or r0, r1;"
+					"ldc r1, sr;"
+					: : "r"(value) : "r0", "r1", "r2");
+}
+
 
 void interrupt_store_context(interrupt_priorities_t ipr_storage) {
 	ipr_storage[0] = INTC.IPRA.WORD;

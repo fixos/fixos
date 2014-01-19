@@ -22,11 +22,14 @@ void sched_init();
 void sched_add_task(task_t *task);
 
 
+extern void arch_sched_preempt_task();
+
 /**
  * Save context of the current task and run the next one based on priorities
  * and scheduling algorithm used.
  */
-void sched_next_task();
+//void sched_next_task() __attribute__ ((alias ("_arch_sched_preempt_task")));
+#define sched_next_task arch_sched_preempt_task
 
 
 /**

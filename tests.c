@@ -197,10 +197,15 @@ void test_process() {
 }
 */
 
+volatile int magic_lock = 0;
+
 void test_process() {
 	// test for user process load and run
 	inode_t *elf_inode;
 	struct file *elf_file;
+
+	// for context switch (tmp)
+	test_keyboard_int();
 
 	elf_inode = vfs_resolve("/mnt/smem/test.elf");
 	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
@@ -212,13 +217,20 @@ void test_process() {
 		printk("loading test.elf\n");
 		elfloader_load(elf_file, proc1);
 
-		DBG_WAIT;
+		//DBG_WAIT;
 
 		sched_add_task(proc1);
+
+		proc1 = process_alloc();
+		vfs_lseek(elf_file, 0, SEEK_SET);
+		elfloader_load(elf_file, proc1);
+		sched_add_task(proc1);
+
+		magic_lock = 1;
 		sched_start();
 		//process_contextjmp(proc1);
 
-		DBG_WAIT;
+		//DBG_WAIT;
 	}
 }
 
@@ -324,8 +336,8 @@ void test_virtual_mem() {
 
 
 void test_keyboard_int() {
-	INTERRUPT_PRIORITY_PINT0_7 = 0xF;
-	INTERRUPT_PRIORITY_PINT8_15 = 0xF;
+	INTERRUPT_PRIORITY_PINT0_7 = INTERRUPT_PVALUE_NORMAL;
+	INTERRUPT_PRIORITY_PINT8_15 = INTERRUPT_PVALUE_NORMAL;
 
 	interrupt_set_callback(INT_PINT_0_7, &test);
 	interrupt_set_callback(INT_PINT_8_15, &test);
@@ -337,16 +349,21 @@ void test_keyboard_int() {
 
 	INTX.PINTER.WORD = 0b0000000011111111;
 
-	while(1);
+	//while(1);
 }
 
 
 
 void test() {
-	static int i = 0;
+	//static int i = 0;
 
-	printk("Ohohoh! Surprise^%d!\n", i);
-	i++;
+	//printk("Ohohoh! Surprise^%d!\n", i);
+	//i++;
+	
+	if(magic_lock != 0) {
+		printk("Try to switch process.\n");
+		sched_next_task();
+	}
 }
 
 

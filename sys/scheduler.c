@@ -41,7 +41,8 @@ void context_saved_next() {
 	// find the next thread to execute
 	int i;
 
-	for(i=0; i<SCHED_MAX_TASKS && _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL; i++);
+	//  start to search from the next process
+	for(i=1; i<SCHED_MAX_TASKS && _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL; i++);
 
 	if(i<SCHED_MAX_TASKS) {
 		_cur_task = (i+_cur_task)%SCHED_MAX_TASKS;
@@ -49,7 +50,7 @@ void context_saved_next() {
 	}
 }
 
-
+/*
 void sched_next_task() {
 	// save previous context in process structure
 	
@@ -88,6 +89,7 @@ void sched_next_task() {
 					"context_saved_next: ; .long _context_saved_next;"
 					: : "n"(offsetof(process_t, acnt)) : );
 }
+*/
 
 
 

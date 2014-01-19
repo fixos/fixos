@@ -33,14 +33,16 @@ struct _virtual_mem;
 struct file;
 
 struct _process_info {
+	// information for saving/restoring context
+	// WARNING : this structure is arch-dependant, and MUST be the *first* field
+	// of process struct (see arch/sh/scheduler.S for example)
+	struct _context_info acnt;
+
 	pid_t pid;
 	asid_t asid;
 
 	// virtual memory managing data :
 	vm_table_t vm;
-	
-	// information for saving/restoring context : 
-	struct _context_info acnt;
 
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];

@@ -24,6 +24,18 @@ typedef unsigned int interrupt_priorities_t[8];
 // if mode == 0, interrupts will be inhibited, else they will be handled
 extern void interrupt_inhibit_all(int mode);
 
+/**
+ * Used to define "weak atomic" code.
+ * Any block of code executed after calling this function with mode==1 will
+ * never be interrupted by non-critical interrupts/exceptions.
+ * It's called "weak" because it allows critical interrupts (like TLB exceptions,
+ * kernel timer...).
+ *
+ * If mode == 1, non-critical exceptions are blocked.
+ * If mode == 0, non-critical exceptions are allowed.
+ */
+void arch_int_weak_atomic_block(int mode);
+
 void interrupt_set_vbr(void *vbr);
 
 void* interrupt_get_vbr(void);
@@ -69,6 +81,12 @@ interrupt_callback_t interrupt_get_callback(unsigned int interruptID);
 #define INTERRUPT_PRIORITY_RTC		(INTC.IPRA.BIT._RTC)
 #define INTERRUPT_PRIORITY_WDT		(INTC.IPRB.BIT._WDT)
 #define INTERRUPT_PRIORITY_REF		(INTC.IPRB.BIT._REF)
+
+// priority signification for the kernel (higher value is more important)
+#define INTERRUPT_PVALUE_LOW		4
+#define INTERRUPT_PVALUE_NORMAL		6
+#define INTERRUPT_PVALUE_HIGH		8
+#define INTERRUPT_PVALUE_CRITICAL	15
 
 
 #endif //_SH_INTERRUPT_H

@@ -84,7 +84,8 @@ void usb_init() {
 	// enable USB clock (WARNING, writing magic 0xA5 as high byte because of
 	// special register protection!)
 	*(unsigned short *)&(USB.UCLKCR.BYTE) = 0xA5E0;
-	INTERRUPT_PRIORITY_USB	= 0xA;
+	INTERRUPT_PRIORITY_USB	= INTERRUPT_PVALUE_HIGH;
+
 }
 
 
@@ -136,11 +137,12 @@ int usb_receive(int endpoint, char *data, size_t size, int flags) {
 	while(ret>=0 && ret<size && !((flags & USB_RECV_PARTIAL) && ret!=0)
 			&& !((flags & USB_RECV_NONBLOCK) && tried_once) )
 	{
-		unsigned char prio = INTERRUPT_PRIORITY_USB;
 		int nbbytes;
 		int bufsize;
 
-		INTERRUPT_PRIORITY_USB = 0x00; // stop interrupt for USB!
+		// avoid to be interrupted, exceptialy by USB interrupt!
+		arch_int_weak_atomic_block(1);
+
 		bufsize = (volatile int)(fifo->size);
 
 		nbbytes = bufsize + ret;
@@ -152,15 +154,16 @@ int usb_receive(int endpoint, char *data, size_t size, int flags) {
 			if(endpoint == USB_EP_ADDR_EP1OUT)
 				usb_sh3_ep1_read(nbbytes);
 
-			//printk("recv: [%d] %d/%d\n", nbbytes, fifo->size, fifo->max_size);
+		//	printk("recv: [%d] %d/%d -> %d\n", nbbytes, fifo->size, fifo->max_size, ret);
 		}
 
 		// re-enable interrupts
-		INTERRUPT_PRIORITY_USB = prio;
+		arch_int_weak_atomic_block(0);
 
 		tried_once = 1;
 	}
 
+	//printk("recv: ret(%d)", ret);
 	return ret;
 }
 
@@ -339,17 +342,6 @@ void usb_sh3_interrupt_handler() {
 			USB.IER0.BIT.EP1FULL = 0;
 		}
 
-/*		// wait for EP2 transmited :
-		while(USB.IFR0.BIT.EP2EMPTY != 1);
-
-		// echo'ed on EP2
-		for(i=0; i<nbreceived && i<64; i++)
-			USB.EPDR2 = inbuf[i];
-		USB.TRG.BIT.EP2PKTE = 1;
-*/
-		// remove magic lock to allow USB printk tests ;)
-		_magic_lock = 1;
-
 		USB.IFR0.BIT.EP1FULL = 0;
 		jobdone = 1;
 	}
@@ -473,6 +465,11 @@ int usb_send_sync_ep2(const char *data, int max_size)
 			USB.EPDR2 = data[total+i];
 		USB.TRG.BIT.EP2PKTE = 1;
 	}
+
+	// if less than 64Bytes of data, EP2EMPTY is still set because 2nd buffer is
+	// not fill, so send a second EP2PKTE=1
+	if(USB.IFR0.BIT.EP2EMPTY == 1)
+		USB.TRG.BIT.EP2PKTE = 1;
 	return max_size;
 }
 

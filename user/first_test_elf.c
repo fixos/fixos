@@ -34,11 +34,11 @@ int usertest_main() {
 	write(fd_serial, "*** Hi, dear serial terminal!\n", sizeof("*** Hi, dear serial terminal!\n")-1);
 
 	int nbread;
-	char buf[64];
+	char buf[128];
 	// never return
 	while(1) {
 		// write on /dev/console each byte received from /dev/serial
-		if((nbread = read(fd_serial, buf, 64)) > 0) {
+		if((nbread = read(fd_serial, buf, 128)) > 0) {
 			write(fd_serial, buf, nbread);
 		}
 	}
