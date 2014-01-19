@@ -7,6 +7,8 @@
 #include "arch/sh/virtual_memory.h"
 #include "arch/sh/mmu.h"
 #include "sys/process.h"
+#include "sys/scheduler.h"
+
 #include "arch/sh/physical_memory.h"
 #include "utils/log.h"
 #include "fs/casio_smemfs/file_system.h"
@@ -212,7 +214,9 @@ void test_process() {
 
 		DBG_WAIT;
 
-		process_contextjmp(proc1);
+		sched_add_task(proc1);
+		sched_start();
+		//process_contextjmp(proc1);
 
 		DBG_WAIT;
 	}

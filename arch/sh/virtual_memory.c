@@ -1,4 +1,5 @@
 #include "virtual_memory.h"
+#include <utils/log.h>
 
 
 vm_page_t *vm_find_vpn(vm_table_t *table, unsigned int vpn)

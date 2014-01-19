@@ -7,6 +7,7 @@
 #include "arch/sh/physical_memory.h"
 #include "utils/log.h"
 #include "sys/process.h"
+#include "sys/scheduler.h"
 
 #include "fs/casio_smemfs/file_system.h"
 #include "fs/protofs/file_system.h"
@@ -188,6 +189,7 @@ void init() {
 */
 
 	process_init();
+	sched_init();
 	test_process();
 	
 

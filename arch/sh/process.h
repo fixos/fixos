@@ -46,9 +46,7 @@ extern inline void arch_kernel_contextjmp(struct _context_info *cnt) {
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
 
 	//printk("kstack = %p\n", cnt->kernel_stack);
-	while(is_key_down(K_EXE));
-	while(!is_key_down(K_EXE));
-
+	
 	// set current kernel stack for next mode switching (interrupt)
 	g_process_current_kstack = cnt->kernel_stack;
 	
