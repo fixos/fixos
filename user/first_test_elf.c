@@ -77,6 +77,15 @@ int usertest_main() {
 				write(fd_serial, &c, 1);
 				c = '\n';
 				write(fd_serial, &c, 1);
+
+				pid = fork();
+				if(pid == 0) {
+					// child process
+					while(1) {
+						write(fd_serial, "And I am his son!\n", sizeof("And I am his son!\n")-1);
+						exit(2);
+					}
+				}
 			}
 
 			for(test=0; test<200000; test++);

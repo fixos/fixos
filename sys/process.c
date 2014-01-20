@@ -119,6 +119,7 @@ void process_free(process_t *proc) {
 	entry = (void*)proc;
 	entry->next = _first_free;
 	_first_free = entry;
+	printk("free proc %p\n", entry);
 }
 
 
@@ -193,6 +194,8 @@ pid_t sys_fork() {
 
 	arch_int_weak_atomic_block(1);
 
+	printk("fork start\n");
+
 	// alloc a new process, and copy everything
 	cur = process_get_current();
 	newproc = process_alloc();
@@ -206,8 +209,12 @@ pid_t sys_fork() {
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
 	for(i=0; i<3; i++) {
-		mem_vm_copy_page(&(cur->vm.direct[i]), &(newproc->vm.direct[i]),
-				MEM_VM_COPY_ONWRITE);
+		printk("page: [%s] p[%d] v[%d]\n", cur->vm.direct[i].valid ? "V" : "!v",
+				cur->vm.direct[i].ppn, cur->vm.direct[i].vpn);
+		if(cur->vm.direct[i].valid) {
+			mem_vm_copy_page(&(cur->vm.direct[i]), &(newproc->vm.direct[i]),
+					MEM_VM_COPY_ONWRITE);
+		}
 	}
 	// TODO indirect pages
 	newproc->vm.indir1 = NULL;
@@ -228,12 +235,13 @@ pid_t sys_fork() {
 	asm volatile ("mov r15, %0" : "=r"(cur_stack));
 	// WARNING : only works if *ONE* page is used for kernel stack!
 	kstack -= PM_PAGE_BYTES - ((unsigned int)(cur_stack)  % PM_PAGE_BYTES);
+
+	printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
+	
 	// copy page content (do not forget, stack is lower address on top)
 	memcpy(kstack, cur_stack,
 			PM_PAGE_BYTES - ((unsigned int)(kstack) % PM_PAGE_BYTES));
 
-	//printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
-	
 	// do the pseudo-fork by saving context on child, and check the
 	// return value
 	int val = arch_sched_preempt_fork(newproc, kstack); 
@@ -277,7 +285,9 @@ void sys_exit(int status) {
 	// in addition, free each allocated physical pages
 	mmu_tlbflush();
 	for(i=0; i<3; i++) {
-		mem_pm_release_page((void*)(PM_PHYSICAL_PAGE(cur->vm.direct[i].ppn)));
+		if(cur->vm.direct[i].valid) {
+			mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(cur->vm.direct[i].ppn)));
+		}
 	}
 	// TODO indirect pages
 	

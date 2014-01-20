@@ -16,8 +16,9 @@ extern void * end_static_ram;
 
 // global symbol for the first free page :
 static pm_freepage_head_t *pm_first_free = (void*)0;
-// the last free page is used to join re-freed pages
-static pm_freepage_head_t *pm_last_free = (void*)0;
+
+// mainly for debuging
+static int pm_nbfree = 0;
 
 void pm_init_pages()
 {
@@ -44,7 +45,6 @@ void pm_init_pages()
 	for(i=0; i<nb_pages; i++) {
 		if(i+1 == nb_pages) {
 			page->next = (void*)0;
-			pm_last_free = page;
 		}
 		else
 			page->next = (void*)((int)page + PM_PAGE_BYTES);
@@ -54,6 +54,7 @@ void pm_init_pages()
 		page = page->next;
 	}
 
+	pm_nbfree = nb_pages;
 	printk("%d pages of %dB\n", nb_pages, PM_PAGE_BYTES);
 }
 
@@ -65,29 +66,38 @@ int pm_get_free_page(unsigned int *ppn)
 	{
 		*ppn = PM_PHYSICAL_PAGE(pm_first_free);
 		pm_first_free = pm_first_free->next;
+		printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
+		pm_nbfree--;
 		return 0;
 	}
 	
+	printk("pm: error: no more physical page!\n  (in theory, %d pages free)", pm_nbfree);
+	while(1);
 	return -1;
 }
 
 
 void pm_free_page(unsigned int ppn)
 {
-	// for now, no tests on the PPN value
-	pm_freepage_head_t *page;
+	// not only NULL address, but it's better to avoid this case
+	if(ppn != 0) {
+		// for now, no tests on the PPN value
+		pm_freepage_head_t *page;
 
-	page = PM_PHYSICAL_ADDR(ppn);
-	page = (void*)((int)page + P1_SECTION_BASE);
-	
-	page->next = (void*)0;
-	// we assume pm_first_free == NULL => pm_last_free == NULL
-	if(pm_first_free == (void*)0)
+		page = PM_PHYSICAL_ADDR(ppn);
+		page = (void*)((int)page + P1_SECTION_BASE);
+
+		page->next = pm_first_free;
 		pm_first_free = page;
-	else
-		pm_last_free->next = page;
 
-	pm_last_free = page;
+		printk("free pm: %p\n", page);
+
+		pm_nbfree++;
+	}
+	else {
+		printk("free pm: error: trying to free ppn=0\n");
+		while(1);
+	}
 }
 
 
@@ -100,7 +110,7 @@ void* mem_pm_get_free_page(int flags) {
 	void *ret = NULL;
 
 	if(pm_get_free_page(&ppn) == 0) {
-		// use P1 or Pé area depending of flags
+		// use P1 or P2 area depending of flags
 		ret = (flags | MEM_PM_UNCACHED) ? P2_SECTION_BASE : P1_SECTION_BASE;
 		ret += (unsigned int)PM_PHYSICAL_ADDR(ppn);
 	}
