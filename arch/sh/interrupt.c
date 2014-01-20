@@ -121,6 +121,12 @@ void interrupt_handler() {
 		if (handler != NULL) handler();
 		// TODO add flag clear?
 		break;
+	case INT_CODE_RTC_PRI:	
+	case INT_CODE_RTC_ATI:
+		handler = g_interrupt_callback[INT_RTC_PERIODIC];
+		if (handler != NULL) handler();
+		RTC.RCR2.BIT.PEF = 0;
+		break;
 		
 
 	// for now only hard-coded for SDHI SD Interrupt

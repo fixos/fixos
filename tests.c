@@ -205,7 +205,7 @@ void test_process() {
 	struct file *elf_file;
 
 	// for context switch (tmp)
-	test_keyboard_int();
+	//test_keyboard_int();
 
 	elf_inode = vfs_resolve("/mnt/smem/test.elf");
 	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
@@ -361,7 +361,7 @@ void test() {
 	//i++;
 	
 	if(magic_lock != 0) {
-		printk("Try to switch process.\n");
+		printk("Try to switch process (key).\n");
 		sched_next_task(process_get_current());
 	}
 }

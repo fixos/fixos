@@ -2,6 +2,8 @@
 #include <sys/memory.h>
 #include <arch/sh/interrupt.h>
 #include <utils/log.h>
+// for periodic interrupts
+#include <arch/sh/rtc.h>
 
 
 #ifndef offsetof
@@ -99,6 +101,12 @@ void sched_next_task() {
 */
 
 
+// function called periodicaly to change current process
+static void sched_periodic_interrupt() {
+	printk("Try to switch process.\n");
+	sched_next_task(process_get_current());
+}
+
 
 void sched_start() {
 	// look for the first task
@@ -107,6 +115,9 @@ void sched_start() {
 	for(i=0; i<SCHED_MAX_TASKS && _tasks[i]==NULL; i++);
 
 	if(i<SCHED_MAX_TASKS) {
+		// start the periodic interrupt
+		rtc_set_interrupt(&sched_periodic_interrupt, RTC_PERIOD_16_HZ);
+
 		_cur_task = i;
 		process_contextjmp(_tasks[i]);
 	}

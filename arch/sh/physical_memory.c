@@ -66,7 +66,7 @@ int pm_get_free_page(unsigned int *ppn)
 	{
 		*ppn = PM_PHYSICAL_PAGE(pm_first_free);
 		pm_first_free = pm_first_free->next;
-		printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
+		//printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
 		pm_nbfree--;
 		return 0;
 	}
@@ -90,7 +90,7 @@ void pm_free_page(unsigned int ppn)
 		page->next = pm_first_free;
 		pm_first_free = page;
 
-		printk("free pm: %p\n", page);
+		//printk("free pm: %p\n", page);
 
 		pm_nbfree++;
 	}

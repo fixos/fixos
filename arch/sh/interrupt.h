@@ -18,7 +18,9 @@ typedef unsigned int interrupt_priorities_t[8];
 
 #define INT_USB			0x05
 
-#define INT__NUMBER		0x06   // interruptions number
+#define INT_RTC_PERIODIC 0x06
+
+#define INT__NUMBER		0x07   // interruptions number
 
 // Inhibit or dishinibit all interruptions/exceptions
 // if mode == 0, interrupts will be inhibited, else they will be handled

@@ -52,7 +52,8 @@ int usertest_main() {
 		// child process
 		while(1) {
 			write(fd_serial, "And I am his son!\n", sizeof("And I am his son!\n")-1);
-			exit(3);
+			//exit(3);
+			for(test=0; test<50000; test++);
 		}
 	}
 	else {
@@ -63,7 +64,7 @@ int usertest_main() {
 
 			write(fd_serial, "I'm the father!\n", sizeof("I'm the father!\n")-1);
 
-			pid = wait(&status);
+			/*pid = wait(&status);
 			if(pid == -1) {
 				write(fd_serial, "Wait error.\n", sizeof("Wait error.\n")-1);
 			}
@@ -86,9 +87,9 @@ int usertest_main() {
 						exit(2);
 					}
 				}
-			}
+			}*/
 
-			for(test=0; test<200000; test++);
+			for(test=0; test<50000; test++);
 		}
 	}
 

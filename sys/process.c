@@ -221,8 +221,8 @@ pid_t sys_fork() {
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
 	for(i=0; i<3; i++) {
-		printk("page: [%s] p[%d] v[%d]\n", cur->vm.direct[i].valid ? "V" : "!v",
-				cur->vm.direct[i].ppn, cur->vm.direct[i].vpn);
+		/*printk("page: [%s] p[%d] v[%d]\n", cur->vm.direct[i].valid ? "V" : "!v",
+				cur->vm.direct[i].ppn, cur->vm.direct[i].vpn);*/
 		if(cur->vm.direct[i].valid) {
 			mem_vm_copy_page(&(cur->vm.direct[i]), &(newproc->vm.direct[i]),
 					MEM_VM_COPY_ONWRITE);
@@ -248,7 +248,7 @@ pid_t sys_fork() {
 	// WARNING : only works if *ONE* page is used for kernel stack!
 	kstack -= PM_PAGE_BYTES - ((unsigned int)(cur_stack)  % PM_PAGE_BYTES);
 
-	printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
+	//printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
 	
 	// copy page content (do not forget, stack is lower address on top)
 	memcpy(kstack, cur_stack,
@@ -257,9 +257,9 @@ pid_t sys_fork() {
 	// do the pseudo-fork by saving context on child, and check the
 	// return value
 	int val = arch_sched_preempt_fork(newproc, kstack); 
-	printk("preempt_fork returned %d\n", val);
+	/*printk("preempt_fork returned %d\n", val);
 	while(!is_key_down(K_EXE));
-	while(is_key_down(K_EXE));
+	while(is_key_down(K_EXE));*/
 
 	if(val == 0) {
 		// we are in the parent process (the one which realy returned)
