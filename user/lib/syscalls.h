@@ -22,5 +22,16 @@ extern ssize_t write(int fd, const char *source, size_t nb);
 extern pid_t fork(); 
 #define SYSCALL_FORK	4
 
+extern void exit(int status);
+#define SYSCALL_EXIT	5
+
+extern pid_t getpid();
+#define SYSCALL_GETPID	6
+
+extern pid_t getppid();
+#define SYSCALL_GETPPID	7
+
+extern pid_t wait(int *status);
+#define SYSCALL_WAIT	8
 
 #endif //_SYSCALLS_SYSCALLS_H

@@ -100,6 +100,7 @@ process_t *process_alloc() {
 		for(i=0; i<PROCESS_MAX_FILE; i++)
 			proc->files[i] = NULL;
 		proc->pid = _pid_next_value++;
+		proc->ppid = 0;
 		proc->state = PROCESS_STATE_CREATE;
 		proc->asid = ASID_INVALID;
 		vm_init_table(&(proc->vm));
@@ -109,6 +110,15 @@ process_t *process_alloc() {
 		return proc;
 	}
 	return NULL;
+}
+
+
+void process_free(process_t *proc) {
+	union proc_entry *entry;
+
+	entry = (void*)proc;
+	entry->next = _first_free;
+	_first_free = entry;
 }
 
 
@@ -161,14 +171,16 @@ void process_contextjmp(process_t *proc) {
 	mmu_setasid(proc->asid);
 	printk("asid=%d [%d], pid=%d\n", proc->asid, mmu_getasid(), proc->pid);
 
-	printk("r15=%p, r0=%p\npc=%p, sr=%p\n", (void*)(proc->acnt.reg[15]),
+	/*printk("r15=%p, r0=%p\npc=%p, sr=%p\n", (void*)(proc->acnt.reg[15]),
 			(void*)(proc->acnt.reg[0]), (void*)(proc->acnt.pc),
 			(void*)(proc->acnt.sr));
-
+*/
 	/*static int magic = 0;
 	if(magic == 1)
 		while(1);
 	magic = 1;*/
+
+	proc->state = PROCESS_STATE_RUN;
 
 	arch_kernel_contextjmp(&(proc->acnt));
 }
@@ -185,6 +197,7 @@ pid_t sys_fork() {
 	cur = process_get_current();
 	newproc = process_alloc();
 
+	newproc->ppid = cur->pid;
 	for(i=0; i<PROCESS_MAX_FILE; i++) {
 		// TODO real COPY of each opened file!
 		newproc->files[i] = cur->files[i];
@@ -219,7 +232,7 @@ pid_t sys_fork() {
 	memcpy(kstack, cur_stack,
 			PM_PAGE_BYTES - ((unsigned int)(kstack) % PM_PAGE_BYTES));
 
-	printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
+	//printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
 	
 	// do the pseudo-fork by saving context on child, and check the
 	// return value
@@ -230,7 +243,7 @@ pid_t sys_fork() {
 
 	if(val == 0) {
 		// we are in the parent process (the one which realy returned)
-		printk("fork: parent code\n");
+		//printk("fork: parent code\n");
 		sched_add_task(newproc);
 		arch_int_weak_atomic_block(0);
 
@@ -243,7 +256,50 @@ pid_t sys_fork() {
 		// exceptions/interrupt are inhibited in the return context!
 		_bank0_context = new_bank0_context;
 
-		printk("fork: child code\n");
+		//printk("fork: child code\n");
 		return 0;
 	}
 }
+
+
+
+
+void sys_exit(int status) {
+	process_t *cur;
+	int i;
+
+	cur = process_get_current();
+	
+	// TODO close files?
+	
+	// remove all virtual pages from the TLB (invalidate them)
+	// TODO do not invalidate ALL entries, select only this ASID
+	// in addition, free each allocated physical pages
+	mmu_tlbflush();
+	for(i=0; i<3; i++) {
+		mem_pm_release_page((void*)(PM_PHYSICAL_PAGE(cur->vm.direct[i].ppn)));
+	}
+	// TODO indirect pages
+	
+
+	cur->exit_status = status;
+	cur->state = PROCESS_STATE_ZOMBIE;
+
+	// do not free the kernel stack before wait() is called to be sure
+	// we can still execute code in case of re-execution of zombie process
+	while(1) {
+		sched_next_task(cur);
+		printk("exit: exited process executed!\n");
+	}
+}
+
+
+
+pid_t sys_getpid() {
+	return process_get_current()->pid;
+}
+
+pid_t sys_getppid() {
+	return process_get_current()->ppid;
+}
+

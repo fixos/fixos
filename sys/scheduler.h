@@ -60,5 +60,11 @@ extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
 void sched_start();
 
 
+/**
+ * wait for a child terminating, returns its pid and set status to child
+ * exit status
+ */
+pid_t sys_wait(int *status);
+
 
 #endif //_SYS_SCHEDULER_H

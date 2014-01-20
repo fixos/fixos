@@ -10,6 +10,7 @@ static int chabada = 456;
 
 static int choubidou;
 
+static volatile int test;
 
 int usertest_main() {
 //	asm volatile ("mov.l ");
@@ -49,13 +50,37 @@ int usertest_main() {
 	pid_t pid = fork();
 	if(pid == 0) {
 		// child process
-		while(1)
+		while(1) {
 			write(fd_serial, "And I am his son!\n", sizeof("And I am his son!\n")-1);
+			exit(3);
+		}
 	}
 	else {
 		// parent process
-		while(1)
+		while(1) {
+			int status;
+			pid_t pid;
+
 			write(fd_serial, "I'm the father!\n", sizeof("I'm the father!\n")-1);
+
+			pid = wait(&status);
+			if(pid == -1) {
+				write(fd_serial, "Wait error.\n", sizeof("Wait error.\n")-1);
+			}
+			else {
+				char c;
+				write(fd_serial, "Wait ret =", sizeof("Wait ret =")-1);
+				c = '0' + status;
+				write(fd_serial, &c, 1);
+				write(fd_serial, ", pid =", sizeof(", pid =")-1);
+				c = '0' + pid;
+				write(fd_serial, &c, 1);
+				c = '\n';
+				write(fd_serial, &c, 1);
+			}
+
+			for(test=0; test<200000; test++);
+		}
 	}
 
 	return 0;

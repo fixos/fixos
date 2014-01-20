@@ -25,6 +25,8 @@ struct _virtual_mem;
 // used at process creation :
 #define PROCESS_STATE_CREATE	3
 #define PROCESS_STATE_STOP		4
+// used after calling exit()
+#define PROCESS_STATE_ZOMBIE	5
 
 
 // maximum files opened at a time by a process
@@ -48,7 +50,9 @@ struct _process_info {
 	struct file *files[PROCESS_MAX_FILE];
 	
 
+	pid_t ppid;
 	int state;
+	int exit_status; // only valid when state is PROCESS_STATE_ZOMBIE
 };
 
 typedef struct _process_info process_t;
@@ -84,6 +88,13 @@ process_t *process_from_pid(pid_t pid);
  */
 process_t *process_alloc();
 
+/**
+ * Free a process allocated using process_alloc().
+ * WARNING : this function do not do any other job, the caller must free
+ * unneeded pages, files, and any other things.
+ */
+void process_free(process_t *proc);
+
 
 /**
  * Get a unused ASID and set it to the asid field of given proc.
@@ -111,5 +122,18 @@ void process_contextjmp(process_t *proc);
  * and prepare the child process to be executed by scheduler.
  */
 pid_t sys_fork();
+
+
+/**
+ * exit() syscall implementation, signal the end of the execution of a process.
+ * After this call, the process is indicated as Zombie, and will wait for a
+ * wait() call from it's parent process before to be realy removed from
+ * existing tasks.
+ */
+void sys_exit(int status);
+
+pid_t sys_getpid();
+
+pid_t sys_getppid();
 
 #endif //_SYS_PROCESS_H

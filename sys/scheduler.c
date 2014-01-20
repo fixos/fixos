@@ -1,4 +1,7 @@
 #include "scheduler.h"
+#include <sys/memory.h>
+#include <arch/sh/interrupt.h>
+#include <utils/log.h>
 
 
 #ifndef offsetof
@@ -38,11 +41,15 @@ void sched_add_task(task_t *task) {
 
 // called once sched_next_task() saved the current process context
 void context_saved_next() {
-	// find the next thread to execute
+	// find the next task to execute
 	int i;
 
+	if(_tasks[_cur_task]->state == PROCESS_STATE_RUN)
+		_tasks[_cur_task]->state = PROCESS_STATE_IDLE;
+
 	//  start to search from the next process
-	for(i=1; i<SCHED_MAX_TASKS && _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL; i++);
+	for(i=1; i<SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
+				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state == PROCESS_STATE_ZOMBIE) ; i++);
 
 	if(i<SCHED_MAX_TASKS) {
 		_cur_task = (i+_cur_task)%SCHED_MAX_TASKS;
@@ -103,4 +110,47 @@ void sched_start() {
 		_cur_task = i;
 		process_contextjmp(_tasks[i]);
 	}
+}
+
+
+pid_t sys_wait(int *status) {
+	// do not return before a child is in Zombie state
+	
+	int ret = 0;
+	pid_t ppid = process_get_current()->pid;
+
+	while(ret == 0) {
+		int i;
+		int child_found = 0;
+		
+		arch_int_weak_atomic_block(1);
+		for(i=0; i<SCHED_MAX_TASKS; i++) {
+			//printk("task %d", i);
+			//printk("->%p\n", _tasks[i]);
+			if(_tasks[i] != NULL && _tasks[i]->ppid == ppid) {
+				if(_tasks[i]->state == PROCESS_STATE_ZOMBIE) {
+					ret = _tasks[i]->pid;
+					*status = _tasks[i]->exit_status;
+
+					// destroy the waiting process
+					mem_pm_release_page(_tasks[i]->acnt.kernel_stack);
+					process_free(_tasks[i]);
+
+					_tasks[i] = NULL;
+				}
+				child_found=1;
+			}
+		}
+
+		if(!child_found) {
+			ret = -1;
+		}
+
+		arch_int_weak_atomic_block(0);
+
+		if(ret == 0)
+			sched_next_task(process_get_current());
+	}
+
+	return ret;
 }

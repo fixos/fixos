@@ -2,7 +2,7 @@
 #define _SYSCALL_ARCH_SYSCALL_H
 
 
-#define SYSCALL_NUMBER		5
+#define SYSCALL_NUMBER		9
 
 // for kernel-part syscall handling
 extern void* _syscall_funcs[];
