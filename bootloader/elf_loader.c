@@ -67,24 +67,36 @@ int elf_load_kernel(const char *path) {
 		}
 		else {
 			struct elf_prog_header pheader;
+			int i;
+			int error;
 
 			// load each segment in memory
-			// TODO
-			smem_seek(&kernel, header.phoff, SEEK_SET);
-			if(smem_read(&kernel, (void*)&pheader, sizeof(pheader)) != sizeof(pheader)) {
+			error = 0;
+			for(i=0; i<header.phnum && !error; i++) {
+				smem_seek(&kernel, header.phoff + i*sizeof(pheader), SEEK_SET);
+				if(smem_read(&kernel, (void*)&pheader, sizeof(pheader))
+						!= sizeof(pheader))
+				{
+					error = 1;
+				}
+				else if(pheader.type == ELFP_TYPE_LOAD) {
+					if(elf_load_segment(&kernel, &pheader) != 0)
+						error = 1;
+				}
+				else {
+					// not a loadable segment, go to next
+					//ret = -2;
+				}
 			}
-			else if(pheader.type == ELFP_TYPE_LOAD
-					&& elf_load_segment(&kernel, &pheader) == 0)
-			{
-				// success, jump to entry point!
-				void (*entry)() = (void*)header.entry;
-				entry();
-				// never reach this line...
+
+			if(!error) {
+					// success, jump to entry point!
+					void (*entry)() = (void*)header.entry;
+					entry();
+					// never reach this line...
 			}
-			else {
-				// not a loadable segment
+			else
 				ret = -2;
-			}
 		}
 
 	}
