@@ -102,6 +102,13 @@ void process_free(process_t *proc);
  */
 int process_set_asid(process_t *proc);
 
+/**
+ * Release the ASID of current process if not already ASID_INVALID.
+ * This can be used if the process has terminated, or if we now it will
+ * not have to be executed during a long time.
+ */
+void process_release_asid(process_t *proc);
+
 
 /**
  * Return the running process at the time this function is called.

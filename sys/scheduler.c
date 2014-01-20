@@ -136,8 +136,11 @@ pid_t sys_wait(int *status) {
 					// do not forget kernel_stack is set to the first byte of the
 					// next page, not on the real allocated page
 					mem_pm_release_page(_tasks[i]->acnt.kernel_stack-1);
-					process_free(_tasks[i]);
 
+					// release ASID
+					process_release_asid(_tasks[i]);
+
+					process_free(_tasks[i]);
 					_tasks[i] = NULL;
 				}
 				child_found=1;

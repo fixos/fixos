@@ -145,6 +145,18 @@ int process_set_asid(process_t *proc)
 }
 
 
+void process_release_asid(process_t *proc) {
+	
+	// no more virtual memory usage, we can release its ASID
+	if(proc->asid != ASID_INVALID) {
+		_asid_proc_array[proc->asid] = NULL;
+		proc->asid = ASID_INVALID;
+	}
+
+}
+
+
+
 process_t *process_get_current() {
 	return process_from_asid(mmu_getasid());
 }
@@ -291,6 +303,8 @@ void sys_exit(int status) {
 	}
 	// TODO indirect pages
 	
+	// VM is not used after, but the process need to have an ASID until
+	// it will be remove from Zombie list.
 
 	cur->exit_status = status;
 	cur->state = PROCESS_STATE_ZOMBIE;
