@@ -33,6 +33,7 @@ int usertest_main() {
 
 	write(fd_serial, "*** Hi, dear serial terminal!\n", sizeof("*** Hi, dear serial terminal!\n")-1);
 
+	/*
 	int nbread;
 	char buf[128];
 	// never return
@@ -41,6 +42,20 @@ int usertest_main() {
 		if((nbread = read(fd_serial, buf, 128)) > 0) {
 			write(fd_serial, buf, nbread);
 		}
+
+
+	}*/
+
+	pid_t pid = fork();
+	if(pid == 0) {
+		// child process
+		while(1)
+			write(fd_serial, "And I am his son!\n", sizeof("And I am his son!\n")-1);
+	}
+	else {
+		// parent process
+		while(1)
+			write(fd_serial, "I'm the father!\n", sizeof("I'm the father!\n")-1);
 	}
 
 	return 0;

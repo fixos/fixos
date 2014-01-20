@@ -1,5 +1,8 @@
 #include "virtual_memory.h"
+#include "physical_memory.h"
 #include <utils/log.h>
+#include <sys/memory.h>
+#include <utils/strutils.h>
 
 
 vm_page_t *vm_find_vpn(vm_table_t *table, unsigned int vpn)
@@ -66,3 +69,27 @@ int vm_add_entry(vm_table_t *table, vm_page_t *page)
 	return -1;
 }
 
+
+
+// functions defined in sys/memory.h
+void mem_vm_copy_page(vm_page_t *src, vm_page_t *dest, int type) {
+	// in all case, memcpy the two structures
+	memcpy(dest, src, sizeof(vm_page_t));
+
+	// TODO copy-on-write
+	if(type == MEM_VM_COPY_ONWRITE)
+		type = MEM_VM_COPY_DATA;
+
+	// if needed, allocate a new page
+	if(type == MEM_VM_ALLOCATE_PAGE || type == MEM_VM_COPY_DATA) {
+		unsigned int ppn;
+		pm_get_free_page(&ppn);
+		dest->ppn = ppn;
+	}
+
+	if(type == MEM_VM_COPY_DATA) {
+		memcpy(P1_SECTION_BASE + (unsigned int)(PM_PHYSICAL_ADDR(dest->ppn)),
+				P1_SECTION_BASE + (unsigned int)(PM_PHYSICAL_ADDR(src->ppn)),
+				PM_PAGE_BYTES);
+	}
+}

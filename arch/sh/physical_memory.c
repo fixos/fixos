@@ -11,11 +11,6 @@ extern void * end_static_ram;
 #define RAM_SIZE (1024<<6)
 #define RAM_START_ADDRESS 0x08000000
 
-// P1 is cacheable and non-translatable
-#define P1_SECTION_BASE ((void*)0x80000000)
-// P2 is non-cacheable and non-translatable
-#define P2_SECTION_BASE ((void*)0xA0000000)
-
 // TODO better solution
 #define STACK_PAGES	4
 

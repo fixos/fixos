@@ -42,7 +42,6 @@ all: $(KERNELNAME) user bootloader
 $(KERNELNAME): $(OBJ)
 	$(CC) $(LDFLAGS) -o $@.big $^
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $@.big $@
-	rm $@.big
 
 
 %.o: %.c

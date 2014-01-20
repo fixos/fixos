@@ -19,5 +19,7 @@
 //extern ssize_t write(int fd, const char *source, size_t nb);
 #define SYSCALL_WRITE	3
 
+//extern pid_t fork()
+#define SYSCALL_FORK	4
 
 #endif //_SYSCALLS_SYSCALLS_H

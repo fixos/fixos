@@ -221,11 +221,11 @@ void test_process() {
 
 		sched_add_task(proc1);
 
-		proc1 = process_alloc();
+	/*	proc1 = process_alloc();
 		vfs_lseek(elf_file, 0, SEEK_SET);
 		elfloader_load(elf_file, proc1);
 		sched_add_task(proc1);
-
+*/
 		magic_lock = 1;
 		sched_start();
 		//process_contextjmp(proc1);

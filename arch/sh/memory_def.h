@@ -19,6 +19,12 @@
 #define PM_PHYSICAL_PAGE(addr) ( ((int)(addr) & 0x1FFFFFFF) >> PM_PAGE_ORDER )
 #define PM_PHYSICAL_ADDR(pagenum) ((void*) ((pagenum) << PM_PAGE_ORDER) )
 
+// realy arch-dependant :(
+// P1 is cacheable and non-translatable
+#define P1_SECTION_BASE ((void*)0x80000000)
+// P2 is non-cacheable and non-translatable
+#define P2_SECTION_BASE ((void*)0xA0000000)
+
 
 
 #endif //_ARCH_SH_MEMORY_DEF_H

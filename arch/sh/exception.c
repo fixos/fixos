@@ -66,17 +66,18 @@ void exception_handler()
 				// set BL bit or status register, allowing interrupt/exception
 				// to be generated inside a syscall processing!
 				interrupt_inhibit_all(0);
+				int **bank0_context_ptr = &_bank0_context;
 
 				// call given function
-				asm volatile ("mov %0, r0;"
+				asm volatile ("mov.l @%0, r0;"
 						"mov.l @(16, r0), r4;"
 						"mov.l @(20, r0), r5;"
 						"mov.l @(24, r0), r6;"
 						"mov.l @(28, r0), r7;"
 						"jsr @%1;"
 						"nop;"
-						"mov %0, r1;"
-						"mov.l r0, @(0, r1);" : : "r"(_bank0_context), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7");
+						"mov.l @%0, r1;"
+						"mov.l r0, @(0, r1);" : : "r"(bank0_context_ptr), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r15");
 
 				interrupt_inhibit_all(1);
 

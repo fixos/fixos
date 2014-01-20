@@ -24,6 +24,21 @@ void sched_add_task(task_t *task);
 
 extern void arch_sched_preempt_task();
 
+/*
+ * Function used by sys_fork() to save the context exactly as
+ * arch_sched_preempt_task, but without calling context_saved_next() immediatly.
+ * Instead, returns a value, used to différenciate primary return, and
+ * re-execution from saved context (first one is the parent, second is the
+ * child process).
+ * Returns 0 for parent process, 1 for child process (and negative value
+ * in error case).
+ * dest is the process_t used for the child process, and kstack the kernel
+ * stack used by the dest process (must be an exact copy of the parent's one,
+ * and given pointer must be equivalent to the current parent tack position!)
+ */
+extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
+
+
 /**
  * Save context of the current task and run the next one based on priorities
  * and scheduling algorithm used.

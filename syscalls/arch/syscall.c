@@ -1,12 +1,14 @@
 #include "syscall.h"
 
 #include <sys/files.h>
+#include <sys/process.h>
 
 void* _syscall_funcs[SYSCALL_NUMBER] = {
 	NULL,
 	&sys_open,
 	&sys_read,
-	&sys_write
+	&sys_write,
+	&sys_fork
 };
 
 

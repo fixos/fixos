@@ -1,6 +1,11 @@
 #include "process.h"
 #include <arch/sh/mmu.h>
 #include <sys/memory.h>
+#include <arch/sh/interrupt.h>
+#include <utils/strutils.h>
+#include "scheduler.h"
+
+#include <device/keyboard/keyboard.h>
 
 // entry in free linked list
 union proc_entry {
@@ -142,8 +147,94 @@ void process_contextjmp(process_t *proc) {
 
 	// just before context jump, set MMU current ASID to process' ASID
 	mmu_setasid(proc->asid);
-	printk("[D] ASID = %d\n", mmu_getasid());
-	printk("asid=%d, pid=%d\n", proc->asid, proc->pid);
+	printk("asid=%d [%d], pid=%d\n", proc->asid, mmu_getasid(), proc->pid);
+
+	printk("r15=%p, r0=%p\npc=%p, sr=%p\n", (void*)(proc->acnt.reg[15]),
+			(void*)(proc->acnt.reg[0]), (void*)(proc->acnt.pc),
+			(void*)(proc->acnt.sr));
+
+	/*static int magic = 0;
+	if(magic == 1)
+		while(1);
+	magic = 1;*/
 
 	arch_kernel_contextjmp(&(proc->acnt));
+}
+
+
+// black magic...
+extern void* _bank0_context;
+
+pid_t sys_fork() {
+	process_t *cur;
+	process_t *newproc;
+	int i;
+
+	arch_int_weak_atomic_block(1);
+
+	// alloc a new process, and copy everything
+	cur = process_get_current();
+	newproc = process_alloc();
+
+	for(i=0; i<PROCESS_MAX_FILE; i++) {
+		// TODO real COPY of each opened file!
+		newproc->files[i] = cur->files[i];
+	}
+
+	// copy each memory page with same virtual addresses
+	// TODO copy-on-write system!
+	for(i=0; i<3; i++) {
+		mem_vm_copy_page(&(cur->vm.direct[i]), &(newproc->vm.direct[i]),
+				MEM_VM_COPY_ONWRITE);
+	}
+	// TODO indirect pages
+	newproc->vm.indir1 = NULL;
+	
+	// get the new kernel stack
+	void *kstack;
+	void *cur_stack;
+	void *new_bank0_context;
+
+	kstack = mem_pm_get_free_page(MEM_PM_CACHED) + PM_PAGE_BYTES;
+	newproc->acnt.kernel_stack = kstack;
+
+	// black magic : we now _bank0_context is on the kernel stack...
+	new_bank0_context = (kstack - PM_PAGE_BYTES) 
+			+ ( ((unsigned int)_bank0_context) % PM_PAGE_BYTES);
+
+	// compute the position in stack
+	asm volatile ("mov r15, %0" : "=r"(cur_stack));
+	// WARNING : only works if *ONE* page is used for kernel stack!
+	kstack -= PM_PAGE_BYTES - ((unsigned int)(cur_stack)  % PM_PAGE_BYTES);
+	// copy page content (do not forget, stack is lower address on top)
+	memcpy(kstack, cur_stack,
+			PM_PAGE_BYTES - ((unsigned int)(kstack) % PM_PAGE_BYTES));
+
+	printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
+	
+	// do the pseudo-fork by saving context on child, and check the
+	// return value
+	int val = arch_sched_preempt_fork(newproc, kstack); 
+	printk("preempt_fork returned %d\n", val);
+	while(!is_key_down(K_EXE));
+	while(is_key_down(K_EXE));
+
+	if(val == 0) {
+		// we are in the parent process (the one which realy returned)
+		printk("fork: parent code\n");
+		sched_add_task(newproc);
+		arch_int_weak_atomic_block(0);
+
+		return cur->pid;
+	}
+	else {
+		// we use some black magic to return from the TRAPA exception
+		// into the child process
+		
+		// exceptions/interrupt are inhibited in the return context!
+		_bank0_context = new_bank0_context;
+
+		printk("fork: child code\n");
+		return 0;
+	}
 }

@@ -5,3 +5,4 @@
 _SYSCALL_(open,1)
 _SYSCALL_(read,2)
 _SYSCALL_(write,3)
+_SYSCALL_(fork,4)

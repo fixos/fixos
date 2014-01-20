@@ -105,4 +105,11 @@ process_t *process_get_current();
  */
 void process_contextjmp(process_t *proc);
 
+
+/**
+ * fork() syscall implementation, duplicate any memory area, create a kernel stack
+ * and prepare the child process to be executed by scheduler.
+ */
+pid_t sys_fork();
+
 #endif //_SYS_PROCESS_H
