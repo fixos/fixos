@@ -21,8 +21,13 @@ void sched_init();
  */
 void sched_add_task(task_t *task);
 
-
-extern void arch_sched_preempt_task();
+/**
+ * Save context before to call context_saved_next() internal function.
+ * The current context is saved in cur_proc context (to avoid to look
+ * for the current process whereas PID and ASID may changed to the
+ * new values).
+ */
+extern void arch_sched_preempt_task(process_t *cur_proc);
 
 /*
  * Function used by sys_fork() to save the context exactly as

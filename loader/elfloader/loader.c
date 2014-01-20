@@ -4,6 +4,7 @@
 #include <fs/vfs_file.h>
 #include <arch/sh/virtual_memory.h>
 #include <sys/memory.h>
+#include <utils/log.h>
 
 
 // check static expected informations of the given header, returns non-zero

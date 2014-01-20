@@ -4,6 +4,7 @@
 #include <arch/sh/interrupt.h>
 #include <utils/strutils.h>
 #include "scheduler.h"
+#include <utils/log.h>
 
 #include <device/keyboard/keyboard.h>
 
@@ -138,12 +139,23 @@ process_t *process_get_current() {
 }
 
 
+extern int* _bank0_context;
 
 void process_contextjmp(process_t *proc) {
+	
+	interrupt_inhibit_all(1);
+
+	// black magic to save old BANK0 context
+	process_get_current()->acnt.bank0_saved = _bank0_context;
+	_bank0_context = proc->acnt.bank0_saved;
+	
+
 	// if ASID is not valid (first contextjmp, or process was remove from 'active'
 	// process, we need to set it's ASID before to run it
 	if(proc->asid == ASID_INVALID)
 		process_set_asid(proc);
+
+	//
 
 	// just before context jump, set MMU current ASID to process' ASID
 	mmu_setasid(proc->asid);
@@ -161,9 +173,6 @@ void process_contextjmp(process_t *proc) {
 	arch_kernel_contextjmp(&(proc->acnt));
 }
 
-
-// black magic...
-extern void* _bank0_context;
 
 pid_t sys_fork() {
 	process_t *cur;

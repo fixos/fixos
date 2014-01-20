@@ -6,9 +6,6 @@
  */
 
 #include <utils/types.h>
-// debug
-#include <utils/log.h>
-#include <device/keyboard/keyboard.h>
 
 // Default values for user mode process :
 // MD, BL, RB = 0, Interrupt Mask = 0x0...
@@ -36,53 +33,13 @@ struct _context_info {
 	uint32 sr;
 
 	void *kernel_stack;
+	int *bank0_saved;
 };
 
 // extern inline void arch_kernel_contextjmp(struct _context_info *cnt)
 //	__attribute__ ((noreturn)) ;
 
 // 
-extern inline void arch_kernel_contextjmp(struct _context_info *cnt) {
-//	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
-
-	//printk("kstack = %p\n", cnt->kernel_stack);
-	
-	// set current kernel stack for next mode switching (interrupt)
-	g_process_current_kstack = cnt->kernel_stack;
-	
-	// TODO kernel / user stack setting
-
-	asm volatile (
-			"mov %0, r0 ;"
-			"mov r0, r15;"
-			"add #64, r0;"
-			"ldc.l @r0+, gbr;"
-			"lds.l @r0+, macl;"
-			"lds.l @r0+, mach;"
-			"ldc.l @r0+, spc;"
-			"ldc.l @r0+, ssr;"
-
-			"mov.l @r15, r0;"
-			"mov.l @(4, r15), r1;"
-			"mov.l @(8, r15), r2;"
-			"mov.l @(12, r15), r3;"
-			"mov.l @(16, r15), r4;"
-			"mov.l @(20, r15), r5;"
-			"mov.l @(24, r15), r6;"
-			"mov.l @(28, r15), r7;"
-			"mov.l @(32, r15), r8;"
-			"mov.l @(36, r15), r9;"
-			"mov.l @(40, r15), r10;"
-			"mov.l @(44, r15), r11;"
-			"mov.l @(48, r15), r12;"
-			"mov.l @(52, r15), r13;"
-			"mov.l @(56, r15), r14;"
-			"mov.l @(60, r15), r15;"
-			"nop;"
-
-			"rte;"
-			"nop" : : "r"(cnt) :  
-	);
-}
+void arch_kernel_contextjmp(struct _context_info *cnt);
 
 #endif //_ARCH_SH_PROCESS_H

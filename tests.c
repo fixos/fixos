@@ -362,7 +362,7 @@ void test() {
 	
 	if(magic_lock != 0) {
 		printk("Try to switch process.\n");
-		sched_next_task();
+		sched_next_task(process_get_current());
 	}
 }
 

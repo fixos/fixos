@@ -8,14 +8,11 @@
 	.extern _context_saved_next
 
 
+! void arch_sched_preempt_task(process_t cur_proc);
 _arch_sched_preempt_task:
-	sts.l pr, @-r15
-	mov.l proc_get_cur, r0
-	jsr @r0
-	nop
+	! cur_proc is a process_t, but it begins by the struct _context_info
+	mov r4, r0
 	
-	! the returned value is a process_t, but it begins by the struct _context_info
-	mov.l @r15+, r1
 	mov.l r15, @(60, r0)
 	mov.l r14, @(56, r0)
 	mov.l r13, @(52, r0)
@@ -29,7 +26,8 @@ _arch_sched_preempt_task:
 	mov.l r2, @(16, r0)
 	stc gbr, r2
 	mov.l r2, @(0, r0)
-	mov.l r1, @(12, r0)
+	sts pr, r2
+	mov.l r2, @(12, r0)
 	sts mach, r2
 	mov.l r2, @(8, r0)
 	sts macl, r2
