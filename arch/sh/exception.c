@@ -4,6 +4,7 @@
 #include "interrupt_codes.h"
 #include "mmu.h"
 #include "interrupt.h"
+#include "process.h"
 
 
 #include <sys/process.h>
@@ -11,15 +12,6 @@
 #include <utils/log.h>
 
 extern void syscall_entry();
-
-/*
- * This variable is used to store/save r0~r7 of user process in case of trapa exception.
- * 
- */
-int *g_user_registers = NULL; 
-
-// used to refer to last stack-saved BANK0 register (array of {r0, r1, ..., r7}
-extern int *_bank0_context;
 
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
@@ -38,10 +30,13 @@ void exception_handler()
 	int tra;
 	void *spcval;
 	void *stackval;
+	process_t *cur;
 	
 	(void)(tea);
 	asm volatile ("stc spc, %0" : "=r"(spcval) );
 	asm volatile ("mov r15, %0" : "=r"(stackval) );
+
+	cur = process_get_current();
 
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
@@ -63,21 +58,20 @@ void exception_handler()
 				printk("Not a reconized syscall!\n");
 			}
 			else {
+				int *context = (void*)(cur->acnt);
 				// set BL bit or status register, allowing interrupt/exception
 				// to be generated inside a syscall processing!
 				interrupt_inhibit_all(0);
-				int **bank0_context_ptr = &_bank0_context;
 
-				// call given function
-				asm volatile ("mov.l @%0, r0;"
+				// call given function, and store return value in context-saved r0
+				asm volatile ("mov %0, r0;"
 						"mov.l @(16, r0), r4;"
 						"mov.l @(20, r0), r5;"
 						"mov.l @(24, r0), r6;"
 						"mov.l @(28, r0), r7;"
 						"jsr @%1;"
 						"nop;"
-						"mov.l @%0, r1;"
-						"mov.l r0, @(0, r1);" : : "r"(bank0_context_ptr), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r15");
+						"mov.l r0, @(0, %0);" : : "r"(context), "r"(func) : "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r15");
 
 				interrupt_inhibit_all(1);
 
@@ -129,6 +123,9 @@ void exception_handler()
 	// avoid verbosity for TRAPA
 	if(evt != EXP_CODE_TRAPA)
 		printk("@ end of exception\nSPC Value = %p\n", spcval);
+
+	// do not return, do direct context switch
+	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
 
 	return;
 }

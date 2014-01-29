@@ -70,11 +70,14 @@ int elfloader_load(struct file *filep, process_t *dest) {
 				return -1;
 			}
 
-			// kernel stack begins at the end of pageaddr
-			dest->acnt.kernel_stack = pageaddr + PM_PAGE_BYTES; 
-			dest->acnt.reg[15] = ARCH_UNEWPROC_DEFAULT_STACK;
-			dest->acnt.pc = header.entry;
-			dest->acnt.sr = ARCH_UNEWPROC_DEFAULT_SR;
+			// kernel stack begins at the end of pageaddr (contains the first
+			// context struct)
+			dest->kernel_stack = pageaddr + PM_PAGE_BYTES; 
+			dest->acnt = dest->kernel_stack - sizeof(struct _context_info);
+			dest->acnt->reg[15] = ARCH_UNEWPROC_DEFAULT_STACK;
+			dest->acnt->pc = header.entry;
+			dest->acnt->sr = ARCH_UNEWPROC_DEFAULT_SR;
+			dest->acnt->previous = NULL;
 		}
 		else {
 			printk("elfloader: unable to load segment\n");

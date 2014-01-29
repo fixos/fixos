@@ -16,9 +16,6 @@
 #define ARCH_UNEWPROC_DEFAULT_TEXT	0x10000000
 
 
-extern void * g_process_current_kstack;
-
-
 // information needed for process switch(store/load context)
 struct _context_info {
 	// registers r0~r15 (only the current bank for r0~r15) 
@@ -32,14 +29,15 @@ struct _context_info {
 	uint32 pc;
 	uint32 sr;
 
-	void *kernel_stack;
-	int *bank0_saved;
+	uint32 pr;
+
+	// previous context structure (may be NULL if this interrupted from user space)
+	struct _context_info *previous;
 };
 
 // extern inline void arch_kernel_contextjmp(struct _context_info *cnt)
 //	__attribute__ ((noreturn)) ;
 
-// 
-void arch_kernel_contextjmp(struct _context_info *cnt);
+void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt);
 
 #endif //_ARCH_SH_PROCESS_H

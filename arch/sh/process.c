@@ -7,15 +7,17 @@
 
 
 
-void arch_kernel_contextjmp(struct _context_info *cnt) {
+void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt) {
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
 
 	//printk("kstack = %p\n", cnt->kernel_stack);
 	
-	// set current kernel stack for next mode switching (interrupt)
-	g_process_current_kstack = cnt->kernel_stack;
+/*	while(!is_key_down(K_EXE));
+	while(is_key_down(K_EXE));
+*/
 	
-	// TODO kernel / user stack setting
+	if(old_cnt != NULL)
+		*old_cnt = cnt->previous;
 
 	asm volatile (
 			"mov %0, r0 ;"
@@ -26,6 +28,7 @@ void arch_kernel_contextjmp(struct _context_info *cnt) {
 			"lds.l @r0+, mach;"
 			"ldc.l @r0+, spc;"
 			"ldc.l @r0+, ssr;"
+			"lds.l @r0+, pr;"
 
 			"mov.l @r15, r0;"
 			"mov.l @(4, r15), r1;"

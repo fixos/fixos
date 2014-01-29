@@ -7,7 +7,7 @@
  * On SH3, FiXos uses assembly instruction "trapa #<syscall ID>".
  */
 
-#include <utils/types.h>
+//#include <utils/types.h>
 
 
 //extern int open(const char *file, int mode);

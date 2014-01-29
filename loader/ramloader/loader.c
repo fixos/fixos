@@ -56,10 +56,14 @@ int ramloader_load(void *data, size_t datalen, process_t *dest)
 	}
 
 
-	dest->acnt.kernel_stack = pageaddr + PM_PAGE_BYTES; 
-	dest->acnt.reg[15] = ARCH_UNEWPROC_DEFAULT_STACK;
-	dest->acnt.pc = ARCH_UNEWPROC_DEFAULT_TEXT + pc_offset;
-	dest->acnt.sr = ARCH_UNEWPROC_DEFAULT_SR;
+	// kernel stack begins at the end of pageaddr (contains the first
+	// context struct)
+	dest->kernel_stack = pageaddr + PM_PAGE_BYTES; 
+	dest->acnt = dest->kernel_stack - sizeof(struct _context_info);
+	dest->acnt->reg[15] = ARCH_UNEWPROC_DEFAULT_STACK;
+	dest->acnt->pc = ARCH_UNEWPROC_DEFAULT_TEXT + pc_offset;
+	dest->acnt->sr = ARCH_UNEWPROC_DEFAULT_SR;
+	dest->acnt->previous = NULL;
 
 	return 0;
 }

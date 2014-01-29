@@ -39,8 +39,15 @@ static process_t mock_process =
 		.direct = {{0}, {0}, {0}},
 		.indir1 = (void*)0
 	},
-	.state = PROCESS_STATE_RUN
+	.state = PROCESS_STATE_RUN,
+	.acnt = NULL,
+	.kernel_stack = NULL
 };
+
+// this variable must be maintained by the scheduler as the
+// current running process at *ANY* time
+process_t *_proc_current = &mock_process;
+
 
 
 void process_init()
@@ -158,31 +165,25 @@ void process_release_asid(process_t *proc) {
 
 
 process_t *process_get_current() {
-	return process_from_asid(mmu_getasid());
+	//return process_from_asid(mmu_getasid());
+	return _proc_current;
 }
 
-
-extern int* _bank0_context;
 
 void process_contextjmp(process_t *proc) {
 	
 	interrupt_inhibit_all(1);
-
-	// black magic to save old BANK0 context
-	process_get_current()->acnt.bank0_saved = _bank0_context;
-	_bank0_context = proc->acnt.bank0_saved;
-	
 
 	// if ASID is not valid (first contextjmp, or process was remove from 'active'
 	// process, we need to set it's ASID before to run it
 	if(proc->asid == ASID_INVALID)
 		process_set_asid(proc);
 
-	//
+	_proc_current = proc;
 
 	// just before context jump, set MMU current ASID to process' ASID
 	mmu_setasid(proc->asid);
-	printk("asid=%d [%d], pid=%d\n", proc->asid, mmu_getasid(), proc->pid);
+	//printk("asid=%d [%d], pid=%d\n", proc->asid, mmu_getasid(), proc->pid);
 
 	/*printk("r15=%p, r0=%p\npc=%p, sr=%p\n", (void*)(proc->acnt.reg[15]),
 			(void*)(proc->acnt.reg[0]), (void*)(proc->acnt.pc),
@@ -195,7 +196,7 @@ void process_contextjmp(process_t *proc) {
 
 	proc->state = PROCESS_STATE_RUN;
 
-	arch_kernel_contextjmp(&(proc->acnt));
+	arch_kernel_contextjmp(proc->acnt, &(proc->acnt));
 }
 
 
@@ -204,12 +205,24 @@ pid_t sys_fork() {
 	process_t *newproc;
 	int i;
 
-	arch_int_weak_atomic_block(1);
+
+	cur = process_get_current();
+	// do fork only if this is the first context-switch of the process
+	// (this should be the case here, but it's useful for debug)
+	if(cur->acnt->previous != NULL) {
+		printk("fork: multiple context... aborted\n");
+		return -1;
+	}
+	
+
+	//arch_int_weak_atomic_block(1);
+	// we need to block any exception, fork operation should be
+	// atomic
+	interrupt_inhibit_all(1);
 
 	printk("fork start\n");
 
 	// alloc a new process, and copy everything
-	cur = process_get_current();
 	newproc = process_alloc();
 
 	newproc->ppid = cur->pid;
@@ -234,51 +247,36 @@ pid_t sys_fork() {
 	// get the new kernel stack
 	void *kstack;
 	void *cur_stack;
-	void *new_bank0_context;
 
 	kstack = mem_pm_get_free_page(MEM_PM_CACHED) + PM_PAGE_BYTES;
-	newproc->acnt.kernel_stack = kstack;
+	newproc->kernel_stack = kstack;
 
-	// black magic : we now _bank0_context is on the kernel stack...
-	new_bank0_context = (kstack - PM_PAGE_BYTES) 
-			+ ( ((unsigned int)_bank0_context) % PM_PAGE_BYTES);
+	// black magic : we know acnt is on the stack and acnt->previous is NULL
+	newproc->acnt = (kstack - PM_PAGE_BYTES) 
+			+ ( ((unsigned int)cur->acnt) % PM_PAGE_BYTES);
 
 	// compute the position in stack
 	asm volatile ("mov r15, %0" : "=r"(cur_stack));
 	// WARNING : only works if *ONE* page is used for kernel stack!
 	kstack -= PM_PAGE_BYTES - ((unsigned int)(cur_stack)  % PM_PAGE_BYTES);
 
-	//printk("stack : %p->%p\nbank0 : %p->%p\n", cur_stack, kstack, _bank0_context, new_bank0_context);
-	
 	// copy page content (do not forget, stack is lower address on top)
 	memcpy(kstack, cur_stack,
 			PM_PAGE_BYTES - ((unsigned int)(kstack) % PM_PAGE_BYTES));
 
-	// do the pseudo-fork by saving context on child, and check the
-	// return value
-	int val = arch_sched_preempt_fork(newproc, kstack); 
+	// we modify the context-saved r0 in child, so it will return from fork()
+	// with the given value
+	newproc->acnt->reg[0] = 0;
+
+	sched_add_task(newproc);
+	//arch_int_weak_atomic_block(0);
+	interrupt_inhibit_all(0);
+
+	return newproc->pid;
+
 	/*printk("preempt_fork returned %d\n", val);
 	while(!is_key_down(K_EXE));
 	while(is_key_down(K_EXE));*/
-
-	if(val == 0) {
-		// we are in the parent process (the one which realy returned)
-		//printk("fork: parent code\n");
-		sched_add_task(newproc);
-		arch_int_weak_atomic_block(0);
-
-		return cur->pid;
-	}
-	else {
-		// we use some black magic to return from the TRAPA exception
-		// into the child process
-		
-		// exceptions/interrupt are inhibited in the return context!
-		_bank0_context = new_bank0_context;
-
-		//printk("fork: child code\n");
-		return 0;
-	}
 }
 
 

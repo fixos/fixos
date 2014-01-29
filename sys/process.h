@@ -7,6 +7,7 @@
 
 #include <utils/types.h>
 #include <arch/sh/virtual_memory.h>
+// TODO remove this include (now context is saved as a pointer to arch-spec context)
 #include <arch/sh/process.h>
 
 // maximum ASID number at one time
@@ -34,11 +35,17 @@ struct _virtual_mem;
 
 struct file;
 
+// information for saving/restoring context
+// WARNING : this structure is arch-dependant, and MUST be the *first* field
+// of process struct (see arch/sh/scheduler.S for example)
+struct _context_info;
+
 struct _process_info {
-	// information for saving/restoring context
-	// WARNING : this structure is arch-dependant, and MUST be the *first* field
-	// of process struct (see arch/sh/scheduler.S for example)
-	struct _context_info acnt;
+	// address on the kernel stack of the process, or NULL if running out of any
+	// interrupt...
+	struct _context_info *acnt;
+
+	void *kernel_stack;
 
 	pid_t pid;
 	asid_t asid;

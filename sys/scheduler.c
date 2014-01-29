@@ -5,6 +5,9 @@
 // for periodic interrupts
 #include <arch/sh/rtc.h>
 
+// debug...
+#include <device/keyboard/keyboard.h>
+
 
 #ifndef offsetof
 #define offsetof(st, m) ((int)(&((st *)0)->m))
@@ -103,8 +106,18 @@ void sched_next_task() {
 
 // function called periodicaly to change current process
 static void sched_periodic_interrupt() {
-	printk("Try to switch process.\n");
-	sched_next_task(process_get_current());
+	// will be removed when schedule() will be working :
+	RTC.RCR2.BIT.PEF = 0;
+
+	//if(is_key_down(K_EXE)) {
+	if(1) {
+		//printk("Try to switch process.\n");
+		//sched_next_task(process_get_current());
+		context_saved_next();
+		// TODO do nothing here and write schedule() function called in interrupt
+		// and exception handler (instead of returning)
+	}
+	else process_contextjmp(process_get_current());
 }
 
 
@@ -116,7 +129,7 @@ void sched_start() {
 
 	if(i<SCHED_MAX_TASKS) {
 		// start the periodic interrupt
-		rtc_set_interrupt(&sched_periodic_interrupt, RTC_PERIOD_16_HZ);
+		rtc_set_interrupt(&sched_periodic_interrupt, RTC_PERIOD_64_HZ);
 
 		_cur_task = i;
 		process_contextjmp(_tasks[i]);
@@ -146,7 +159,7 @@ pid_t sys_wait(int *status) {
 					// destroy the waiting process
 					// do not forget kernel_stack is set to the first byte of the
 					// next page, not on the real allocated page
-					mem_pm_release_page(_tasks[i]->acnt.kernel_stack-1);
+					mem_pm_release_page(_tasks[i]->kernel_stack-1);
 
 					// release ASID
 					process_release_asid(_tasks[i]);

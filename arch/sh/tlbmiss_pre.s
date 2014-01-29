@@ -9,7 +9,7 @@
 	.type _pre_tlbmiss_handler, @function
 
 	.extern _tlbmiss_handler
-	.extern _g_process_current_kstack
+	.extern __proc_current
 
 	.equ MD_MASK, (1<<30)
 
@@ -17,6 +17,9 @@
 _pre_tlbmiss_handler:
 	! save old stack in r4 BANK1 in all case
 	mov r15, r4
+	! r5 is the address of current process struct
+	mov.l _proc_current, r5
+	mov.l @r5, r5
 
 	! at the beginning, r0~r7 are mapped into BANK1, use it to retrieve the stack
 	! if SSR.MD is 1, process was already in kernel mode, keep r15 as stack
@@ -26,9 +29,8 @@ _pre_tlbmiss_handler:
 	bf stack_set
 
 
-	! in this cas, get the good kernel stack
-	mov.l g_process_current_kstack, r0
-	mov.l @r0, r15
+	! in this cas, get the good kernel stack (second field in process_t struct)
+	mov.l @(4,r5), r15
 	
 stack_set:
 	! save BANK1 on stack and switch to BANK0
@@ -50,8 +52,8 @@ stack_set:
 	.align 4
 tlbmiss_handler:
 	.long _tlbmiss_handler
-g_process_current_kstack:
-	.long _g_process_current_kstack
+_proc_current:
+	.long __proc_current
 
 md_mask:
 	.long MD_MASK

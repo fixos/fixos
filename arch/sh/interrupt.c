@@ -1,9 +1,11 @@
 #include "interrupt.h"
 #include "interrupt_codes.h"
 #include "7705_Casio.h"
+#include "process.h"
 
 #include <utils/log.h>
 #include <utils/types.h>
+#include <sys/process.h>
 
 
 // Globals callbacks functions address :
@@ -81,6 +83,7 @@ void interrupt_handler() __attribute__ ((section(".handler.interrupt")));
 void interrupt_handler() {
 	int evt = INTX.INTEVT2;	// interrupt code
 	interrupt_callback_t handler;
+	process_t *cur;
 
 
 	switch(evt) {
@@ -143,6 +146,11 @@ void interrupt_handler() {
 		printk("Unknown interrupt catched :\nEVT2=0x%x\n", evt);
 		break;
 	}
+
+	// do not return, do direct context switch
+	cur = process_get_current();
+	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
+
 	return;
 }
 
