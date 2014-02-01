@@ -64,4 +64,15 @@ void test_virtual_mem();
  */
 void test_keyboard_int();
 
+
+/**
+ * Test time-related things (TMU, RTC...)
+ */
+void test_time();
+
+
+/**
+ * Test key press handling using key matrix (ports A and B/M)
+ */
+void test_keymatrix();
 #endif //_FIXOS_TESTS_H

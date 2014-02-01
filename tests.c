@@ -28,6 +28,10 @@
 
 #include "device/device_registering.h"
 
+#include "arch/sh/rtc.h"
+#include "arch/sh/timer.h"
+#include "device/keyboard/fx9860/keymatrix.h"
+
 
 void test_sdcard() {
 	// SD Card communication tests
@@ -422,4 +426,124 @@ void ls_tree() {
 	print_inode_tree(cur, 1);
 
 	vfs_release_inode(cur);
+}
+
+
+void rtc_callback_calib();
+
+void tmu_callback();
+
+volatile unsigned int tmu0_time;
+volatile int calib_state;
+
+void test_time() {
+	printk("Try to estimate timer freq...\n");
+	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
+			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
+
+	// change frequency
+	DBG_WAIT;
+
+	printk("Trying: x4, [I x1/1], [P x1/4]\n");
+	//CPG.FRQCR.BIT.IFC = 0;
+	//CPG.FRQCR.BIT._PFC = 3;
+
+	// set watchdog before changing multiplier!
+	WDT.WTCSR.WRITE = 0xA587;
+	WDT.WTCNT.WRITE = 0x5A80;
+	CPG.FRQCR.WORD = (CPG.FRQCR.WORD & 0xFC00) | (3<<0) | (0<<4) | (3<<8) ;
+
+	printk("WTCNT = %d\n", WDT.WTCNT.READ);
+	//DBG_WAIT;
+	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
+			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
+
+	rtc_set_interrupt(&rtc_callback_calib, RTC_PERIOD_64_HZ);
+
+	if(1) {
+		while(calib_state < 2);
+
+		unsigned int freq = tmu0_time * 64 * 16; // prescaler == 16, in 1/16e seconds
+		printk("TMU0: 16Hz count %d ticks.\nEstimated freq = %d.%dMHz\n", tmu0_time, freq/1000000, (freq/100000)%10);
+
+
+		while(calib_state<128);
+
+		tmu0_time = 0;
+		calib_state = 0;
+	}
+	rtc_set_interrupt(NULL, RTC_PERIOD_DISABLE);
+}
+
+void rtc_callback_calib() {
+	if(calib_state == 0) {
+		timer_init_tmu0(0xFFFFFFFF, TIMER_PRESCALER_16, &tmu_callback);
+
+		timer_start_tmu0(1);
+		printk("Start...");
+	}
+	else if(calib_state == 1) {
+		timer_stop_tmu0();
+		tmu0_time = 0xFFFFFFFF - TMU0.TCNT;
+		printk("... done!\n");
+	}
+	calib_state++;
+}
+
+
+void tmu_callback() {
+	printk("TMU0 : underflow?\n");
+}
+
+/*static volatile int __stupid_job;
+static void micdelay(int t) {
+	for(__stupid_job = 0; __stupid_job<t; __stupid_job++);
+}*/
+
+static void callback_pressed(int code) {
+	printk("P(0x%x)\n", code);
+}
+
+static void callback_released(int code) {
+	printk("R(0x%x)\n", code);
+}
+
+void test_keymatrix() {
+	printk("Checking keyboard...\n");
+
+	hwkbd_init();
+	hwkbd_set_kpressed_callback(&callback_pressed);
+	hwkbd_set_kreleased_callback(&callback_released);
+
+
+	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
+
+	while(1);
+/*
+	PFC.PBCR.WORD = 0x5555;
+	PFC.PMCR.WORD = (0x5555 & 0x000F) | (PFC.PMCR.WORD & ~0x000F);	
+	PFC.PACR.WORD = 0xAAAA;
+
+	//PM.DR.BYTE = 0x0B;
+	//PB.DR.BYTE = 0xF7;
+	PM.DR.BYTE = 0x00;
+	PB.DR.BYTE = 0x00;
+
+	micdelay(10);
+
+	while(1) {
+		unsigned int cols;
+		int i;
+		char keys[9];
+
+		keys[8] = 0;
+		cols = PA.DR.BYTE;
+
+		for(i=0; i<8; i++) {
+			keys[7-i] = ((cols>>i) & 0x01) == 0 ? 'o' : 'x';
+		}
+
+		printk("Cols : %s\n", keys);
+	}
+	*/
 }

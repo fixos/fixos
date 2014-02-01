@@ -161,6 +161,14 @@ void init() {
 
 	DBG_WAIT;
 
+	test_time();
+
+	DBG_WAIT;
+
+	test_keymatrix();
+
+	DBG_WAIT;
+
 	//test_vfs();
 
 	//test_sdcard();

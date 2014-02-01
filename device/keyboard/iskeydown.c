@@ -1,8 +1,9 @@
 #include <arch/sh/7705_Casio.h>
 
+volatile static int totime;
+
 static void delay() {
-	unsigned char i;
-	for (i=0;i<5;i++);
+	for (totime=0; totime<20; totime++);
 }
 
 int is_key_down(unsigned char code) {
