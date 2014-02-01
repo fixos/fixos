@@ -1,11 +1,13 @@
 #include "terminal.h"
 #include <fs/file_operations.h>
 #include <device/display/generic_mono.h>
+#include <device/keyboard/fx9860/keyboard.h>
 #include <utils/strutils.h>
 #include "print_primitives.h"
 
 // temp stuff for blocking screen
-#include <device/keyboard/keyboard.h>
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
 
 
 // temp before kmalloc() implementation
@@ -41,6 +43,81 @@ static struct file_operations _fop_screen = {
 };
 
 
+// function used to print characters
+static void fx9860_term_print(void *source, size_t len) {
+	// write on display_mono interface, using print_primitives.h for writing character
+	// for now, implementation is close to the fx9860 early term, but the goal is to
+	// allow future extensions to support VT100-like escape codes
+	
+	int i;
+	unsigned char *str = source;
+	// TODO remove tmp stuff for blocking the terminal
+	static int line_nb = 0;
+
+	for(i=0; i<len; i++) {
+		if(str[i] == '\n') {
+			// remove the current cursor display before line feed
+			term_prim_write_character(_term_posx, _term_posy, _term_front_c,
+					_term_back_c, ' ', _term_vram);
+
+			_term_posx = 0;
+			_term_posy++;
+			line_nb++;
+		}
+		else if(str[i] == '\r') _term_posx=0;
+		else {
+			term_prim_write_character(_term_posx, _term_posy, _term_front_c, _term_back_c, str[i], _term_vram);
+			_term_posx++;
+		}
+		if(_term_posx>=FX9860_TERM_WIDTH) {
+			_term_posx = 0;
+			_term_posy++;
+			line_nb++;
+		}
+
+		
+		if(_term_posy>=FX9860_TERM_HEIGHT) {
+			// tmp stuff
+			/*if(line_nb >= FX9860_TERM_HEIGHT-3) {
+				int j;
+				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
+				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
+				for(j=0; j<warn_strlen; j++)
+					term_prim_write_character(j, 0, TERM9860_COLOR_WHITE, TERM9860_COLOR_BLACK, warn_str[j], _term_vram);
+				disp_mono_copy_to_dd(_term_vram);
+
+				
+				while(!hwkbd_real_keydown(K_EXE));
+				while(hwkbd_real_keydown(K_EXE));
+				static volatile int tricks;
+				for(tricks = 0; tricks<100000; tricks++);
+				line_nb = 0;
+			}*/
+
+			term_prim_scroll_up(_term_vram, _term_back_c);
+			_term_posy = FX9860_TERM_HEIGHT-1;
+		}
+	}
+
+	// print cursor at current position
+	term_prim_write_character(_term_posx, _term_posy, _term_front_c,
+			_term_back_c, FX9860_TERM_CURSOR_CHAR, _term_vram);
+
+	disp_mono_copy_to_dd(_term_vram);
+}
+
+
+
+// callback function called when a key is stroke
+void fx9860_term_key_stroke(int code) {
+	//TODO
+	if(code < 0x80) {
+		char ccode = (char)code;
+		// basic echo, need to be improved (do not copy_to_dd() each time...)
+		fx9860_term_print(&ccode, 1);
+	}
+}
+
 void fx9860_term_init() {
 	// initialize VRAM, position and mode
 	
@@ -53,13 +130,6 @@ void fx9860_term_init() {
 
 	_term_back_c = TERM9860_COLOR_WHITE;
 	_term_front_c = TERM9860_COLOR_BLACK;
-	
-
-	// TODO for asynchron keyboard handling :
-	// callback system in arch-specific code, to register
-	// the function to call when an async event catch a key press?
-	// in this case, add callback function will add the pressed key ASCII
-	// representation into the _term_inbuf buffer.
 }
 
 
@@ -90,58 +160,7 @@ int fx9860_term_release(struct file *filep) {
 
 
 size_t fx9860_term_write(struct file *filep, void *source, size_t len) {
-	// write on display_mono interface, using print_primitives.h for writing character
-	// for now, implementation is close to the fx9860 early term, but the goal is to
-	// allow future extensions to support VT100-like escape codes
-	
-	int i;
-	unsigned char *str = source;
-	// TODO remove tmp stuff for blocking the terminal
-	static int line_nb = 0;
-
-	for(i=0; i<len; i++) {
-		if(str[i] == '\n') {
-			_term_posx = 0;
-			_term_posy++;
-			line_nb++;
-		}
-		else if(str[i] == '\r') _term_posx=0;
-		else {
-			term_prim_write_character(_term_posx, _term_posy, _term_front_c, _term_back_c, str[i], _term_vram);
-			_term_posx++;
-		}
-		if(_term_posx>=FX9860_TERM_WIDTH) {
-			_term_posx = 0;
-			_term_posy++;
-			line_nb++;
-		}
-
-		
-		if(_term_posy>=FX9860_TERM_HEIGHT) {
-			// tmp stuff
-			/*if(line_nb >= FX9860_TERM_HEIGHT-3) {
-				int j;
-				char * warn_str = "--- PRESS [EXE] TO SKIP ---";
-				int warn_strlen = sizeof("--- PRESS [EXE] TO SKIP ---")-1;
-				for(j=0; j<warn_strlen; j++)
-					term_prim_write_character(j, 0, TERM9860_COLOR_WHITE, TERM9860_COLOR_BLACK, warn_str[j], _term_vram);
-				disp_mono_copy_to_dd(_term_vram);
-
-				
-				while(!is_key_down(K_EXE));
-				while(is_key_down(K_EXE));
-				static volatile int tricks;
-				for(tricks = 0; tricks<100000; tricks++);
-				line_nb = 0;
-			}*/
-
-			term_prim_scroll_up(_term_vram, _term_back_c);
-			_term_posy = FX9860_TERM_HEIGHT-1;
-		}
-	}
-
-	disp_mono_copy_to_dd(_term_vram);
-
+	fx9860_term_print(source, len);
 	return 0;
 }
 

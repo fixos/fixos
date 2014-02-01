@@ -5,8 +5,11 @@
  * Lot of misc tests for debuging and usage example.
  */
 
-#define DBG_WAIT  while(is_key_down(K_EXE)); \
-	while(!is_key_down(K_EXE))
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
+
+#define DBG_WAIT  while(hwkbd_real_keydown(K_EXE)); \
+	while(!hwkbd_real_keydown(K_EXE))
 
 
 void test();

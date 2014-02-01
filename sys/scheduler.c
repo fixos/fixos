@@ -6,7 +6,8 @@
 #include <arch/sh/rtc.h>
 
 // debug...
-#include <device/keyboard/keyboard.h>
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
 
 
 #ifndef offsetof
@@ -109,7 +110,7 @@ static void sched_periodic_interrupt() {
 	// will be removed when schedule() will be working :
 	RTC.RCR2.BIT.PEF = 0;
 
-	//if(is_key_down(K_EXE)) {
+	//if(hwkbd_real_keydown(K_EXE)) {
 	if(1) {
 		//printk("Try to switch process.\n");
 		//sched_next_task(process_get_current());

@@ -6,7 +6,9 @@
 #include "scheduler.h"
 #include <utils/log.h>
 
-#include <device/keyboard/keyboard.h>
+// temp stuff
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
 
 // entry in free linked list
 union proc_entry {
@@ -275,8 +277,8 @@ pid_t sys_fork() {
 	return newproc->pid;
 
 	/*printk("preempt_fork returned %d\n", val);
-	while(!is_key_down(K_EXE));
-	while(is_key_down(K_EXE));*/
+	while(!hwkbd_real_keydown(K_EXE));
+	while(hwkbd_real_keydown(K_EXE));*/
 }
 
 

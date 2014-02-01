@@ -3,7 +3,8 @@
 
 // debug
 #include <utils/log.h>
-#include <device/keyboard/keyboard.h>
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
 
 
 
@@ -12,8 +13,8 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
 
 	//printk("kstack = %p\n", cnt->kernel_stack);
 	
-/*	while(!is_key_down(K_EXE));
-	while(is_key_down(K_EXE));
+/*	while(!hwkbd_real_keydown(K_EXE));
+	while(hwkbd_real_keydown(K_EXE));
 */
 	
 	if(old_cnt != NULL)

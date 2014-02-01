@@ -1,6 +1,5 @@
 #include "arch/sh/7705_Casio.h"
 #include "device/terminal/generic_early_term.h"
-#include "device/keyboard/keyboard.h"
 #include "arch/sh/interrupt.h"
 #include "arch/sh/virtual_memory.h"
 #include "arch/sh/mmu.h"
@@ -21,6 +20,10 @@
 #include "device/usb/usb_device_protocol.h"
 #include "device/usb/cdc_acm/acm_device.h"
 #include "device/usb/cdc_acm/cdc_acm.h"
+
+#include "device/keyboard/fx9860/keyboard.h"
+#include "device/keyboard/fx9860/keymatrix.h"
+#include "arch/sh/rtc.h"
 
 #include "tests.h"
 #include "utils/strutils.h"
@@ -76,6 +79,10 @@ void init() {
 
 	earlyterm_init(vram);
 	earlyterm_clear();
+
+	kbd_init();
+	// TODO call hwkbd_update_status() in a better place
+	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
 
 	set_kernel_print(&earlyterm_write);
 
@@ -142,6 +149,7 @@ void init() {
 			 // set printk() callback func
 			 set_kernel_print_file(console);
 			 printk("From fx9860 terminal : Hello!\nNow using /dev/console device!\n");
+			 kbd_set_kstroke_handler(&fx9860_term_key_stroke);
 		 }
 		 else {
 			 printk("[W] Unable to open fx9860 term\n");
@@ -166,7 +174,9 @@ void init() {
 	DBG_WAIT;
 
 	//test_keymatrix();
-	test_keyboard();
+//	test_keyboard();
+	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
+	while(1);
 
 	DBG_WAIT;
 

@@ -18,7 +18,8 @@ static void *g_terminal_vram = NULL;
 
 
 // tmp
-#include <device/keyboard/keyboard.h>
+#include <device/keyboard/fx9860/keymatrix.h>
+#include <device/keyboard/fx9860/matrix_codes.h>
 
 void earlyterm_write(const char *str) {
 	int i;
@@ -51,8 +52,8 @@ void earlyterm_write(const char *str) {
 				for(j=0; j<warn_strlen; j++)
 					term_prim_write_character(j, 0, EARLYTERM_COLOR_WHITE, EARLYTERM_COLOR_BLACK, warn_str[j], g_terminal_vram);
 				disp_mono_copy_to_dd(g_terminal_vram);
-				while(!is_key_down(K_EXE));
-				while(is_key_down(K_EXE));
+				while(!hwkbd_real_keydown(K_EXE));
+				while(hwkbd_real_keydown(K_EXE));
 				static volatile int tricks;
 				for(tricks = 0; tricks<100000; tricks++);
 				line_nb = 0;

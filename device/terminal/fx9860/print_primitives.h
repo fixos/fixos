@@ -6,6 +6,7 @@
 #define FX9860_TERM_HEIGHT	10
 
 
+#define FX9860_TERM_CURSOR_CHAR	((char)177)
 /**
  * write a character with the terminal police
  * TODO : less arguments to write_char!!!

@@ -22,6 +22,9 @@ extern struct device _fx9860_term_device;
 
 void fx9860_term_init();
 
+// call this function to add the given character as keyboard input
+void fx9860_term_key_stroke(int code);
+
 struct file_operations* fx9860_term_get_file_op(uint16 minor);
 
 

@@ -7,7 +7,7 @@
 #include "print_primitives.h"
 
 // Font 3x5 (usual bitmap format)
-static unsigned char _font_3x5[128][5] = {
+static unsigned char _font_3x5[129][5] = {
 {0, 224, 160, 224, 0}, //Character 000 [NUL]
 {0, 224, 160, 224, 0}, //Character 001 [SOH]
 {0, 224, 160, 224, 0}, //Character 002 [STX]
@@ -135,7 +135,8 @@ static unsigned char _font_3x5[128][5] = {
 {64, 64, 64, 64, 64}, //Character 124 [|]
 {192, 64, 96, 64, 192}, //Character 125 [}]
 {0, 192, 96, 0, 0}, //Character 126 [~]
-{0, 224, 160, 224, 0} //Character 127 []
+{0, 224, 160, 224, 0}, //Character 127 []
+{0xA0, 0x40, 0xA0, 0x40, 0xA0} //Character 177, used for cursor position
 };
 
 
@@ -147,13 +148,20 @@ void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c
 	frontcolor = term_prim_mask_color(front_c);
 	x = posx * 4;
 	y = posy * 6;
-	if((c >= 0) && (x>-3) && (x<128) && (y>-5) && (y<64)) {
-		unsigned char *raw_char = _font_3x5[(int)c];
+	if((c >= 0 || c==FX9860_TERM_CURSOR_CHAR) && (x>-3) && (x<128) 
+			&& (y>-5) && (y<64))
+	{
+		unsigned char *raw_char;
 		// union used to be sure char_bmp is 4-bytes aligned
 		union {
 			unsigned char char_bmp[6]; // 6*4 bitmap, containing character and borders
 			unsigned int fast[2]; // for fast operations
 		} bmp;
+
+		if(c>=0)
+			raw_char = _font_3x5[(int)c];
+		else
+			raw_char = _font_3x5[128];
 
 		bmp.char_bmp[0] = raw_char[0];
 		bmp.char_bmp[1] = raw_char[1];

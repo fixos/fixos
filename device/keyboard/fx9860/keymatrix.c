@@ -92,3 +92,37 @@ void hwkbd_set_kpressed_callback(hwkbd_key_handler handler) {
 void hwkbd_set_kreleased_callback(hwkbd_key_handler handler) {
 	_hwkbd_released = handler;
 }
+
+
+
+int hwkbd_keydown(int code) {
+	int line = code & 0x0F;
+
+	// do not forget, a 0 is a key pressed
+	if(line < 10)
+		return !(_hwkbd_status[line] & (1 << (code>>4)));
+
+	return 0;
+}
+
+
+
+int hwkbd_real_keydown(int code) {
+	int curline = code & 0x0F;
+
+	// set all the rows in input excepting the current one, in
+	// output and set to value 0
+	if(curline < 8) {
+		PFC.PBCR.WORD = (0xFFFDFFFF>> (16-curline*2));
+		PFC.PMCR.WORD = 0x000F | (PFC.PMCR.WORD & ~0x000F);	
+		PM.DR.BYTE = 0x00;
+	}
+	else {
+		PFC.PBCR.WORD = 0xFFFF;
+		PFC.PMCR.WORD = (curline == 8 ? 0x000D : 0x0007) | (PFC.PMCR.WORD & ~0x000F);	
+		PB.DR.BYTE = 0x00;
+	}
+
+	micdelay(10);
+	return !(PA.DR.BYTE & (1 << (code>>4)));
+}
