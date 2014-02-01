@@ -21,7 +21,7 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  sys/process.c sys/files.c sys/scheduler.c \
 	  device/device_registering.c \
 	  device/keyboard/iskeydown.c \
-	  device/keyboard/fx9860/keymatrix.c \
+	  device/keyboard/fx9860/keymatrix.c device/keyboard/fx9860/keyboard.c \
 	  device/terminal/fx9860/early_term.c device/terminal/fx9860/print_primitives.c device/terminal/fx9860/terminal.c \
 	  device/display/T6K11/T6K11.c \
 	  device/usb/cdc_acm/cdc_acm.c device/usb/cdc_acm/acm_device.c \

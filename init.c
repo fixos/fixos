@@ -165,7 +165,8 @@ void init() {
 
 	DBG_WAIT;
 
-	test_keymatrix();
+	//test_keymatrix();
+	test_keyboard();
 
 	DBG_WAIT;
 

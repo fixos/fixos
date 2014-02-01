@@ -75,4 +75,11 @@ void test_time();
  * Test key press handling using key matrix (ports A and B/M)
  */
 void test_keymatrix();
+
+
+/**
+ * Test 'high level' keyboard handling.
+ */
+void test_keyboard();
+
 #endif //_FIXOS_TESTS_H

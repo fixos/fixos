@@ -31,6 +31,7 @@
 #include "arch/sh/rtc.h"
 #include "arch/sh/timer.h"
 #include "device/keyboard/fx9860/keymatrix.h"
+#include "device/keyboard/fx9860/keyboard.h"
 
 
 void test_sdcard() {
@@ -546,4 +547,23 @@ void test_keymatrix() {
 		printk("Cols : %s\n", keys);
 	}
 	*/
+}
+
+
+
+static void callback_keystroke(int code) {
+	char str[2];
+
+	str[0] = (char)code;
+	str[1] = '\0';
+
+	printk("%s", str);
+}
+
+void test_keyboard() {
+	kbd_init();
+	kbd_set_kstroke_handler(&callback_keystroke);
+	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
+
+	while(1);
 }
