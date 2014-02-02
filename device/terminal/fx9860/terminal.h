@@ -6,15 +6,14 @@
  * keyboard type).
  * Goal is to support VT100-like interface (WIP).
  * The MINOR used by this device are :
- * 1 : output terminal, display output on screen
- * 2 : input from keyboard (not implemented)
+ * 1 : I/O terminal using keyboard as input and screen as dislay
  */
 
 #include <device/device.h>
 #include <fs/inode.h>
 #include <fs/file.h>
 
-#define FX9860_TERM_MINOR_OUTPUT	1
+#define FX9860_TERM_MINOR_TERMINAL	1
 
 
 extern struct device _fx9860_term_device;
@@ -28,13 +27,13 @@ void fx9860_term_key_stroke(int code);
 struct file_operations* fx9860_term_get_file_op(uint16 minor);
 
 
-// for MINOR 1, terminal file operations
-
 int fx9860_term_open(inode_t *inode, struct file *filep);
 
 int fx9860_term_release(struct file *filep);
 
 size_t fx9860_term_write(struct file *filep, void *source, size_t len);
+
+size_t fx9860_term_read(struct file *filep, void *dest, size_t len);
 
 int fx9860_term_ioctl(struct file *filep, int cmd, void *data);
 

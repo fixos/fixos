@@ -137,9 +137,10 @@ void init() {
 	// switch from early_terminal to fx9860 console 
 	printk("Trying to use fx9860-terminal device...\n");
 
+	struct file *console = NULL;
 	inode_t *console_inode = vfs_resolve("/dev/console");
 	if(console_inode != NULL) {
-		 struct file *console = vfs_open(console_inode);
+		 console = vfs_open(console_inode);
 		 if(console != NULL) {
 			 printk("fx9860 terminal ready...\nThe display will be cleared.\n");
 			 DBG_WAIT;
@@ -176,7 +177,12 @@ void init() {
 	//test_keymatrix();
 //	test_keyboard();
 	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
-	while(1);
+	while(1) {
+		char c;
+		if(vfs_read(console, &c, 1) == 1) {
+			vfs_write(console, &c, 1);
+		}
+	}
 
 	DBG_WAIT;
 
