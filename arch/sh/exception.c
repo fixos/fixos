@@ -84,6 +84,7 @@ void exception_handler()
 		printk("Fatal:\nIllegal %sinstruction.\n", evt == EXP_CODE_BAD_SLOTINSTR ?
 				"slot " : "");
 		printk("TEA value = %p\n", (void*)tea);
+		printk("    *=(%p)\n", (void*)(*(int*)(tea-(tea%4))));
 		printk("SPC Value = %p\n", spcval);
 		while(1);
 		break;
@@ -164,7 +165,7 @@ void tlbmiss_handler()
 		
 		// load the TLB entry!
 		mmu_tlb_fillload(page->ppn, flags);
-		printk("Sucessfully mapped page!\nVirtual page @(%p)\n", (void*)(page->vpn << 10));
+		printk("vm: page tr #(%p)->@(%p)\n", (void*)(page->ppn << 10), (void*)(page->vpn << 10));
 	}
 	else
 	{	

@@ -111,7 +111,7 @@ void* mem_pm_get_free_page(int flags) {
 
 	if(pm_get_free_page(&ppn) == 0) {
 		// use P1 or P2 area depending of flags
-		ret = (flags | MEM_PM_UNCACHED) ? P2_SECTION_BASE : P1_SECTION_BASE;
+		ret = (flags & MEM_PM_UNCACHED) ? P2_SECTION_BASE : P1_SECTION_BASE;
 		ret += (unsigned int)PM_PHYSICAL_ADDR(ppn);
 	}
 	return ret;

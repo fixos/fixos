@@ -145,13 +145,13 @@ int elfloader_load_segment(struct file *filep,
 
 		// if we have a page, copy data from file
 		nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
-		printk("[I] %d bytes read from ELF.", nbread);
+		printk("[I] %d bytes read from ELF.\n", nbread);
 
 		page.ppn = PM_PHYSICAL_PAGE(pageaddr);
 		page.vpn = VM_VIRTUAL_PAGE(vm_segaddr);
 		vm_add_entry(&(dest->vm), &page);
 
-		printk("[I] Added VM page (%p -> %p)\n", pageaddr, vm_segaddr);
+		printk("[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
 	}
 
 	return 0;

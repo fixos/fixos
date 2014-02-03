@@ -49,7 +49,7 @@ ssize_t sys_read(int fd, char *dest, int nb) {
 	process_t *proc;
 
 	proc = process_get_current();
-	if(fd>0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
 		return vfs_read(proc->files[fd], dest, nb);	
 	}
 	else {
