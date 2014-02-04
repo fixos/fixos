@@ -1107,18 +1107,22 @@ struct st_pfc {                                         /* struct PFC   */
                     }           PNCR2;                  /*              */
 };                                                      /*              */
 
+
+
+
+
 struct st_mmu {
 	union {
 		unsigned int LONG;
 		struct {
 			unsigned int		:23;
-			unsigned char SV	:1;
-			unsigned char		:2;
-			unsigned char RC	:2;
-			unsigned char		:1;
-			unsigned char TF	:1;
-			unsigned char IX	:1;
-			unsigned char AT	:1;
+			unsigned int SV	:1;
+			unsigned int		:2;
+			unsigned int RC	:2;
+			unsigned int		:1;
+			unsigned int TF	:1;
+			unsigned int IX	:1;
+			unsigned int AT	:1;
 		} BIT;
 	} MMUCR;
 
@@ -1127,7 +1131,7 @@ struct st_mmu {
 		unsigned int LONG;
 		struct {
 			unsigned int VPN	:22;
-			unsigned char		:2;
+			unsigned int		:2;
 			unsigned int ASID	:8;
 		} BIT;
 	} PTEH;
@@ -1135,16 +1139,16 @@ struct st_mmu {
 	union {
 		unsigned int LONG;
 		struct {
-			unsigned char		:3;
+			unsigned int		:3;
 			unsigned int		:19;
 			unsigned char		:1;
-			unsigned char V		:1;
+			unsigned int V		:1;
 			unsigned char		:1;
-			unsigned char PR	:2;
-			unsigned char SZ	:1;
-			unsigned char C		:1;
-			unsigned char D		:1;
-			unsigned char SH	:1;
+			unsigned int PR		:2;
+			unsigned int SZ		:1;
+			unsigned int C		:1;
+			unsigned int D		:1;
+			unsigned int SH		:1;
 			unsigned char		:1;
 		} BIT;
 	} PTEL;
@@ -1186,6 +1190,15 @@ struct st_dmars {
 };
 
 
+// UDI instruction and ID Registers
+struct st_udi {
+	unsigned short SDIR;
+
+	char _wk[18];
+	unsigned short SDIDH;
+	unsigned short SDIDL;
+};
+
 #define DMAC	(*(volatile struct st_dmac*)		0xA4000020)
 #define DMARS	(*(volatile struct st_dmars*)	0xA4090000)
 
@@ -1219,6 +1232,7 @@ struct st_dmars {
 #define PFC    (*(volatile struct st_pfc   *)0xA4000100)/* PFC   Address*/
 #define TEA    (*(volatile unsigned int    *)0xFFFFFFFC)/* Special TEA register */
 #define MMU    (*(volatile struct st_mmu   *)0xFFFFFFE0)/* MMU and TLB registers */
+#define UDI    (*(volatile struct st_udi   *)0xA4100200)/* UDI registers */
 
 
 #endif //_CPU_SH_7705_H

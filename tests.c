@@ -444,6 +444,7 @@ void test_time() {
 	// change frequency
 	DBG_WAIT;
 
+	// TODO : find a way to wait for clock settling, and suspend USB
 	printk("Trying: x4, [I x1/1], [P x1/4]\n");
 	//CPG.FRQCR.BIT.IFC = 0;
 	//CPG.FRQCR.BIT._PFC = 3;

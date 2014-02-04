@@ -35,4 +35,7 @@
 //extern pid_t wait(int *status)
 #define SYSCALL_WAIT	8
 
+//extern int execve(const char *filename, char *const argv[], char *const envp[])
+#define SYSCALL_EXECVE	9
+
 #endif //_SYSCALLS_SYSCALLS_H

@@ -64,15 +64,6 @@ struct _process_info {
 
 typedef struct _process_info process_t;
 
-/**
- * Used for mode switching (user -> kernel)
- * The exception handler check if previous context was in kernel mode (SSR.MD = 1)
- * If it was in user mode, g_process_current_kstack is used as new stack.
- * (nothing happen and r15 is keeped if previous context was kernel mode)
- */
-extern void * g_process_current_kstack;
-
-
 // Init process manager
 void process_init();
 
@@ -149,5 +140,11 @@ void sys_exit(int status);
 pid_t sys_getpid();
 
 pid_t sys_getppid();
+
+
+/**
+ * execve syscall implementation...
+ */
+int sys_execve(const char *filename, char *const argv[], char *const envp[]);
 
 #endif //_SYS_PROCESS_H

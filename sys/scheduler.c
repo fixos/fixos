@@ -98,8 +98,7 @@ void sched_next_task() {
 					"jmp @r0;"
 					""
 					".align 4;"
-					"proc_get_cur: ; .long _process_get_current;"
-					"context_saved_next: ; .long _context_saved_next;"
+
 					: : "n"(offsetof(process_t, acnt)) : );
 }
 */
@@ -109,6 +108,9 @@ void sched_next_task() {
 static void sched_periodic_interrupt() {
 	// will be removed when schedule() will be working :
 	RTC.RCR2.BIT.PEF = 0;
+
+	//temp
+	hwkbd_update_status();
 
 	//if(hwkbd_real_keydown(K_EXE)) {
 	if(1) {

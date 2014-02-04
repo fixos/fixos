@@ -6,6 +6,11 @@
 #include "scheduler.h"
 #include <utils/log.h>
 
+#include <loader/elfloader/loader.h>
+#include <fs/vfs_file.h>
+#include <fs/vfs.h>
+#include <fs/vfs_op.h>
+
 // temp stuff
 #include <device/keyboard/fx9860/keymatrix.h>
 #include <device/keyboard/fx9860/matrix_codes.h>
@@ -21,9 +26,6 @@ union proc_entry {
 static void *_proc_page;
 
 static union proc_entry *_first_free;
-
-// TODO move that to an arch-specific part
-void * g_process_current_kstack = NULL;
 
 // array of process ptr for corresponding ASIDs
 // that allow ASID -> PID translation in O(1)
@@ -326,4 +328,79 @@ pid_t sys_getpid() {
 pid_t sys_getppid() {
 	return process_get_current()->ppid;
 }
+
+
+
+
+int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
+	inode_t *elf_inode;
+	struct file *elf_file;
+
+	// first, check if we can open and execute filename
+
+	elf_inode = vfs_resolve(filename);
+	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
+		printk("execve: failed to open '%s'\n", filename);
+	}
+	else {
+		process_t *cur;
+		int i;
+
+		cur = process_get_current();
+
+		// close/free all ressources not 'shared' through exec
+		// TODO files with CLOSE_ON_EXEC
+		// TODO atomic code!!!
+
+		// remove all virtual pages from the TLB (invalidate them)
+		// TODO do not invalidate ALL entries, select only this ASID
+		// in addition, free each allocated physical pages
+		mmu_tlbflush();
+		for(i=0; i<3; i++) {
+			if(cur->vm.direct[i].valid) {
+				mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(cur->vm.direct[i].ppn)));
+			}
+		}
+		// TODO indirect pages
+
+
+		// TODO do not release kernel stack, ELF loader should not set it?
+		void *old_kstack = cur->kernel_stack;
+		
+		cur->state = PROCESS_STATE_STOP;
+		if(elfloader_load(elf_file , cur) != 0) {
+			printk("execve: unable to load ELF file\n");
+			// 'kill' process TODO proper way to do that
+			cur->state = PROCESS_STATE_STOP;
+			sched_next_task(cur);
+
+			printk("execve: re-executed dead process!\n");
+		}
+		else {
+			// the image is load, we can't simply return from syscall because
+			// stack is now 'corrupted' (old_kstack is the real stack used, but
+			// it's not the current proc kernel stack...)
+
+			// TODO set argv[] and envp[]!!!
+
+			 asm volatile (
+					"mov %0, r15;"
+					"mov %1, r0;"
+					"mov %2, r4;"
+					"jsr @r0;"
+					"nop;"
+					"mov %3, r4;"
+					"mov %4, r0;"
+					"jmp @r0;"
+					"nop;" : : "r"(cur->kernel_stack), "r"(&mem_pm_release_page),
+							"r"(old_kstack), "r"(cur), "r"(&process_contextjmp)
+							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
+
+			printk("execve: this should not happen!\n");
+		}
+	}
+
+	return -1;
+}
+
 

@@ -13,7 +13,8 @@ void* _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_exit,
 	&sys_getpid,
 	&sys_getppid,
-	&sys_wait
+	&sys_wait,
+	&sys_execve
 };
 
 

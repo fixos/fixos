@@ -134,6 +134,10 @@ void init() {
 
 	DBG_WAIT;
 
+	test_time();
+	DBG_WAIT;
+
+
 	// switch from early_terminal to fx9860 console 
 	printk("Trying to use fx9860-terminal device...\n");
 
@@ -167,22 +171,17 @@ void init() {
 
 	vfs_mount("smemfs", "/mnt/smem", VFS_MOUNT_NORMAL);
 	
-
-	DBG_WAIT;
-
-	test_time();
-
 	DBG_WAIT;
 
 	//test_keymatrix();
 //	test_keyboard();
 	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
-	while(1) {
+	/*while(1) {
 		char c;
 		if(vfs_read(console, &c, 1) == 1) {
 			vfs_write(console, &c, 1);
 		}
-	}
+	}*/
 
 	DBG_WAIT;
 
@@ -215,11 +214,12 @@ void init() {
 
 	process_init();
 	sched_init();
+	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
 	test_process();
 	
 
 	printk("End of init job, sleeping...\n");
-	while(1);
+	while(1)
 		printk("IER: 0x%x 0x%x\n", USB.IFR0.BYTE, USB.IFR1.BYTE);
 }
 
