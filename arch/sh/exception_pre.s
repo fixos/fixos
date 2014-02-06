@@ -19,16 +19,37 @@
 
 
 	.extern _exception_handler
+	.extern _pre_tlbmiss_handler
 
 	.extern __proc_current
 
 	.equ MD_MASK, (1<<30)
 	.equ RB_MASK, (1<<29)
 
+	.equ EXPEVT, 0xFFFFFFD4 
+
 	.align 2
 _pre_exception_handler:
+	! before to do usual job, check exception code 0x040 and 0x060
+	! (for TLB Invalid Exception)
+	! if one of these, redirect to _tlbmiss_pre_handler
+	mov.l expevt, r0
+	mov.l @r0, r0
+	cmp/eq #0x40, r0
+	bt redirect_tlbmiss
+	cmp/eq #0x60, r0
+	bf normal_exception
+
+redirect_tlbmiss:
+	mov.l tlbmiss_pre_handler, r0
+	jmp @r0
+	nop
+
+
+normal_exception:
 	! set 'high level' function to call in r6
 	mov.l exception_handler, r6
+
 
 	! the following part is common to interrupt and exceptions
 _common_pre_handler:
@@ -154,8 +175,13 @@ exception_handler:
 	.long _exception_handler
 _proc_current:
 	.long __proc_current
+tlbmiss_pre_handler:
+	.long _pre_tlbmiss_handler
 
 md_mask:
 	.long MD_MASK
 rb_mask:
 	.long RB_MASK
+
+expevt:
+	.long EXPEVT

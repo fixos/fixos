@@ -109,6 +109,8 @@ void exception_handler()
 		while(1);
 		break;
 
+	// TLB contains the needed address, but V bit is 0
+	// These two codes are re-directed to tlbmiss_handler, and should never happen
 	case EXP_CODE_TLB_READ:
 	case EXP_CODE_TLB_WRITE:
 		printk("Fatal:\nTLB error.\n");
