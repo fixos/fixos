@@ -14,6 +14,8 @@
 #define ARCH_UNEWPROC_DEFAULT_STACK	0x40000000
 // begin of process instructions
 #define ARCH_UNEWPROC_DEFAULT_TEXT	0x10000000
+// arguments and environnement location (for parameterized main())
+#define ARCH_UNEWPROC_DEFAULT_ARGS	0x50000000
 
 
 // information needed for process switch(store/load context)

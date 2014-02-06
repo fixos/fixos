@@ -12,7 +12,7 @@ static int choubidou;
 
 static volatile int test;
 
-int usertest_main() {
+int usertest_main(int argc, char **argv) {
 //	asm volatile ("mov.l ");
 
 	//asm volatile ("trapa #42");
@@ -28,6 +28,18 @@ int usertest_main() {
 	chabada = 12;
 
 	write(fd, "*** Hey! I'm a User process!\n*** I AM ALIVE!\n", sizeof("*** Hey! I'm a User process!\n*** I AM ALIVE!\n")-1);
+	if(argc>0) {
+		int argnb;
+		int car;
+		for(argnb=0; argnb<argc; argnb++) {
+			for(car=0; argv[argnb][car] != '\0'; car++);
+			write(fd, "\"", 1);
+			write(fd, argv[argnb], car);
+			write(fd, "\"\n", 2);
+		}
+		// if invoked wih arguments, do nothing else (do not fork again)
+		while(1);
+	}
 
 	int fd_serial;
 	fd_serial = open("/dev/serial", chabada);
@@ -47,7 +59,12 @@ int usertest_main() {
 		}
 	}
 	else {
-		execve("/mnt/smem/test2.elf", NULL, NULL);
+		char *exec_argv[4];
+		exec_argv[0]="Hello";
+		exec_argv[1]="dear execve()";
+		exec_argv[2]="arguments";
+		exec_argv[3]=NULL;
+		execve("/mnt/smem/test.elf", exec_argv, NULL);
 		while(1) {
 			if((nbread = read(fd_serial, buf, 1)) > 0) {
 				write(fd, buf, nbread);

@@ -346,11 +346,65 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		process_t *cur;
 		int i;
 
+		// we need to copy argv[] and env[] somewhere before to destroy process
+		// virtual memory...
+		void *args_page;
+		size_t args_pos;
+
+		// values to be used as main() arguments
+		int arg_argc;
+		void *arg_argv;
+
+		vm_page_t page;
+
+		arch_int_weak_atomic_block(1);
 		cur = process_get_current();
+
+
+		args_page = mem_pm_get_free_page(MEM_PM_CACHED);
+		if(args_page == NULL) {
+			printk("execve: not enought memory\n");
+			// TODO abort
+			while(1);
+		}
+
+		args_pos = 0;
+		// copy argv
+		if(argv != NULL) {
+			// compute number of arguments
+			int nbargs;
+			char **args_array = args_page;
+			for(nbargs=0; argv[nbargs] != NULL; nbargs++);
+
+			// space for argument pointer array
+			args_pos = nbargs * sizeof(char*);
+
+			for(i=0 ; i<nbargs; i++) {
+				char *copied_arg = args_page + args_pos;
+				size_t curarg_size;
+				for(curarg_size = 0; argv[i][curarg_size] != '\0'; curarg_size++);
+				curarg_size++;
+
+				// TODO check max size
+				strcpy(copied_arg, argv[i]);
+				// we want to store the VM address (not physical one) :
+				args_array[i] = (void*)(((unsigned int)copied_arg % PM_PAGE_BYTES)
+						+ ((unsigned int)ARCH_UNEWPROC_DEFAULT_ARGS)) ;
+
+				args_pos += curarg_size;
+			}
+
+			arg_argc = nbargs;
+			arg_argv = (void*)(((unsigned int)args_array % PM_PAGE_BYTES)
+				+ ((unsigned int)ARCH_UNEWPROC_DEFAULT_ARGS)) ;
+		}
+		else {
+			arg_argc = 0;
+			arg_argv = NULL;
+		}
 
 		// close/free all ressources not 'shared' through exec
 		// TODO files with CLOSE_ON_EXEC
-		// TODO atomic code!!!
 
 		// remove all virtual pages from the TLB (invalidate them)
 		// TODO do not invalidate ALL entries, select only this ASID
@@ -381,8 +435,22 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// stack is now 'corrupted' (old_kstack is the real stack used, but
 			// it's not the current proc kernel stack...)
 
-			// TODO set argv[] and envp[]!!!
+			// add virtual memory page for args
+			page.size = VM_PAGE_1K;
+			page.cache = 1;
+			page.valid = 1;
+			page.ppn = PM_PHYSICAL_PAGE(args_page);
+			page.vpn = VM_VIRTUAL_PAGE(ARCH_UNEWPROC_DEFAULT_ARGS);
+			vm_add_entry(&(cur->vm), &page);
+			
+			cur->acnt->reg[4] = arg_argc;
+			cur->acnt->reg[5] = (uint32)arg_argv;
 
+			interrupt_inhibit_all(1);
+			arch_int_weak_atomic_block(0);
+
+			printk("exec: ready, r15=%p\n", (void*)(cur->acnt->reg[15]));
+			// this job is done using inline assembly to avoid GCC stack usage
 			 asm volatile (
 					"mov %0, r15;"
 					"mov %1, r0;"
@@ -392,7 +460,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 					"mov %3, r4;"
 					"mov %4, r0;"
 					"jmp @r0;"
-					"nop;" : : "r"(cur->kernel_stack), "r"(&mem_pm_release_page),
+					"nop;" : : "r"(cur->kernel_stack - sizeof(*(cur->acnt))), "r"(&mem_pm_release_page),
 							"r"(old_kstack), "r"(cur), "r"(&process_contextjmp)
 							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
 
