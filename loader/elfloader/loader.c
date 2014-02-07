@@ -2,7 +2,6 @@
 #include "elf.h"
 
 #include <fs/vfs_file.h>
-#include <arch/sh/virtual_memory.h>
 #include <sys/memory.h>
 #include <utils/log.h>
 
@@ -47,20 +46,13 @@ int elfloader_load(struct file *filep, process_t *dest) {
 			void *pageaddr;
 
 			// alloc physical page and set it as the VM process stack
-			pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
-			if(pageaddr == NULL) {
+			if(mem_vm_prepare_page(&page, NULL, 
+					(void*)(ARCH_UNEWPROC_DEFAULT_STACK - PM_PAGE_BYTES),
+					MEM_VM_CACHED) < 0)
+			{
 				printk("elfloader: no physical page\n");
 				return -1;
 			}
-
-
-			page.size = VM_PAGE_1K;
-			page.cache = 1;
-			page.valid = 1;
-			page.ppn = PM_PHYSICAL_PAGE(pageaddr);
-			// warning : the first valid stack address is in the previous page
-			// of the 'base stack address'!
-			page.vpn = VM_VIRTUAL_PAGE(ARCH_UNEWPROC_DEFAULT_STACK) - 1;
 			vm_add_entry(&(dest->vm), &page);
 
 			// set kernel stack address, for now any physical memory
@@ -126,31 +118,25 @@ int elfloader_load_segment(struct file *filep,
 	void *pageaddr;
 	void *vm_segaddr;
 
-	page.size = VM_PAGE_1K;
-	page.cache = 1;
-	page.valid = 1;
-
 	vfs_lseek(filep, ph->offset, SEEK_SET);
 
 	vm_segaddr = (void*)(ph->vaddr);
 	for(i=0; i<ph->memsz; i += PM_PAGE_BYTES, vm_segaddr += PM_PAGE_BYTES) {
 		ssize_t nbread;
 
-		pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
-		if(pageaddr == NULL) {
+		if(mem_vm_prepare_page(&page, NULL, vm_segaddr,	MEM_VM_CACHED) < 0)
+		{
 			printk("elfloader: no physical page\n");
 			// TODO really dirty way to exit, need to clean all done job!
 			return -1;
 		}
+		pageaddr = mem_vm_physical_addr(&page);
 
 		// if we have a page, copy data from file
 		nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
 		printk("[I] %d bytes read from ELF.\n", nbread);
 
-		page.ppn = PM_PHYSICAL_PAGE(pageaddr);
-		page.vpn = VM_VIRTUAL_PAGE(vm_segaddr);
 		vm_add_entry(&(dest->vm), &page);
-
 		printk("[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
 	}
 

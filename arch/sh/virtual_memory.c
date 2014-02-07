@@ -93,3 +93,44 @@ void mem_vm_copy_page(vm_page_t *src, vm_page_t *dest, int type) {
 				PM_PAGE_BYTES);
 	}
 }
+
+
+
+int mem_vm_prepare_page(struct _vm_page *vpage, void *ppage, void *vaddress, int flags) {
+	if(ppage == NULL) {
+		ppage = mem_pm_get_free_page(flags & MEM_VM_UNCACHED ? MEM_PM_UNCACHED
+				: MEM_PM_CACHED);
+	}
+
+	if(ppage != NULL) {
+		vpage->size = VM_PAGE_1K;
+		vpage->cache = flags & MEM_VM_UNCACHED ? 0 : 1;
+		vpage->valid = 1;
+		vpage->ppn = PM_PHYSICAL_PAGE(ppage);
+		vpage->vpn = VM_VIRTUAL_PAGE(vaddress);
+
+		return 0;
+	}
+
+	return -1;
+}
+
+
+
+void* mem_vm_physical_addr(const struct _vm_page *vpage) {
+	void *ret = NULL;
+
+	if(vpage->valid) {
+		ret = PM_PHYSICAL_ADDR(vpage->ppn);
+		ret += vpage->cache ? (unsigned int) P1_SECTION_BASE 
+			: (unsigned int) P2_SECTION_BASE;
+	}
+	return ret;
+}
+
+
+
+void* mem_vm_virtual_addr(const struct _vm_page *vpage) {
+	return VM_VIRTUAL_ADDR(vpage->vpn);
+}
+

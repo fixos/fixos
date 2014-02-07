@@ -361,12 +361,14 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		cur = process_get_current();
 
 
-		args_page = mem_pm_get_free_page(MEM_PM_CACHED);
-		if(args_page == NULL) {
+		if(mem_vm_prepare_page(&page, NULL, (void*)ARCH_UNEWPROC_DEFAULT_ARGS,
+					MEM_VM_CACHED) < 0)
+		{
 			printk("execve: not enought memory\n");
 			// TODO abort
 			while(1);
 		}
+		args_page = mem_vm_physical_addr(&page);
 
 		args_pos = 0;
 		// copy argv
@@ -412,7 +414,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		mmu_tlbflush();
 		for(i=0; i<3; i++) {
 			if(cur->vm.direct[i].valid) {
-				mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(cur->vm.direct[i].ppn)));
+				mem_pm_release_page(mem_vm_physical_addr(&(cur->vm.direct[i])));
 			}
 		}
 		// TODO indirect pages
@@ -436,11 +438,6 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// it's not the current proc kernel stack...)
 
 			// add virtual memory page for args
-			page.size = VM_PAGE_1K;
-			page.cache = 1;
-			page.valid = 1;
-			page.ppn = PM_PHYSICAL_PAGE(args_page);
-			page.vpn = VM_VIRTUAL_PAGE(ARCH_UNEWPROC_DEFAULT_ARGS);
 			vm_add_entry(&(cur->vm), &page);
 			
 			cur->acnt->reg[4] = arg_argc;

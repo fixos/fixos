@@ -59,4 +59,31 @@ struct _vm_page;
 void mem_vm_copy_page(struct _vm_page *src, struct _vm_page *dest, int type);
 
 
+#define MEM_VM_CACHED	0
+#define MEM_VM_UNCACHED 1
+
+/**
+ * Prepare a virtual memory page data structure, mapping to a given physical page.
+ * If ppage is NULL, a free page is allocated.
+ * vaddress is the begin address of wanted virtual page.
+ * flags can be used to specify other things, as cache usage if possible
+ * (MEM_VM_CACHED).
+ *
+ * Returns 0 if everything is done, a negative value if any problem occured
+ * (for example, unable to allocate a physical page).
+ */
+int mem_vm_prepare_page(struct _vm_page *vpage, void *ppage, void *vaddress, int flags);
+
+
+/**
+ * Returns the physical address where the given page is mapped.
+ * May returns NULL if the page is not valid.
+ */
+void* mem_vm_physical_addr(const struct _vm_page *vpage);
+
+/**
+ * Returns the virtual address of the given page.
+ */
+void* mem_vm_virtual_addr(const struct _vm_page *vpage);
+
 #endif //_SYS_MEMORY_H
