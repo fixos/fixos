@@ -25,6 +25,8 @@
 #include "device/keyboard/fx9860/keymatrix.h"
 #include "arch/sh/rtc.h"
 
+#include "arch/sh/freq.h"
+
 #include "tests.h"
 #include "utils/strutils.h"
 
@@ -47,6 +49,7 @@ void print_usb_ep2(const char *str) {
 // Real entry point of the OS :
 void init() {
 	unsigned char vram[1024];
+	unsigned int freq;
 
 	// init exceptions/interruptions handling
 	interrupt_set_vbr(&fixos_vbr); // don't forget we want the ADDRESS of linked vbr 
@@ -86,11 +89,7 @@ void init() {
 
 	set_kernel_print(&earlyterm_write);
 
-	earlyterm_write("Boostrap... OK!\n");
-	earlyterm_set_colors(EARLYTERM_COLOR_WHITE, EARLYTERM_COLOR_BLACK);
-	earlyterm_write("WARNING : ");
-	earlyterm_set_colors(EARLYTERM_COLOR_BLACK, EARLYTERM_COLOR_WHITE);
-	earlyterm_write("it's working!\n  It's really strange...\n");
+	earlyterm_write("Kernel initialization...\n");
 
 	mmu_init();
 	pm_init_pages();
@@ -98,6 +97,17 @@ void init() {
 	DBG_WAIT;
 
 	interrupt_inhibit_all(0);
+
+	// need to be changed for "overclocking" :
+	//freq_change(FREQ_STC_4, FREQ_DIV_1, FREQ_DIV_4);
+	
+	freq_time_calibrate();
+
+	freq = freq_get_internal_hz();
+	printk("CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+
+	freq = freq_get_peripheral_hz();
+	printk("Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 
 	//test_keyboard_int();
 
@@ -133,10 +143,6 @@ void init() {
 	vfs_create("/dev", "serial", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00030000);
 
 	DBG_WAIT;
-
-	test_time();
-	DBG_WAIT;
-
 
 	// switch from early_terminal to fx9860 console 
 	printk("Trying to use fx9860-terminal device...\n");

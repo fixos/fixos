@@ -32,6 +32,8 @@
 #include "device/keyboard/fx9860/keymatrix.h"
 #include "device/keyboard/fx9860/keyboard.h"
 
+#include "arch/sh/freq.h"
+
 
 void test_sdcard() {
 	// SD Card communication tests
@@ -428,72 +430,28 @@ void ls_tree() {
 	vfs_release_inode(cur);
 }
 
-
-void rtc_callback_calib();
-
-void tmu_callback();
-
-volatile unsigned int tmu0_time;
-volatile int calib_state;
-
 void test_time() {
-	printk("Try to estimate timer freq...\n");
+	unsigned int freq;
+
 	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
 			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
 
 	// change frequency
 	DBG_WAIT;
 
-	// TODO : find a way to wait for clock settling, and suspend USB
-	printk("Trying: x4, [I x1/1], [P x1/4]\n");
-	//CPG.FRQCR.BIT.IFC = 0;
-	//CPG.FRQCR.BIT._PFC = 3;
+	freq_change(FREQ_STC_4, FREQ_DIV_1, FREQ_DIV_4);
 
-	// set watchdog before changing multiplier!
-	WDT.WTCSR.WRITE = 0xA587;
-	WDT.WTCNT.WRITE = 0x5A80;
-	CPG.FRQCR.WORD = (CPG.FRQCR.WORD & 0xFC00) | (3<<0) | (0<<4) | (3<<8) ;
-
-	printk("WTCNT = %d\n", WDT.WTCNT.READ);
-	//DBG_WAIT;
 	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
 			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
 
-	rtc_set_interrupt(&rtc_callback_calib, RTC_PERIOD_64_HZ);
 
-	if(1) {
-		while(calib_state < 2);
+	freq_time_calibrate();
 
-		unsigned int freq = tmu0_time * 64 * 16; // prescaler == 16, in 1/16e seconds
-		printk("TMU0: 16Hz count %d ticks.\nEstimated freq = %d.%dMHz\n", tmu0_time, freq/1000000, (freq/100000)%10);
+	freq = freq_get_internal_hz();
+	printk("CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 
-
-		while(calib_state<128);
-
-		tmu0_time = 0;
-		calib_state = 0;
-	}
-	rtc_set_interrupt(NULL, RTC_PERIOD_DISABLE);
-}
-
-void rtc_callback_calib() {
-	if(calib_state == 0) {
-		timer_init_tmu0(0xFFFFFFFF, TIMER_PRESCALER_16, &tmu_callback);
-
-		timer_start_tmu0(1);
-		printk("Start...");
-	}
-	else if(calib_state == 1) {
-		timer_stop_tmu0();
-		tmu0_time = 0xFFFFFFFF - TMU0.TCNT;
-		printk("... done!\n");
-	}
-	calib_state++;
-}
-
-
-void tmu_callback() {
-	printk("TMU0 : underflow?\n");
+	freq = freq_get_peripheral_hz();
+	printk("Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 }
 
 /*static volatile int __stupid_job;

@@ -26,6 +26,7 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  device/usb/cdc_acm/cdc_acm.c device/usb/cdc_acm/acm_device.c \
 	  arch/sh/modules/usb.c \
 	  arch/sh/process.c arch/sh/rtc.c arch/sh/timer.c \
+	  arch/sh/freq.c \
 	  syscalls/arch/syscall.c \
 	  init.c tests.c
 
