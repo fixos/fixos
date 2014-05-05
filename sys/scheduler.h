@@ -32,14 +32,14 @@ extern void arch_sched_preempt_task(process_t *cur_proc);
 /*
  * Function used by sys_fork() to save the context exactly as
  * arch_sched_preempt_task, but without calling context_saved_next() immediatly.
- * Instead, returns a value, used to différenciate primary return, and
+ * Instead, returns a value, used to differenciate primary return, and
  * re-execution from saved context (first one is the parent, second is the
  * child process).
  * Returns 0 for parent process, 1 for child process (and negative value
  * in error case).
  * dest is the process_t used for the child process, and kstack the kernel
  * stack used by the dest process (must be an exact copy of the parent's one,
- * and given pointer must be equivalent to the current parent tack position!)
+ * and given pointer must be equivalent to the current parent stack position!)
  */
 extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
 
@@ -59,6 +59,21 @@ extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
  */
 void sched_start();
 
+
+/**
+ * Called at each clock tick, to check if the scheduled task must be changed.
+ * If it's quantum is ellapsed, the function return normally, and the next
+ * call to sched_if_needed() will change the current running task.
+ */
+void sched_check();
+
+
+/**
+ * Must be called at the end of exceptions/interrupts handlers, to schedule
+ * instead returning if needed (lazy scheduling, or if a high-priority task
+ * must be executed, like bottom-half of interrupt handler)
+ */
+void sched_if_needed();
 
 /**
  * wait for a child terminating, returns its pid and set status to child

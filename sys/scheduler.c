@@ -2,19 +2,12 @@
 #include <sys/memory.h>
 #include <arch/sh/interrupt.h>
 #include <utils/log.h>
-// for periodic interrupts
-#include <arch/sh/rtc.h>
 
-// debug...
-#include <device/keyboard/fx9860/keymatrix.h>
-#include <device/keyboard/fx9860/matrix_codes.h>
-
-
-#ifndef offsetof
-#define offsetof(st, m) ((int)(&((st *)0)->m))
-#endif
 
 #define SCHED_MAX_TASKS		10
+
+// TODO better place (arch/config specific)
+#define SCHED_QUANTUM_TICKS	4	
 
 // for now it's a realy stupid implementation : no priority, no FIFO...
 // a simple array contains all tasks (or NULL if no task), and each one is
@@ -23,12 +16,29 @@ static task_t *_tasks[SCHED_MAX_TASKS];
 
 static int _cur_task;
 
+// number of clock ticks before current task's quantum is elapsed (0 means the
+// next clock tick should preempt the current task)
+static int _cur_quantum_left;
+
+// boolean used for lazy-scheduling (set by sched_check() and related)
+// its value is checked by sched_if_needed(), which must be called at the end
+// of exceptions/interrupts handlers
+static int _need_reschedule;
+
+
+// temp stub to be sure sched_check() and sched_if_needed() do nothing
+// before scheduler is initialized
+static int _initialized = 0;
+
 void sched_init() {
 	int i;
 	
 	for(i=0; i<SCHED_MAX_TASKS; i++)
 		_tasks[i] = NULL;
 	_cur_task = -1;
+
+	_cur_quantum_left = SCHED_QUANTUM_TICKS;
+	_need_reschedule = 0;
 }
 
 
@@ -57,70 +67,12 @@ void context_saved_next() {
 	for(i=1; i<SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
 				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state == PROCESS_STATE_ZOMBIE) ; i++);
 
+	_cur_quantum_left = SCHED_QUANTUM_TICKS;
+
 	if(i<SCHED_MAX_TASKS) {
 		_cur_task = (i+_cur_task)%SCHED_MAX_TASKS;
 		process_contextjmp(_tasks[_cur_task]);
 	}
-}
-
-/*
-void sched_next_task() {
-	// save previous context in process structure
-	
-	// do exactly as if the context was the instruction just after the call of
-	// this function (r0~r7 are callee-saved, but we must save r8~r15, gbr, etc... 
-	asm volatile (	"sts.l pr, @-r15;"
-					"mov.l proc_get_cur, r0;"
-					"jsr @r0;"
-					"nop;"
-					"add %0, r0;"
-					"mov.l @r15+, r1;"
-					"mov.l r15, @(60, r0);"
-					"mov.l r14, @(56, r0);"
-					"mov.l r13, @(52, r0);"
-					"mov.l r12, @(48, r0);"
-					"mov.l r11, @(44, r0);"
-					"mov.l r10, @(40, r0);"
-					"mov.l r9, @(36, r0);"
-					"mov.l r8, @(32, r0);"
-					"add #64, r0;"
-					"stc sr, r2;"
-					"mov.l r2, @(16, r0);"
-					"stc gbr, r2;"
-					"mov.l r2, @(0, r0);"
-					"mov.l r1, @(12, r0);"
-					"sts mach, r2;"
-					"mov.l r2, @(8, r0);"
-					"sts macl, r2;"
-					"mov.l r2, @(4, r0);"
-					""
-					"mov.l context_saved_next, r0;"
-					"jmp @r0;"
-					""
-					".align 4;"
-
-					: : "n"(offsetof(process_t, acnt)) : );
-}
-*/
-
-
-// function called periodicaly to change current process
-static void sched_periodic_interrupt() {
-	// will be removed when schedule() will be working :
-	RTC.RCR2.BIT.PEF = 0;
-
-	//temp
-	hwkbd_update_status();
-
-	//if(hwkbd_real_keydown(K_EXE)) {
-	if(1) {
-		//printk("Try to switch process.\n");
-		//sched_next_task(process_get_current());
-		context_saved_next();
-		// TODO do nothing here and write schedule() function called in interrupt
-		// and exception handler (instead of returning)
-	}
-	else process_contextjmp(process_get_current());
 }
 
 
@@ -131,11 +83,30 @@ void sched_start() {
 	for(i=0; i<SCHED_MAX_TASKS && _tasks[i]==NULL; i++);
 
 	if(i<SCHED_MAX_TASKS) {
-		// start the periodic interrupt
-		rtc_set_interrupt(&sched_periodic_interrupt, RTC_PERIOD_64_HZ);
-
 		_cur_task = i;
 		process_contextjmp(_tasks[i]);
+	}
+}
+
+
+void sched_check() {
+	if(_initialized) {
+		// decrement the current quantum counter and set schedule needed
+		_cur_quantum_left--;
+		if(_cur_quantum_left < 0) {
+			_need_reschedule = 1;
+		}
+	}
+}
+
+
+
+
+void sched_if_needed() {
+	// TODO it seems a good place to check for "soft interrupts", like
+	// linux Tasklet, and schedule one of them if needed
+	if(_initialized && _need_reschedule) {
+		context_saved_next();
 	}
 }
 

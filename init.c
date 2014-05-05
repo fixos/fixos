@@ -7,6 +7,7 @@
 #include "utils/log.h"
 #include "sys/process.h"
 #include "sys/scheduler.h"
+#include "sys/time.h"
 
 #include "fs/casio_smemfs/file_system.h"
 #include "fs/protofs/file_system.h"
@@ -84,8 +85,8 @@ void init() {
 	earlyterm_clear();
 
 	kbd_init();
-	// TODO call hwkbd_update_status() in a better place
-	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
+	rtc_init();
+	time_init();
 
 	set_kernel_print(&earlyterm_write);
 

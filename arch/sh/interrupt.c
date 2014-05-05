@@ -6,6 +6,7 @@
 #include <utils/log.h>
 #include <utils/types.h>
 #include <sys/process.h>
+#include <sys/scheduler.h>
 
 
 // Globals callbacks functions address :
@@ -147,7 +148,9 @@ void interrupt_handler() {
 		break;
 	}
 
-	// do not return, do direct context switch
+	// do not return, do direct context switch, or preempt if needed
+	sched_if_needed();
+	// if sched_if_needed() returns, keep current process
 	cur = process_get_current();
 	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
 

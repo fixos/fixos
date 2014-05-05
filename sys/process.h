@@ -60,6 +60,10 @@ struct _process_info {
 	pid_t ppid;
 	int state;
 	int exit_status; // only valid when state is PROCESS_STATE_ZOMBIE
+
+	// clock ticks ellapsed in User mode and in Kernel mode
+	clock_t uticks;
+	clock_t kticks;
 };
 
 typedef struct _process_info process_t;

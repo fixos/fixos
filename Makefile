@@ -25,9 +25,10 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  device/display/T6K11/T6K11.c \
 	  device/usb/cdc_acm/cdc_acm.c device/usb/cdc_acm/acm_device.c \
 	  arch/sh/modules/usb.c \
-	  arch/sh/process.c arch/sh/rtc.c arch/sh/timer.c \
+	  arch/sh/process.c arch/sh/rtc.c arch/sh/timer.c arch/sh/time.c\
 	  arch/sh/freq.c \
 	  syscalls/arch/syscall.c \
+	  sys/time.c \
 	  init.c tests.c
 
 ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \

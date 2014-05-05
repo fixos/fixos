@@ -45,7 +45,10 @@ static process_t mock_process =
 	},
 	.state = PROCESS_STATE_RUN,
 	.acnt = NULL,
-	.kernel_stack = NULL
+	.kernel_stack = NULL,
+
+	.uticks = 0,
+	.kticks = 0
 };
 
 // this variable must be maintained by the scheduler as the
@@ -115,6 +118,9 @@ process_t *process_alloc() {
 		proc->state = PROCESS_STATE_CREATE;
 		proc->asid = ASID_INVALID;
 		vm_init_table(&(proc->vm));
+
+		proc->uticks = 0;
+		proc->kticks = 0;
 
 		// set first free to next one
 		_first_free = next;

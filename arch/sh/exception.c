@@ -7,6 +7,7 @@
 #include "process.h"
 
 
+#include <sys/scheduler.h>
 #include <sys/process.h>
 #include <syscalls/arch/syscall.h>
 #include <utils/log.h>
@@ -128,6 +129,7 @@ void exception_handler()
 		printk("@ end of exception\nSPC Value = %p\n", spcval);
 
 	// do not return, do direct context switch
+	sched_if_needed();
 	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
 
 	return;

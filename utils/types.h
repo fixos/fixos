@@ -29,6 +29,17 @@ typedef uint8 asid_t;
 typedef uint32 pid_t;
 
 
+// time representation
+typedef uint32 clock_t;
+typedef uint32 time_t;
+
+// high precision time struct
+struct hr_time {
+	time_t sec;
+	uint32 nano;
+};
+
+
 // temporary location
 // TODO move them to a more consistant place
 //lseek constants

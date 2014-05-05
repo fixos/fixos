@@ -26,7 +26,8 @@
  */
 void timer_init_tmu0(unsigned int time, int prescaler, interrupt_callback_t callback);
 
-//void init_tmu1(unsigned int time, int prescaler, interrupt_callback_t callback);
+void timer_init_tmu1(unsigned int time, int prescaler, interrupt_callback_t callback);
+
 
 /**
  * Start the given TMU counter. If interrupting == 1, underflow on this TMU will
@@ -34,10 +35,13 @@ void timer_init_tmu0(unsigned int time, int prescaler, interrupt_callback_t call
  */
 void timer_start_tmu0(int interrupting);
 
+void timer_start_tmu1(int interrupting);
 
 /**
  * Stop given TMU counter.
  */
 void timer_stop_tmu0();
+
+void timer_stop_tmu1();
 
 #endif //_ARCH_SH_TIMER_H

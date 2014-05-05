@@ -17,6 +17,13 @@
 #define RTC_PERIOD_1_HZ			0b110
 #define RTC_PERIOD_0_5_HZ		0b111
 
+
+/**
+ * Initialialize hardware RTC.
+ */
+void rtc_init();
+
+
 /**
  * Set the given callback to be called at periodic rate given by period (one
  * of the RTC_PERIOD_xxx).
