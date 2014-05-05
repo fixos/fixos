@@ -32,43 +32,44 @@ int freq_change(int ckio_mul, int ifc, int pfc) {
 }
 
 
-
-static volatile int _freq_calib_state;
-static volatile unsigned int _freq_calib_tmu0_time;
-
-static void _freq_rtc_calib() {
-	if(_freq_calib_state == 0) {
-		// use TMU as a counter, we do not expect any underflow
-		timer_init_tmu0(0xFFFFFFFF, TIMER_PRESCALER_16, NULL);
-		timer_start_tmu0(0);
-	}
-	else if(_freq_calib_state == 1) {
-		timer_stop_tmu0();
-		_freq_calib_tmu0_time = 0xFFFFFFFF - TMU0.TCNT;
-	}
-	_freq_calib_state++;
-}
-
-
+// TODO this function should not stop the RTC interrupts (direct consequence
+// is system time not updated for 4-8 ticks)...
 int freq_time_calibrate() {
+	unsigned char old_rcr2;
+	unsigned int tmu0_time;
 
-	_freq_calib_tmu0_time = 0;
-	_freq_calib_state = 0;
-
+	// take the control of the RTC for the calibration, disable interrupts
+	// and exceptions, to use interrupt flag in a sequential way
 	printk("freq: Start calib...");
-	rtc_set_interrupt(&_freq_rtc_calib, RTC_PERIOD_64_HZ);
 
-	// wait for 2 consecutive RTC interrupt
-	while(_freq_calib_state < 2);
-	rtc_set_interrupt(NULL, RTC_PERIOD_DISABLE);
-	printk("done!\n");
+	interrupt_inhibit_all(1);
+	old_rcr2 = RTC.RCR2.BYTE;
+
+	timer_init_tmu0(0xFFFFFFFF, TIMER_PRESCALER_16, NULL);
+
+	RTC.RCR2.BIT.PES = RTC_PERIOD_64_HZ;
+	RTC.RCR2.BIT.PEF = 0;
+
+	// wait for RTC interrupt (we just clear PEF flag, so our 1/64e seconds
+	// will begin exactly the next time PEF will be set to 1)
+	while(! RTC.RCR2.BIT.PEF);
+	RTC.RCR2.BIT.PEF = 0;
+
+	timer_start_tmu0(0);
+	while(! RTC.RCR2.BIT.PEF);
+
+	timer_stop_tmu0();
+	tmu0_time = 0xFFFFFFFF - TMU0.TCNT;
 
 	// prescaler == 16, in 1/64e seconds
-	_freq_ckio_hz = _freq_calib_tmu0_time * 64 * 16 
+	_freq_ckio_hz = tmu0_time * 64 * 16 
 		* (CPG.FRQCR.BIT._PFC+1) / (CPG.FRQCR.BIT.STC+1) ;
 	
-	//printk("TMU0: 16Hz count %d ticks.\nEstimated freq = %d.%dMHz\n", tmu0_time, freq/1000000, (freq/100000)%10);
+	RTC.RCR2.BYTE = old_rcr2;
 	
+	interrupt_inhibit_all(0);
+
+	printk("done!\n");
 	return 0;
 }
 
