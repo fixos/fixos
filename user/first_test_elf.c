@@ -37,8 +37,21 @@ int usertest_main(int argc, char **argv) {
 			write(fd, argv[argnb], car);
 			write(fd, "\"\n", 2);
 		}
+
 		// if invoked wih arguments, do nothing else (do not fork again)
-		while(1);
+		struct hr_time prev;
+		gettimeofday(&prev, NULL);
+		while(1) {
+			struct hr_time cur;
+			gettimeofday(&cur, NULL);
+
+			if(cur.sec - prev.sec >= 1) {
+				prev.sec = cur.sec;
+				prev.nano = cur.nano;
+				write(fd, "-", 1);
+			}
+			
+		}
 	}
 
 	int fd_serial;

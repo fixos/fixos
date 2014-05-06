@@ -68,4 +68,16 @@ int time_get_hw(struct hr_time *t);
 int time_set_hw(const struct hr_time *t);
 
 
+/**
+ * gettimeofday() system call.
+ * Returns the current time since Epoch in tv and the timezone used in tz.
+ * (for now, tz is not set by the implementation)
+ */
+struct timezone;
+int sys_gettimeofday(struct hr_time *tv, struct timezone *tz);
+
+
+clock_t sys_times(struct tms *buf); 
+
+
 #endif //_SYS_TIME_H

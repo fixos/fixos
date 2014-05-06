@@ -3,6 +3,7 @@
 #include <sys/files.h>
 #include <sys/process.h>
 #include <sys/scheduler.h>
+#include <sys/time.h>
 
 void* _syscall_funcs[SYSCALL_NUMBER] = {
 	NULL,
@@ -14,7 +15,9 @@ void* _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_getpid,
 	&sys_getppid,
 	&sys_wait,
-	&sys_execve
+	&sys_execve,
+	&sys_gettimeofday,
+	&sys_times
 };
 
 

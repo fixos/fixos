@@ -39,6 +39,15 @@ struct hr_time {
 	uint32 nano;
 };
 
+// temp location (easier for user/kernel sharing)
+ struct tms {
+	clock_t tms_utime;
+	clock_t tms_stime;
+	clock_t tms_cutime;
+	clock_t tms_cstime;
+};
+
+
 
 // temporary location
 // TODO move them to a more consistant place

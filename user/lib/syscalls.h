@@ -37,4 +37,14 @@ extern pid_t wait(int *status);
 extern int execve(const char *filename, char *const argv[], char *const envp[]);
 #define SYSCALL_EXECVE	9
 
+
+struct timezone;
+extern int gettimeofday(struct hr_time *tv, struct timezone *tz);
+#define SYSCALL_GETTIMEOFDAY 10
+
+
+extern clock_t times(struct tms *buf); 
+#define SYSCALL_TIMES	11
+
+
 #endif //_SYSCALLS_SYSCALLS_H

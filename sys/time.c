@@ -83,3 +83,30 @@ void time_do_tick() {
 
 }
 
+int sys_gettimeofday(struct hr_time *tv, struct timezone *tz) {
+	(void)tz;
+
+	if(tv != NULL) {
+		struct hr_time temp_tv; // for later user-space secured copy
+
+		time_real_time(&temp_tv);
+		tv->sec = temp_tv.sec;
+		tv->nano = temp_tv.nano;
+	}
+
+	return 0;
+}
+
+
+clock_t sys_times(struct tms *buf) {
+	if(buf != NULL) {
+		process_t *cur;
+
+		cur = process_get_current();
+		buf->tms_utime = cur->uticks;
+		buf->tms_stime = cur->kticks;
+		buf->tms_cutime = 0;
+		buf->tms_cstime = 0;
+	}
+	return _monotonic_ticks;
+}
