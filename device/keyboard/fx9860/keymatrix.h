@@ -28,6 +28,12 @@ void hwkbd_init();
 void hwkbd_update_status();
 
 
+/**
+ * Start the periodic call of hwkbd_update_status() using a soft timer.
+ */
+void hwkbd_start_periodic_update();
+
+
 void hwkbd_set_kpressed_callback(hwkbd_key_handler handler);
 
 void hwkbd_set_kreleased_callback(hwkbd_key_handler handler);

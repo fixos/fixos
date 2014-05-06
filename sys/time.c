@@ -3,8 +3,7 @@
 #include <sys/scheduler.h>
 
 
-// temp
-#include <device/keyboard/fx9860/keymatrix.h>
+extern int stimer_do_tick();
 
 
 // clock counter, incremented at each time_do_tick
@@ -60,7 +59,6 @@ void time_real_time(struct hr_time *t) {
 }
 
 
-
 void time_do_tick() {
 	process_t *cur;
 
@@ -77,16 +75,11 @@ void time_do_tick() {
 			cur->kticks++;
 		}
 	}
-	
+
+	stimer_do_tick();
+
 	// scheduler tick ellapsed
 	sched_check();
 
-	// temp job, before real soft timers are implemented
-	static int _before_hwkdb_update = 4;
-	_before_hwkdb_update--;
-	if(_before_hwkdb_update <= 0) { 
-		hwkbd_update_status();
-		_before_hwkdb_update = 4;
-	}
 }
 

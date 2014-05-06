@@ -1,6 +1,8 @@
 #include "keymatrix.h"
 #include <utils/log.h>
 #include <arch/sh/7705.h>
+#include <sys/stimer.h>
+#include <sys/time.h>
 
 
 // saved status, 10 lines of 7 bits (MSB unused)
@@ -10,6 +12,14 @@ static hwkbd_key_handler _hwkbd_pressed = NULL;
 
 static hwkbd_key_handler _hwkbd_released = NULL;
 
+
+static void periodic_keycheck_timer(void *data) {
+	(void)data;
+	
+	hwkbd_update_status();
+	// set a new timer in aprox. 30ms
+	stimer_add(&periodic_keycheck_timer, NULL, TICKS_MSEC_NOTNULL(30));
+}
 
 
 void hwkbd_init() {
@@ -21,6 +31,15 @@ void hwkbd_init() {
 	PFC.PBCR.WORD = 0x5555;
 	PFC.PMCR.WORD = (0x5555 & 0x000F) | (PFC.PMCR.WORD & ~0x000F);	
 	PFC.PACR.WORD = 0xAAAA;
+}
+
+
+void hwkbd_start_periodic_update() {
+	// call it manually the first time
+	// TODO manage current job pointer to ensure only 1 timer is used at a time
+	// and to give a chance to disable it
+	periodic_keycheck_timer(NULL);
+
 }
 
 

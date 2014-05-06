@@ -8,6 +8,7 @@
 #include "sys/process.h"
 #include "sys/scheduler.h"
 #include "sys/time.h"
+#include "sys/stimer.h"
 
 #include "fs/casio_smemfs/file_system.h"
 #include "fs/protofs/file_system.h"
@@ -94,6 +95,9 @@ void init() {
 
 	mmu_init();
 	pm_init_pages();
+
+	stimer_init();
+	hwkbd_start_periodic_update();
 
 	DBG_WAIT;
 
@@ -182,7 +186,6 @@ void init() {
 
 	//test_keymatrix();
 //	test_keyboard();
-	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
 	/*while(1) {
 		char c;
 		if(vfs_read(console, &c, 1) == 1) {
@@ -221,7 +224,6 @@ void init() {
 
 	process_init();
 	sched_init();
-	rtc_set_interrupt(&hwkbd_update_status, RTC_PERIOD_64_HZ);
 	test_process();
 	
 
