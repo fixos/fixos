@@ -75,6 +75,22 @@ void sched_check();
  */
 void sched_if_needed();
 
+
+/**
+ * sched_preempt_block() and sched_preempt_unblock() are used to define code
+ * section that should not be preempted (but can be interrupted by hardware
+ * interrupt/exceptions).
+ * This kind of "critical section" an be nested (each call to block() should
+ * be associated to exactly one call to unblock(), and the preemption is
+ * possible only when the last unblock() is called).
+ * It is possible to get the number of needed unblock() calls before preemption
+ * is enable again by calling sched_preempt_level().
+ */
+void sched_preempt_block();
+void sched_preempt_unblock();
+int sched_preempt_level();
+
+
 /**
  * wait for a child terminating, returns its pid and set status to child
  * exit status

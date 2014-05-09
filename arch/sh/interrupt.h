@@ -6,8 +6,6 @@
 
 typedef void(*interrupt_callback_t)();
 
-typedef unsigned int interrupt_priorities_t[8];
-
 // Interruptions IDs :
 #define INT_TMU0		0x00
 #define INT_TMU1		0x01
@@ -41,14 +39,6 @@ void arch_int_weak_atomic_block(int mode);
 void interrupt_set_vbr(void *vbr);
 
 void* interrupt_get_vbr(void);
-
-// Store the interrupt context to restore it later.
-// This function must be call before all other.
-// (VBR and IPRx registers are saved) 
-void interrupt_store_context(interrupt_priorities_t ipr_storage);
-
-// Restore the stored context.
-void interrupt_restore_context(const interrupt_priorities_t ipr_storage);
 
 // Set a callback called for a specific interrupt.
 // Many interrupt may have the same callback function.

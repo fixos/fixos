@@ -1,7 +1,7 @@
 #include "process.h"
 #include <arch/sh/mmu.h>
 #include <sys/memory.h>
-#include <arch/sh/interrupt.h>
+#include <sys/interrupt.h>
 #include <utils/strutils.h>
 #include "scheduler.h"
 #include <utils/log.h>
@@ -182,7 +182,8 @@ process_t *process_get_current() {
 
 void process_contextjmp(process_t *proc) {
 	
-	interrupt_inhibit_all(1);
+	int dummy;
+	interrupt_atomic_save(&dummy);
 
 	// if ASID is not valid (first contextjmp, or process was remove from 'active'
 	// process, we need to set it's ASID before to run it
@@ -214,6 +215,7 @@ pid_t sys_fork() {
 	process_t *cur;
 	process_t *newproc;
 	int i;
+	int atomicsaved;
 
 
 	cur = process_get_current();
@@ -225,10 +227,8 @@ pid_t sys_fork() {
 	}
 	
 
-	//arch_int_weak_atomic_block(1);
-	// we need to block any exception, fork operation should be
-	// atomic
-	interrupt_inhibit_all(1);
+	// we need to block any exception, fork operation should be atomic
+	interrupt_atomic_save(&atomicsaved);
 
 	printk("fork start\n");
 
@@ -279,8 +279,7 @@ pid_t sys_fork() {
 	newproc->acnt->reg[0] = 0;
 
 	sched_add_task(newproc);
-	//arch_int_weak_atomic_block(0);
-	interrupt_inhibit_all(0);
+	interrupt_atomic_restore(atomicsaved);
 
 	return newproc->pid;
 
@@ -363,7 +362,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 		vm_page_t page;
 
-		arch_int_weak_atomic_block(1);
+		sched_preempt_block();
 		cur = process_get_current();
 
 
@@ -434,6 +433,9 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			printk("execve: unable to load ELF file\n");
 			// 'kill' process TODO proper way to do that
 			cur->state = PROCESS_STATE_STOP;
+
+			// does sched_next_task() should reset preempt count?
+			sched_preempt_unblock();
 			sched_next_task(cur);
 
 			printk("execve: re-executed dead process!\n");
@@ -442,6 +444,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// the image is load, we can't simply return from syscall because
 			// stack is now 'corrupted' (old_kstack is the real stack used, but
 			// it's not the current proc kernel stack...)
+			int dummy;
 
 			// add virtual memory page for args
 			vm_add_entry(&(cur->vm), &page);
@@ -449,8 +452,9 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			cur->acnt->reg[4] = arg_argc;
 			cur->acnt->reg[5] = (uint32)arg_argv;
 
-			interrupt_inhibit_all(1);
-			arch_int_weak_atomic_block(0);
+			// interrupt context is expected to be reseted by process_contextjmp() ?
+			interrupt_atomic_save(&dummy);
+			sched_preempt_unblock();
 
 			printk("exec: ready, r15=%p\n", (void*)(cur->acnt->reg[15]));
 			// this job is done using inline assembly to avoid GCC stack usage

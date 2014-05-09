@@ -49,31 +49,6 @@ void arch_int_weak_atomic_block(int mode) {
 }
 
 
-void interrupt_store_context(interrupt_priorities_t ipr_storage) {
-	ipr_storage[0] = INTC.IPRA.WORD;
-	ipr_storage[1] = INTC.IPRB.WORD;
-	ipr_storage[2] = INTX.IPRC.WORD;
-	ipr_storage[3] = INTX.IPRD.WORD;
-	ipr_storage[4] = INTX.IPRE.WORD;
-	ipr_storage[5] = INTX.IPRF.WORD;
-	ipr_storage[6] = INTX.IPRG.WORD;
-	ipr_storage[7] = INTX.IPRH.WORD;
-}
-
-
-void interrupt_restore_context(const interrupt_priorities_t ipr_storage) {
-	INTC.IPRA.WORD = ipr_storage[0];
-	INTC.IPRB.WORD = ipr_storage[1];
-	INTX.IPRC.WORD = ipr_storage[2];
-	INTX.IPRD.WORD = ipr_storage[3];
-	INTX.IPRE.WORD = ipr_storage[4];
-	INTX.IPRF.WORD = ipr_storage[5];
-	INTX.IPRG.WORD = ipr_storage[6];
-	INTX.IPRH.WORD = ipr_storage[7];
-}
- 
-
-
 // This function is used to map each interrupt with the corresponding
 // callback function. These functions' addresses may be set through the
 // set_callback() function.
@@ -165,4 +140,33 @@ void interrupt_set_callback(unsigned int interruptID, interrupt_callback_t addre
 interrupt_callback_t interrupt_get_callback(unsigned int interruptID) {
 	if(interruptID < INT__NUMBER) return g_interrupt_callback[interruptID];
 	return (void*)0;
+}
+
+
+
+// defined in sys/interrupt.h
+void interrupt_atomic_save(int *state) {
+	unsigned int sr;
+	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+	*state = sr & 0x000000F0; // only I3-I0 bits
+	// re-write SR with highest priority
+	sr = sr | 0x000000F0;
+	asm volatile (	"ldc %0, sr" : : "r"(sr) : );
+}
+
+
+void interrupt_atomic_restore(int state) {
+	unsigned int sr;
+	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+	sr = (sr & (~0x000000F0) ) | (state & 0x000000F0);
+	asm volatile (	"ldc %0, sr" : : "r"(sr) : );
+
+}
+
+
+int interrupt_in_atomic() {
+	unsigned int sr;
+	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+
+	return ( sr & 0x000000F0) == 0xF0;
 }

@@ -30,6 +30,10 @@ static int _need_reschedule;
 // before scheduler is initialized
 static int _initialized = 0;
 
+
+// kernel preemption is allowed when _preempt_level
+static int _preempt_level = 0;
+
 void sched_init() {
 	int i;
 	
@@ -39,6 +43,7 @@ void sched_init() {
 
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
+	_preempt_level = 0;
 }
 
 
@@ -105,9 +110,28 @@ void sched_check() {
 void sched_if_needed() {
 	// TODO it seems a good place to check for "soft interrupts", like
 	// linux Tasklet, and schedule one of them if needed
-	if(_initialized && _need_reschedule) {
+	if(_initialized && _need_reschedule && _preempt_level <= 0) {
 		context_saved_next();
 	}
+}
+
+
+void sched_preempt_block() {
+	_preempt_level++;
+}
+
+
+void sched_preempt_unblock() {
+	_preempt_level--;
+	if(_preempt_level < 0) {
+		printk("[W] Preemption level < 0\n");		
+		_preempt_level = 0;
+	}
+}
+
+
+int sched_preempt_level() {
+	return _preempt_level;
 }
 
 
@@ -121,7 +145,7 @@ pid_t sys_wait(int *status) {
 		int i;
 		int child_found = 0;
 		
-		arch_int_weak_atomic_block(1);
+		sched_preempt_block();
 		for(i=0; i<SCHED_MAX_TASKS; i++) {
 			//printk("task %d", i);
 			//printk("->%p\n", _tasks[i]);
@@ -149,7 +173,7 @@ pid_t sys_wait(int *status) {
 			ret = -1;
 		}
 
-		arch_int_weak_atomic_block(0);
+		sched_preempt_unblock();
 
 		if(ret == 0)
 			sched_next_task(process_get_current());
