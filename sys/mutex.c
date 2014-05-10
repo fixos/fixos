@@ -29,19 +29,19 @@ void mutex_lock(struct mutex *m) {
 	volatile int *locked = &(m->locked);
 
 	ret = 0;
-
-	while(!ret) {
+	do {
 		interrupt_atomic_save(&atomic_state);
-		ret = *locked;
-		if(!ret) {
+		if(*locked == 0) {
 			*locked = 1;
+			ret = 1;
 		}
 		interrupt_atomic_restore(atomic_state);
 
 		// if mutex not locked, give the CPU to another task
-		// TODO real implementation
-		//sched_schedule();
-	}
+		if(!ret) {
+			sched_schedule();
+		}
+	} while(!ret);
 }
 
 

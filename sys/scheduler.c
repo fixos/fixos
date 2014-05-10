@@ -1,6 +1,6 @@
 #include "scheduler.h"
 #include <sys/memory.h>
-#include <arch/sh/interrupt.h>
+#include <sys/interrupt.h>
 #include <utils/log.h>
 
 
@@ -44,6 +44,7 @@ void sched_init() {
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
 	_preempt_level = 0;
+	_initialized = 1;
 }
 
 
@@ -61,7 +62,7 @@ void sched_add_task(task_t *task) {
 }
 
 // called once sched_next_task() saved the current process context
-void context_saved_next() {
+static void context_saved_next() {
 	// find the next task to execute
 	int i;
 
@@ -73,11 +74,20 @@ void context_saved_next() {
 				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state == PROCESS_STATE_ZOMBIE) ; i++);
 
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
+	_need_reschedule = 0;
 
 	if(i<SCHED_MAX_TASKS) {
 		_cur_task = (i+_cur_task)%SCHED_MAX_TASKS;
 		process_contextjmp(_tasks[_cur_task]);
 	}
+}
+
+
+void sched_schedule() {
+	int atomicsaved;
+	interrupt_atomic_save(&atomicsaved);
+	arch_sched_preempt_task(process_get_current(), &context_saved_next);
+	interrupt_atomic_restore(atomicsaved);
 }
 
 
@@ -98,7 +108,7 @@ void sched_check() {
 	if(_initialized) {
 		// decrement the current quantum counter and set schedule needed
 		_cur_quantum_left--;
-		if(_cur_quantum_left < 0) {
+		if(_cur_quantum_left <= 0) {
 			_need_reschedule = 1;
 		}
 	}
@@ -176,7 +186,7 @@ pid_t sys_wait(int *status) {
 		sched_preempt_unblock();
 
 		if(ret == 0)
-			sched_next_task(process_get_current());
+			sched_schedule();
 	}
 
 	return ret;

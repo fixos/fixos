@@ -22,12 +22,13 @@ void sched_init();
 void sched_add_task(task_t *task);
 
 /**
- * Save context before to call context_saved_next() internal function.
+ * Save context before to call next() function.
  * The current context is saved in cur_proc context (to avoid to look
  * for the current process whereas PID and ASID may changed to the
  * new values).
+ * This function return only when the context is scheduled again.
  */
-extern void arch_sched_preempt_task(process_t *cur_proc);
+extern void arch_sched_preempt_task(process_t *cur_proc, void (*next)());
 
 /*
  * Function used by sys_fork() to save the context exactly as
@@ -41,15 +42,14 @@ extern void arch_sched_preempt_task(process_t *cur_proc);
  * stack used by the dest process (must be an exact copy of the parent's one,
  * and given pointer must be equivalent to the current parent stack position!)
  */
-extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
+//extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
 
 
 /**
  * Save context of the current task and run the next one based on priorities
  * and scheduling algorithm used.
  */
-//void sched_next_task() __attribute__ ((alias ("_arch_sched_preempt_task")));
-#define sched_next_task arch_sched_preempt_task
+void sched_schedule();
 
 
 /**

@@ -368,7 +368,7 @@ void test() {
 	
 	if(magic_lock != 0) {
 		printk("Try to switch process (key).\n");
-		sched_next_task(process_get_current());
+		sched_schedule();
 	}
 }
 

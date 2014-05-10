@@ -319,7 +319,7 @@ void sys_exit(int status) {
 	// do not free the kernel stack before wait() is called to be sure
 	// we can still execute code in case of re-execution of zombie process
 	while(1) {
-		sched_next_task(cur);
+		sched_schedule();
 		printk("exit: exited process executed!\n");
 	}
 }
@@ -434,9 +434,9 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// 'kill' process TODO proper way to do that
 			cur->state = PROCESS_STATE_STOP;
 
-			// does sched_next_task() should reset preempt count?
+			// does sched_schedule() should reset preempt count?
 			sched_preempt_unblock();
-			sched_next_task(cur);
+			sched_schedule(cur);
 
 			printk("execve: re-executed dead process!\n");
 		}
