@@ -1,0 +1,20 @@
+This directory is used to place all definitions that are aimed to be used from
+the user space.
+This is not common on "real" UNIX-like kernels, which generaly mix kernel and
+shared kernel/user definitions in each public header and use preprocessor to
+restrict user view (e.g. _KERNEL on Linux or NetBSD).
+
+I assume the common way have interesting benefits (centralized headers, no need
+to duplicate some directory trees...), but it seems a bit dirty for me.
+So the rule here is : does a define, type or misc function should be known by
+a user space application to understand a visible kernel interface? If the
+answer is "yes", place a part of the header in this directory (at top-level
+for now if it's not arch-specific or device-specific), and include the
+corresponding <interface/path/header.h> in your usual kernel header.
+In most case, try to have only one reference to this include file in the
+rest of the kernel : using this way the other files don't have to known if
+a given macro or type is shared with user space or not.
+
+The design of FiXos user space headers may change in the future if some issues
+are noticed, but until this (possible) moment, this directory is the good way!
+

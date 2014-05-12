@@ -6,7 +6,7 @@ LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 OBJCOPY=sh3eb-elf-objcopy
 OBJCOPY_FLAGS=-S
 
-INCLUDE_PATH=-I.
+INCLUDE_PATH=-I. -I../interface
 LDSCRIPT=userland.ld
 
 EXEC=test.elf
