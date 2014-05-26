@@ -27,11 +27,11 @@ static int _need_reschedule;
 
 
 // temp stub to be sure sched_check() and sched_if_needed() do nothing
-// before scheduler is initialized
-static int _initialized = 0;
+// before scheduler is started
+static int _started = 0;
 
 
-// kernel preemption is allowed when _preempt_level
+// kernel preemption is allowed when _preempt_level is zero
 static int _preempt_level = 0;
 
 void sched_init() {
@@ -44,7 +44,7 @@ void sched_init() {
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
 	_preempt_level = 0;
-	_initialized = 1;
+	_started = 0;
 }
 
 
@@ -99,13 +99,14 @@ void sched_start() {
 
 	if(i<SCHED_MAX_TASKS) {
 		_cur_task = i;
+		_started = 1;
 		process_contextjmp(_tasks[i]);
 	}
 }
 
 
 void sched_check() {
-	if(_initialized) {
+	if(_started) {
 		// decrement the current quantum counter and set schedule needed
 		_cur_quantum_left--;
 		if(_cur_quantum_left <= 0) {
@@ -120,7 +121,7 @@ void sched_check() {
 void sched_if_needed() {
 	// TODO it seems a good place to check for "soft interrupts", like
 	// linux Tasklet, and schedule one of them if needed
-	if(_initialized && _need_reschedule && _preempt_level <= 0) {
+	if(_started && _need_reschedule && _preempt_level <= 0) {
 		context_saved_next();
 	}
 }
