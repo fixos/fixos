@@ -15,7 +15,7 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  fs/vfs_cache.c fs/vfs_op.c fs/vfs.c fs/vfs_file.c \
 	  fs/protofs/file_system.c \
 	  fs/casio_smemfs/smemfs_primitives_ng.c fs/casio_smemfs/file_system.c fs/casio_smemfs/file.c \
-	  utils/strconv.c utils/log.c utils/cyclic_fifo.c \
+	  utils/strconv.c utils/log.c utils/cyclic_fifo.c  utils/pool_alloc.c \
 	  arch/sh/physical_memory.c arch/sh/mmu.c arch/sh/virtual_memory.c arch/sh/interrupt.c \
 	  arch/sh/exception.c arch/sh/memory/c_s29jl032h.c arch/sh/kdelay.c arch/sh/modules/sdhi.c \
 	  sys/process.c sys/files.c sys/scheduler.c \

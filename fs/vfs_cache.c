@@ -1,12 +1,10 @@
 #include "vfs_cache.h"
 
 #include <utils/log.h>
-#include <sys/memory.h>
+#include <utils/pool_alloc.h>
 
 
 #define VFS_CACHE_HASHTABLE_SIZE	31
-
-#define INODE_PER_PAGE (PM_PAGE_BYTES/sizeof(vfs_cache_entry_t))
 
 // hash algorithm
 #define VFS_CACHE_HASH(inst,nodeid) ( ( ( (((int)(inst)>>16) ^ (int)(inst)) ^ \
@@ -16,32 +14,16 @@
 // hash table first entries
 static vfs_cache_entry_t *_hash_head[VFS_CACHE_HASHTABLE_SIZE];
 
-// first free entry
-static vfs_cache_entry_t *_first_free;
-
-// allocated physical page
-static void *_inode_page;
+// pool allocation for free inodes
+static struct pool_alloc _inode_alloc = POOL_INIT(vfs_cache_entry_t);
 
 
 
 void vfs_cache_init()
 {
-	vfs_cache_entry_t *cur;
 	int i;
 	
-	printk("vfs_cache: inode/page=%d\n", INODE_PER_PAGE);
-
-	// allocate 1 physical page, with cache if possible
-	_inode_page = mem_pm_get_free_page(MEM_PM_CACHED);
-	cur = _first_free = _inode_page;
-	for(i=0; i<INODE_PER_PAGE; i++) {
-		// fill the allocated page with free elements
-		if(i < (INODE_PER_PAGE-1))
-			cur->next = (void*)((int)cur + sizeof(vfs_cache_entry_t));
-		else
-			cur->next = NULL;
-		cur = cur->next;
-	}
+	printk("vfs_cache: inode/page=%d\n", _inode_alloc.perpage);
 
 	// initilize the hash table
 	for(i=0; i<VFS_CACHE_HASHTABLE_SIZE; i++)
@@ -68,18 +50,16 @@ vfs_cache_entry_t *vfs_cache_find(fs_instance_t *inst, uint32 nodeid)
 vfs_cache_entry_t *vfs_cache_alloc(fs_instance_t *inst, uint32 nodeid)
 {
 	vfs_cache_entry_t *ret;
-	int hash;
 	
+	ret = pool_alloc(&_inode_alloc);
+	if(ret != NULL) {
+		int hash;
 
-	// take the first free inode in the list, and remove it
-	ret = _first_free;
-	if(ret != NULL)
-		_first_free = ret->next;
-
-	// add it to the hash table
-	hash = VFS_CACHE_HASH(inst, nodeid);
-	ret->next = _hash_head[hash];
-	_hash_head[hash] = ret;
+		// add it to the hash table
+		hash = VFS_CACHE_HASH(inst, nodeid);
+		ret->next = _hash_head[hash];
+		_hash_head[hash] = ret;
+	}
 	
 	return ret;
 }
@@ -103,7 +83,7 @@ void vfs_cache_remove(fs_instance_t *inst, uint32 nodeid)
 			prev->next = cur->next;
 		else
 			_hash_head[hash] = cur->next;
-		cur->next = _first_free;
-		_first_free = cur;
+
+		pool_free(&_inode_alloc, cur);
 	}
 }

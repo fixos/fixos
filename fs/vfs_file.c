@@ -1,57 +1,16 @@
 #include "vfs_file.h"
-#include <sys/memory.h>
 #include <utils/log.h>
+#include <utils/pool_alloc.h>
 #include "file_operations.h"
 
-// entry in free linked list (union, so not useable for non-free list!)
-union file_entry {
-	struct file f;
-	union file_entry *next;
-};
 
-#define FILE_PER_PAGE (PM_PAGE_BYTES/sizeof(union file_entry))
+// pool allocation for file struct
+struct pool_alloc _vfs_file_palloc = POOL_INIT(struct file);
 
-static void *_file_page;
 
-static union file_entry *_first_free;
 
 void vfs_file_init() {
-	union file_entry *cur;
-	int i;
-
-	printk("vfs_file: file/page=%d\n", FILE_PER_PAGE);
-
-	_file_page = mem_pm_get_free_page(MEM_PM_CACHED);
-	cur = _first_free = _file_page;
-
-	// initialize free linked list
-	for(i=0; i<FILE_PER_PAGE; i++) {
-		cur->next = cur+1;
-		cur++;
-	}
-	
-	(cur-1)->next = NULL;
-}
-
-
-struct file *vfs_file_alloc() {
-	union file_entry *cur;
-
-	cur = _first_free;
-	if(cur != NULL) {
-		_first_free = cur->next;
-		return &(cur->f);
-	}
-	return NULL;
-}
-
-
-void vfs_file_free(struct file *filep) {
-	union file_entry *cur;
-
-	cur = (union file_entry*)filep;
-	cur->next = _first_free;
-	_first_free = cur;
+	printk("vfs_file: file/page=%d\n", _vfs_file_palloc.perpage);
 }
 
 

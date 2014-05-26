@@ -15,8 +15,7 @@
 struct _vfs_cache_entry {
 	inode_t inode;
 
-	// next entry in the entry's list (free inode list, or corresponding
-	// hash linked list)
+	// next entry in the corresponding entry's hash list 
 	struct _vfs_cache_entry *next;
 };
 

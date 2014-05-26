@@ -3,6 +3,7 @@
 #include <sys/memory.h>
 #include <sys/interrupt.h>
 #include <utils/strutils.h>
+#include <utils/pool_alloc.h>
 #include "scheduler.h"
 #include <utils/log.h>
 
@@ -15,17 +16,9 @@
 #include <device/keyboard/fx9860/keymatrix.h>
 #include <device/keyboard/fx9860/matrix_codes.h>
 
-// entry in free linked list
-union proc_entry {
-	process_t p;
-	union proc_entry *next;
-};
 
-#define PROCESS_PER_PAGE (PM_PAGE_BYTES/sizeof(union proc_entry))
-
-static void *_proc_page;
-
-static union proc_entry *_first_free;
+// pool allocation data
+static struct pool_alloc _proc_pool = POOL_INIT(process_t);
 
 // array of process ptr for corresponding ASIDs
 // that allow ASID -> PID translation in O(1)
@@ -60,25 +53,13 @@ process_t *_proc_current = &mock_process;
 void process_init()
 {
 	int i;
-	union proc_entry *cur;
 
 	// init ASID -> process table
 	for(i=0; i<MAX_ASID; i++) {
 		_asid_proc_array[i] = NULL;
 	}
 
-	printk("process: proc/page=%d\n", PROCESS_PER_PAGE);
-
-	_proc_page = mem_pm_get_free_page(MEM_PM_CACHED);
-	cur = _first_free = _proc_page;
-
-	// init free linked list
-	for(i=0; i<PROCESS_PER_PAGE; i++) {
-		cur->next = cur+1;
-		cur++;
-	}
-	
-	(cur-1)->next = NULL;
+	printk("process: proc/page=%d\n", _proc_pool.perpage);
 }
 
 
@@ -103,13 +84,11 @@ process_t *process_from_pid(pid_t pid)
 
 
 process_t *process_alloc() {
-	if(_first_free != NULL) {
-		process_t *proc;
-		union proc_entry *next;
-		int i;
+	process_t *proc;
 
-		next = _first_free->next;
-		proc = &(_first_free->p);
+	proc = pool_alloc(&_proc_pool);
+	if(proc != NULL) {
+		int i;
 
 		for(i=0; i<PROCESS_MAX_FILE; i++)
 			proc->files[i] = NULL;
@@ -121,22 +100,14 @@ process_t *process_alloc() {
 
 		proc->uticks = 0;
 		proc->kticks = 0;
-
-		// set first free to next one
-		_first_free = next;
-		return proc;
 	}
-	return NULL;
+	return proc;
 }
 
 
 void process_free(process_t *proc) {
-	union proc_entry *entry;
-
-	entry = (void*)proc;
-	entry->next = _first_free;
-	_first_free = entry;
-	printk("free proc %p\n", entry);
+	pool_free(&_proc_pool, proc);
+	printk("free proc %p\n", proc);
 }
 
 

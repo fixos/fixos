@@ -12,6 +12,12 @@
 #include "inode.h"
 #include "file.h"
 
+// for pool allocation
+#include <utils/pool_alloc.h>
+
+// not designed to be used directly, allow inlining of alloc/free
+extern struct pool_alloc _vfs_file_palloc;
+
 
 /**
  * Initilize file system.
@@ -22,13 +28,17 @@ void vfs_file_init();
  * Allocate a new file structure.
  * Returns NULL if allocation can't be done.
  */
-struct file *vfs_file_alloc();
+extern inline struct file *vfs_file_alloc() {
+	return pool_alloc(&_vfs_file_palloc);
+}
 
 
 /**
  * Free an allocated file structure.
  */
-void vfs_file_free(struct file *filep);
+extern inline void vfs_file_free(struct file *filep) {
+	pool_free(&_vfs_file_palloc, filep);
+}
 
 /**
  * Try to open the given inode as a file.
