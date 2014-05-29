@@ -6,6 +6,8 @@
  */
 
 #include <utils/types.h>
+#include <sys/signal.h>
+
 #include <arch/sh/virtual_memory.h>
 // TODO remove this include (now context is saved as a pointer to arch-spec context)
 #include <arch/sh/process.h>
@@ -21,13 +23,17 @@ struct _virtual_mem;
 
 
 // process status
-#define PROCESS_STATE_IDLE		1
-#define PROCESS_STATE_RUN		2
+#define PROCESS_STATE_IDLE				1
+#define PROCESS_STATE_RUNNING			2
 // used at process creation :
-#define PROCESS_STATE_CREATE	3
-#define PROCESS_STATE_STOP		4
+#define PROCESS_STATE_CREATE			3
+#define PROCESS_STATE_STOP				4
 // used after calling exit()
-#define PROCESS_STATE_ZOMBIE	5
+#define PROCESS_STATE_ZOMBIE			5
+// sleeping states
+#define PROCESS_STATE_INTERRUPTIBLE		6
+#define PROCESS_STATE_UNINTERRUPTIBLE	7
+
 
 
 // maximum files opened at a time by a process
@@ -56,6 +62,10 @@ struct _process_info {
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];
 	
+	// signal related stuff
+	sigset_t sig_blocked;
+	sigset_t sig_pending;
+	struct sigaction sig_array[SIGNAL_INDEX_MAX];
 
 	pid_t ppid;
 	int state;
@@ -116,6 +126,23 @@ void process_release_asid(process_t *proc);
  * Return the running process at the time this function is called.
  */
 process_t *process_get_current();
+
+
+/**
+ * Return 1 if the "saved context" of the given process was executed in user
+ * mode, 0 if it was in kernel mode (or negative value in error case).
+ */
+int arch_process_mode(process_t *proc);
+
+
+/**
+ * Save the user-mode context, and set the saved context to the signal handler
+ * defined in action.
+ * The user stack is used to save previous context, and a trampoline is set to
+ * do appropriate cleanup after the end of the signal handler.
+ */
+void arch_process_prepare_sigcontext(process_t *proc, struct sigaction *action,
+		int sig);
 
 
 /**

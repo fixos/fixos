@@ -36,7 +36,7 @@ static process_t mock_process =
 		.direct = {{0}, {0}, {0}},
 		.indir1 = (void*)0
 	},
-	.state = PROCESS_STATE_RUN,
+	.state = PROCESS_STATE_RUNNING,
 	.acnt = NULL,
 	.kernel_stack = NULL,
 
@@ -97,6 +97,13 @@ process_t *process_alloc() {
 		proc->state = PROCESS_STATE_CREATE;
 		proc->asid = ASID_INVALID;
 		vm_init_table(&(proc->vm));
+
+		sigemptyset(& proc->sig_blocked);
+		sigemptyset(& proc->sig_pending);
+		for(i=0; i<SIGNAL_INDEX_MAX; i++) {
+			proc->sig_array[i].sa_handler = SIG_IGN;
+			proc->sig_array[i].sa_flags = 0;
+		}
 
 		proc->uticks = 0;
 		proc->kticks = 0;
@@ -171,12 +178,13 @@ void process_contextjmp(process_t *proc) {
 			(void*)(proc->acnt.reg[0]), (void*)(proc->acnt.pc),
 			(void*)(proc->acnt.sr));
 */
-	/*static int magic = 0;
-	if(magic == 1)
-		while(1);
-	magic = 1;*/
 
-	proc->state = PROCESS_STATE_RUN;
+	proc->state = PROCESS_STATE_RUNNING;
+
+	// if the process to "restore" was in user mode, check for pending signals
+	if(arch_process_mode(proc) == 1) {
+		signal_deliver_pending();
+	}
 
 	arch_kernel_contextjmp(proc->acnt, &(proc->acnt));
 }
@@ -224,6 +232,13 @@ pid_t sys_fork() {
 	}
 	// TODO indirect pages
 	newproc->vm.indir1 = NULL;
+
+	// copy signal info
+	sigemptyset(& newproc->sig_pending);
+	newproc->sig_blocked = cur->sig_blocked;
+	for(i=0; i<SIGNAL_INDEX_MAX; i++) {
+		newproc->sig_array[i] = cur->sig_array[i];
+	}
 	
 	// get the new kernel stack
 	void *kstack;
@@ -383,6 +398,12 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 		// close/free all ressources not 'shared' through exec
 		// TODO files with CLOSE_ON_EXEC
+		
+		// signal handler are reseted to SIG_DFL, except in case of SIG_IGN
+		for(i=0; i<SIGNAL_INDEX_MAX; i++) {
+			if(cur->sig_array[i].sa_handler != SIG_IGN)
+				cur->sig_array[i].sa_handler = SIG_DFL;
+		}
 
 		// remove all virtual pages from the TLB (invalidate them)
 		// TODO do not invalidate ALL entries, select only this ASID

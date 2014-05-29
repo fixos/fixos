@@ -67,8 +67,8 @@ void time_do_tick() {
 
 	cur = process_get_current();
 	if(cur != NULL) {
-		// TODO check if process is in user or kernel mode
-		if(1) { //process_mode(cur) == USER_MODE
+		// check if process is in user or kernel mode
+		if(arch_process_mode(cur) == 1) {
 			cur->uticks++;
 		}
 		else {

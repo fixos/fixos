@@ -90,6 +90,16 @@ void sched_preempt_block();
 void sched_preempt_unblock();
 int sched_preempt_level();
 
+/**
+ * Wake up a process, when signal is received or any waiting condition is
+ * reached.
+ * If the process was in any sleeping state, either interruptible or not, it
+ * will be switched to STATE_RUNNING.
+ * In addition, scheduler will ask rescheduling if woken up process has a
+ * higher priority than the current process.
+ */
+void sched_wake_up(process_t *proc);
+
 
 /**
  * wait for a child terminating, returns its pid and set status to child

@@ -30,11 +30,14 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  syscalls/arch/syscall.c \
 	  sys/time.c sys/stimer.c\
 	  sys/mutex.c \
+	  sys/signal.c \
 	  init.c tests.c
 
-ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s gcc_fix/udivsi3_i4i.S initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \
+ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s initialize.s utils/sh/memcpy.S utils/sh/memset.S utils/sh/strcpy.S utils/sh/strlen.S arch/sh/exception_pre.s arch/sh/tlbmiss_pre.s arch/sh/interrupt_pre.s \
 	  arch/sh/scheduler.S \
-	  device/display/T6K11/drawall.s device/display/T6K11/setpixel.s 
+	  gcc_fix/udivsi3_i4i.S gcc_fix/movmem.S \
+	  device/display/T6K11/drawall.s device/display/T6K11/setpixel.s \
+	  arch/sh/signal.S
 
 
 TMPSTUB:=$(ASM_SRC:.s=.o)

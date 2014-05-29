@@ -7,6 +7,8 @@
 #include <device/keyboard/fx9860/matrix_codes.h>
 
 
+#define SR_MD_MASK		(1<<30)
+
 
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt) {
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
@@ -52,4 +54,65 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
 			"rte;"
 			"nop" : : "r"(cnt) :  
 	);
+}
+
+
+// defined in sys/process.h :
+int arch_process_mode(process_t *proc) {
+	if(proc->acnt != NULL) {
+		// if MD is 1, process is in kernel mode
+		return (proc->acnt->sr & SR_MD_MASK) ? 0 : 1;
+	}
+	return -1;
+}
+
+
+
+
+extern uint32 *sig_trampoline_begin;
+extern uint32 *sig_trampoline_end;
+
+
+void arch_process_prepare_sigcontext(process_t *proc, struct sigaction *action,
+		int sig) 
+{
+	// TODO securized user stack access...
+	uint32 *ustack;
+//	uint32 *tramp;
+	struct _context_info *cnt;
+	int i;
+	
+	// first, store the full context on the top of user stack
+	cnt = proc->acnt;
+	ustack = (void*)(cnt->reg[15] - cnt->reg[15]%4);
+
+	for(i=0; i<16; i++)
+		*(--ustack) = cnt->reg[i];
+	*(--ustack) = cnt->gbr;
+	*(--ustack) = cnt->macl;
+	*(--ustack) = cnt->mach;
+	*(--ustack) = cnt->pc;
+	*(--ustack) = cnt->sr;
+	*(--ustack) = cnt->pr;
+
+	*(--ustack) = proc->sig_blocked;
+
+	
+	// now prepare signal cleanup
+	// stupid assertion : sig_trampoline code is 2 instructions...
+	*(--ustack) = *(sig_trampoline_begin);
+	cnt->pr = (uint32)ustack;
+
+	// finally, prepare the context to execute the signal handler
+	cnt->sr = ARCH_UNEWPROC_DEFAULT_SR;
+	cnt->pc = (uint32)(action->sa_handler);
+	
+	cnt->reg[4] = sig;
+	cnt->reg[15] = (uint32)ustack;
+	// TODO other SA_xxx flags
+	if(action->sa_flags & SA_SIGINFO) {
+		// call sa_sigaction, with additionnal parameters (NULL for now)
+		cnt->reg[5] = 0;
+		cnt->reg[6] = 0;
+	}
 }

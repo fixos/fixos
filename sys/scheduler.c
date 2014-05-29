@@ -66,7 +66,7 @@ static void context_saved_next() {
 	// find the next task to execute
 	int i;
 
-	if(_tasks[_cur_task]->state == PROCESS_STATE_RUN)
+	if(_tasks[_cur_task]->state == PROCESS_STATE_RUNNING)
 		_tasks[_cur_task]->state = PROCESS_STATE_IDLE;
 
 	//  start to search from the next process
@@ -143,6 +143,23 @@ void sched_preempt_unblock() {
 
 int sched_preempt_level() {
 	return _preempt_level;
+}
+
+
+void sched_wake_up(process_t *proc) {
+	if(proc->state == PROCESS_STATE_INTERRUPTIBLE ||
+			proc->state == PROCESS_STATE_UNINTERRUPTIBLE)
+	{
+		proc->state = PROCESS_STATE_RUNNING;
+		// should be added to the waiting queue when available...
+	}
+
+	if(proc->state == PROCESS_STATE_RUNNING) {
+		// TODO check for priority when implemented
+		// if(getpriority(proc) > getpriority(process_get_current())) {
+		//		_need_reschedule = 1;
+		// }
+	}
 }
 
 
