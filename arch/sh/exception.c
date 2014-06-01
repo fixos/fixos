@@ -130,7 +130,9 @@ void exception_handler()
 
 	// do not return, do direct context switch
 	sched_if_needed();
-	signal_deliver_pending();
+	if(arch_process_mode(cur) == 1) {
+		signal_deliver_pending();
+	}
 	// this line is reached only if sched was not needed and no pending signal
 	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
 }

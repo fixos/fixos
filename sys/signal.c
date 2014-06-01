@@ -97,9 +97,10 @@ static void try_deliver_one(struct _process_info *proc, int sig) {
 	int sigindex;
 	struct sigaction *action;
 
+	sigdelset(& proc->sig_pending, sig);
+
 	sigindex = _trans_number2index[sig];
 	if(sigindex == _SIGUNDEF) {
-		sigdelset(& proc->sig_pending, sig);
 		printk("signal: unimplemented SIG %d ignored\n", sig);
 	}
 	else {
@@ -109,26 +110,30 @@ static void try_deliver_one(struct _process_info *proc, int sig) {
 					&& _trans_index2default[sigindex] == SIGDFL_IGN) )
 		{
 			// ignored signal
-			sigdelset(& proc->sig_pending, sig);
 		}
 		else {
 			if(action->sa_handler == SIG_DFL) {
 				switch(_trans_index2default[sigindex]) {
 				case SIGDFL_TERM:
-					// TODO
+					process_terminate(proc, _WSTATUS_TERMSIG(sig));
+					sched_schedule();
+					// TODO be sure the process is *not* executed after this function ret
 					break;
+
 				case SIGDFL_STOP:
-					// TODO
+					sched_stop_proc(proc, sig);
 					break;
+
 				case SIGDFL_CONT:
-					// TODO
+					// TODO : maybe this specific SIGCONT signal is better handled
+					// in the signal_raise() function, so it's working even if
+					// process is not in a runnable state?
 					break;
 				}
 			}
 			else {
 				// this is a user-defined handler
 				arch_process_prepare_sigcontext(proc, action, sig);
-				sigdelset(& proc->sig_pending, sig);
 				proc->sig_blocked |= (action->sa_mask & ~(SIGKILL | SIGSTOP));
 				arch_kernel_contextjmp(proc->acnt, & proc->acnt);
 				//process_contextjmp(proc);
@@ -147,6 +152,11 @@ void signal_raise(struct _process_info *proc, int sig) {
 			&& (proc->state == PROCESS_STATE_INTERRUPTIBLE))
 	{
 		sched_wake_up(proc);
+	}
+
+	// SIGCONT when process is stopped
+	if(sig==SIGCONT && proc->state == PROCESS_STATE_STOPPED) {
+		sched_cont_proc(proc);
 	}
 
 	sched_preempt_unblock();
@@ -177,3 +187,21 @@ void signal_deliver_pending() {
 	}
 }
 
+
+
+int sys_sigaction(int sig, const struct sigaction *act, struct sigaction *oact) {
+	// TODO
+	(void)sig;
+	(void)act;
+	(void)oact;
+	return -1;
+}
+
+
+
+int sys_kill(pid_t pid, int sig) {
+	// TODO
+	(void)pid;
+	(void)sig;
+	return -1;
+}

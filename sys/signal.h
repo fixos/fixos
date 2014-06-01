@@ -34,4 +34,22 @@ void signal_raise(struct _process_info *proc, int sig);
  */
 void signal_deliver_pending();
 
+
+/**
+ * sigaction() syscall implementation, change the way the signal sig is handled,
+ * using the action described in act, and store the previous action in oact is
+ * not NULL.
+ * If act is NULL, only store the current action in oact.
+ */
+int sys_sigaction(int sig, const struct sigaction * act, struct sigaction * oact);
+
+
+/**
+ * kill() syscall implementation, deliver the signal sig to process(es) described
+ * by pid.
+ * For now, only positive pid value is accepted (select a single process).
+ */
+int sys_kill(pid_t pid, int sig);
+
+
 #endif //_SYS_SIGNAL_H

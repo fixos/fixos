@@ -66,12 +66,9 @@ static void context_saved_next() {
 	// find the next task to execute
 	int i;
 
-	if(_tasks[_cur_task]->state == PROCESS_STATE_RUNNING)
-		_tasks[_cur_task]->state = PROCESS_STATE_IDLE;
-
 	//  start to search from the next process
 	for(i=1; i<SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
-				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state == PROCESS_STATE_ZOMBIE) ; i++);
+				&& _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state != PROCESS_STATE_RUNNING) ; i++);
 
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
@@ -160,6 +157,21 @@ void sched_wake_up(process_t *proc) {
 		//		_need_reschedule = 1;
 		// }
 	}
+}
+
+
+
+void sched_stop_proc(process_t *proc, int sig) {
+	// for now, just change the process state
+	(void)sig;
+	proc->state = PROCESS_STATE_STOPPED;
+}
+
+
+
+void sched_cont_proc(process_t *proc) {
+	proc->state = PROCESS_STATE_RUNNING;
+	sched_wake_up(proc);
 }
 
 

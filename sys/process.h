@@ -7,6 +7,7 @@
 
 #include <utils/types.h>
 #include <sys/signal.h>
+#include <interface/process.h>
 
 #include <arch/sh/virtual_memory.h>
 // TODO remove this include (now context is saved as a pointer to arch-spec context)
@@ -23,14 +24,13 @@ struct _virtual_mem;
 
 
 // process status
-#define PROCESS_STATE_IDLE				1
 #define PROCESS_STATE_RUNNING			2
 // used at process creation :
 #define PROCESS_STATE_CREATE			3
-#define PROCESS_STATE_STOP				4
 // used after calling exit()
 #define PROCESS_STATE_ZOMBIE			5
 // sleeping states
+#define PROCESS_STATE_STOPPED			4
 #define PROCESS_STATE_INTERRUPTIBLE		6
 #define PROCESS_STATE_UNINTERRUPTIBLE	7
 
@@ -151,6 +151,13 @@ void arch_process_prepare_sigcontext(process_t *proc, struct sigaction *action,
  * ASID and other things are changed before the real context jump is done.
  */
 void process_contextjmp(process_t *proc);
+
+
+/**
+ * Terminate a process (becoming a zombie), and store the given status as the
+ * error/exits value returned by kill()-like syscalls.
+ */
+void process_terminate(process_t *proc, int status);
 
 
 /**

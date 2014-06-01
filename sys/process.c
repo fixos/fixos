@@ -190,6 +190,41 @@ void process_contextjmp(process_t *proc) {
 }
 
 
+
+void process_terminate(process_t *proc, int status) {
+	int i;
+
+	// TODO close files?
+	
+	// remove all virtual pages from the TLB (invalidate them)
+	// TODO do not invalidate ALL entries, select only this ASID
+	// in addition, free each allocated physical pages
+	mmu_tlbflush();
+	for(i=0; i<3; i++) {
+		if(proc->vm.direct[i].valid) {
+			mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(proc->vm.direct[i].ppn)));
+		}
+	}
+	// TODO indirect pages
+	
+	// VM is not used after, but the process need to have an ASID until
+	// it will be remove from Zombie list.
+
+	proc->exit_status = status;
+	proc->state = PROCESS_STATE_ZOMBIE;
+	// TODO call scheduler to remove it from waiting queue...
+
+	// do not free the kernel stack before wait() is called to be sure
+	// we can still execute code in case of re-execution of zombie process
+	while(1) {
+		sched_schedule();
+		printk("exit: exited process executed!\n");
+	}
+
+}
+
+
+
 pid_t sys_fork() {
 	process_t *cur;
 	process_t *newproc;
@@ -278,36 +313,7 @@ pid_t sys_fork() {
 
 
 void sys_exit(int status) {
-	process_t *cur;
-	int i;
-
-	cur = process_get_current();
-	
-	// TODO close files?
-	
-	// remove all virtual pages from the TLB (invalidate them)
-	// TODO do not invalidate ALL entries, select only this ASID
-	// in addition, free each allocated physical pages
-	mmu_tlbflush();
-	for(i=0; i<3; i++) {
-		if(cur->vm.direct[i].valid) {
-			mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(cur->vm.direct[i].ppn)));
-		}
-	}
-	// TODO indirect pages
-	
-	// VM is not used after, but the process need to have an ASID until
-	// it will be remove from Zombie list.
-
-	cur->exit_status = status;
-	cur->state = PROCESS_STATE_ZOMBIE;
-
-	// do not free the kernel stack before wait() is called to be sure
-	// we can still execute code in case of re-execution of zombie process
-	while(1) {
-		sched_schedule();
-		printk("exit: exited process executed!\n");
-	}
+	process_terminate(process_get_current(), _WSTATUS_EXITS(status));
 }
 
 
@@ -420,11 +426,11 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		// TODO do not release kernel stack, ELF loader should not set it?
 		void *old_kstack = cur->kernel_stack;
 		
-		cur->state = PROCESS_STATE_STOP;
+		cur->state = PROCESS_STATE_CREATE;
 		if(elfloader_load(elf_file , cur) != 0) {
 			printk("execve: unable to load ELF file\n");
 			// 'kill' process TODO proper way to do that
-			cur->state = PROCESS_STATE_STOP;
+			cur->state = PROCESS_STATE_CREATE;
 
 			// does sched_schedule() should reset preempt count?
 			sched_preempt_unblock();

@@ -102,6 +102,20 @@ void sched_wake_up(process_t *proc);
 
 
 /**
+ * Remove the given process from running queue, and put it in "stopped" state.
+ * The signal number may be used if parent wait for stopped process (waitpid()).
+ */
+void sched_stop_proc(process_t *proc, int sig);
+
+
+/**
+ * Put a previously stopped process in running state and in the scheduler running
+ * queue.
+ */
+void sched_cont_proc(process_t *proc);
+
+
+/**
  * wait for a child terminating, returns its pid and set status to child
  * exit status
  */

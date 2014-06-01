@@ -127,7 +127,9 @@ void interrupt_handler() {
 	sched_if_needed();
 	// if sched_if_needed() returns, keep current process
 	cur = process_get_current();
-	signal_deliver_pending();
+	if(arch_process_mode(cur) == 1) {
+		signal_deliver_pending();
+	}
 	arch_kernel_contextjmp(cur->acnt, &(cur->acnt));
 
 	return;
