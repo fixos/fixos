@@ -54,10 +54,12 @@ void sched_add_task(task_t *task) {
 
 	for(i=0; i<SCHED_MAX_TASKS && _tasks[i]!=NULL; i++);
 
-	if(i<SCHED_MAX_TASKS)
+	if(i<SCHED_MAX_TASKS) {
 		_tasks[i] = task;
+		task->state = PROCESS_STATE_RUNNING;
+	}
 	else {
-		// error
+		printk("sched: unable to add new task!\n");
 	}
 }
 
@@ -68,7 +70,7 @@ static void context_saved_next() {
 
 	//  start to search from the next process
 	for(i=1; i<SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
-				&& _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state != PROCESS_STATE_RUNNING) ; i++);
+				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state != PROCESS_STATE_RUNNING) ; i++);
 
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
@@ -172,6 +174,19 @@ void sched_stop_proc(process_t *proc, int sig) {
 void sched_cont_proc(process_t *proc) {
 	proc->state = PROCESS_STATE_RUNNING;
 	sched_wake_up(proc);
+}
+
+
+process_t *sched_find_pid(pid_t pid) {
+	int i;
+	process_t *ret;
+
+	ret = NULL;
+	for(i=0; i<SCHED_MAX_TASKS && ret==NULL; i++) {
+		if(_tasks[i] != NULL && _tasks[i]->pid == pid)
+			ret = _tasks[i];
+	}
+	return ret;
 }
 
 

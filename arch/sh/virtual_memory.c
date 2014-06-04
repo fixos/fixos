@@ -14,7 +14,7 @@ vm_page_t *vm_find_vpn(vm_table_t *table, unsigned int vpn)
 	// for now the method is a stupid implementation of the problem...
 
 	// direct access:
-	for(i=0; i<3 && ret==(void*)0; i++)
+	for(i=0; i<VM_TABLE_FIXED_NB && ret==(void*)0; i++)
 	{
 		if(table->direct[i].valid && table->direct[i].vpn == vpn)
 			ret = &(table->direct[i]);
@@ -43,7 +43,7 @@ int vm_add_entry(vm_table_t *table, vm_page_t *page)
 	// for now the method is a stupid implementation of the problem...
 
 	// direct access:
-	for(i=0; i<3 && found==(void*)0; i++)
+	for(i=0; i<VM_TABLE_FIXED_NB && found==(void*)0; i++)
 	{
 		if(! table->direct[i].valid)
 			found = &(table->direct[i]);

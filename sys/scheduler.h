@@ -116,6 +116,13 @@ void sched_cont_proc(process_t *proc);
 
 
 /**
+ * FIXME Temporary feature, probably removed soon.
+ * Find a process in current queues (waiting/running) from its ASID.
+ */
+process_t *sched_find_pid(pid_t pid);
+
+
+/**
  * wait for a child terminating, returns its pid and set status to child
  * exit status
  */

@@ -44,6 +44,11 @@ char * strconv_int_hex(unsigned int val, char *buf)
 		cpt++;
 	}
 
+	// avoid the empty case if val is 0
+	if(i==0) {
+		buf[0] = '0';
+		i=1;
+	}
 	buf[i] = '\0';
 	return buf;
 }

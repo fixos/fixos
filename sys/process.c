@@ -74,12 +74,13 @@ process_t *process_from_asid(asid_t asid)
 }
 
 
-// TODO
+// FIXME this is a temporary hack to have a pid -> process working, need to
+// be changed soon
 process_t *process_from_pid(pid_t pid)
 {
 	if(pid == 0)
 		return &mock_process;
-	else return NULL;
+	else return sched_find_pid(pid);
 }
 
 
@@ -101,7 +102,7 @@ process_t *process_alloc() {
 		sigemptyset(& proc->sig_blocked);
 		sigemptyset(& proc->sig_pending);
 		for(i=0; i<SIGNAL_INDEX_MAX; i++) {
-			proc->sig_array[i].sa_handler = SIG_IGN;
+			proc->sig_array[i].sa_handler = SIG_DFL;
 			proc->sig_array[i].sa_flags = 0;
 		}
 
@@ -179,6 +180,7 @@ void process_contextjmp(process_t *proc) {
 			(void*)(proc->acnt.sr));
 */
 
+// the scheduler must check for state
 	proc->state = PROCESS_STATE_RUNNING;
 
 	// if the process to "restore" was in user mode, check for pending signals
@@ -415,7 +417,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		// TODO do not invalidate ALL entries, select only this ASID
 		// in addition, free each allocated physical pages
 		mmu_tlbflush();
-		for(i=0; i<3; i++) {
+		for(i=0; i<VM_TABLE_FIXED_NB; i++) {
 			if(cur->vm.direct[i].valid) {
 				mem_pm_release_page(mem_vm_physical_addr(&(cur->vm.direct[i])));
 			}

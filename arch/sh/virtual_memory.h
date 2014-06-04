@@ -35,6 +35,8 @@ typedef struct _vm_page vm_page_t;
 
 struct _vm_table_page;
 
+#define VM_TABLE_FIXED_NB	4
+
 /**
  * VM table for a processus-like, with several indirections levels.
  * In the aim to don't penalize tiny process, 3 pages may be accessed
@@ -49,7 +51,7 @@ struct _vm_table_page;
  * and should be managed by the kernel part!
  */
 struct _vm_table {
-	vm_page_t direct[3];
+	vm_page_t direct[VM_TABLE_FIXED_NB];
 	struct _vm_table_page *indir1;
 };
 
@@ -67,9 +69,11 @@ struct _vm_table_page {
  */
 extern inline void vm_init_table(vm_table_t *table) {
 	vm_page_t val = {.valid = 0};
-	table->direct[0] = val;
-	table->direct[1] = val;
-	table->direct[2] = val;
+	int i;
+
+	for(i=0; i<VM_TABLE_FIXED_NB; i++) {
+		table->direct[i] = val;
+	}
 
 	table->indir1 = (void*)0;
 }
