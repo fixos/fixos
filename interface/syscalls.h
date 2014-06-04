@@ -39,5 +39,16 @@
 //extern clock_t times(struct tms *buf); 
 #define SYSCALL_TIMES	11
 
+//extern int sigaction(int sig, const struct sigactionœ* act, struct sigaction* oact);
+#define SYSCALL_SIGACTION	12
+
+//extern int kill(pid_t pid, int sig);
+#define SYSCALL_KILL		13
+
+//extern int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+#define SYSCALL_SIGPROCMASK	14
+
+//extern int sigreturn();
+#define SYSCALL_SIGRETURN	15
 
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

@@ -13,7 +13,11 @@ EXEC=test.elf
 ENTRY_POINT=_usertest_main
 
 C_SRC=first_test_elf.c lib/syscalls.c
-OBJ=$(C_SRC:.c=.o)
+	
+ASM_SRC=
+#../gcc_fix/udivsi3_i4i.S
+
+OBJ=$(C_SRC:.c=.o) $(ASM_SRC:.S=.o)
 
 
 all: $(EXEC)
@@ -21,7 +25,6 @@ all: $(EXEC)
 $(EXEC): $(OBJ)
 	$(CC) $(LDFLAGS) -e $(ENTRY_POINT) -o $@.big $^
 	$(OBJCOPY) -S $@.big $@
-	rm $@.big
 
 %.o: %.c
 	$(CC) -c $(CCFLAGS) -o $@ $<
@@ -37,6 +40,7 @@ $(EXEC): $(OBJ)
 
 clean:
 	rm -f $(OBJ)
+	rm -f $(EXEC).big
 
 distclean: clean
 	rm -f $(EXEC)

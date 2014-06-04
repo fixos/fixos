@@ -69,5 +69,13 @@ struct sigaction {
 #define SA_ONESHOT		SA_RESETHAND
 
 
+/**
+ * Values for sigprocmask() 
+ */
+#define SIG_BLOCK		1
+#define SIG_UNBLOCK		2
+#define SIG_SETMASK		3
+
+
 #endif //_FIXOS_INTERFACE_SIGNAL_H
 

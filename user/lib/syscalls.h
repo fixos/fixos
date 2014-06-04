@@ -9,6 +9,7 @@
 
 #include <types.h>
 #include <syscalls.h>
+#include <signal.h>
 
 
 extern int open(const char *file, int mode);
@@ -33,6 +34,13 @@ struct timezone;
 extern int gettimeofday(struct hr_time *tv, struct timezone *tz);
 
 extern clock_t times(struct tms *buf); 
+
+
+extern int sigaction(int sig, const struct sigaction* act, struct sigaction* oact);
+
+extern int kill(pid_t pid, int sig);
+
+extern int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 
 
 #endif //_SYSCALLS_SYSCALLS_H

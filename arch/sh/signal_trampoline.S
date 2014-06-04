@@ -5,6 +5,8 @@
 ! it will be executed.
 !
 
+#include <interface/syscalls.h>
+
 	.section ".text"
 	
 	.global _sig_trampoline_begin
@@ -12,7 +14,7 @@
 
 	.align 4
 _sig_trampoline_begin:
-	trapa #42	! TODO SYS_SIGRETURN...
+	trapa #SYSCALL_SIGRETURN
 	nop
 _sig_trampoline_end:
 	nop

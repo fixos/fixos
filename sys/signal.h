@@ -16,6 +16,9 @@
 // number of signals implemented
 #define SIGNAL_INDEX_MAX		10
 
+// sigset_t of pending signals
+#define signal_pending(proc)	((proc)->sig_pending & ~((proc)->sig_blocked))
+
 struct _process_info;
 
 /**
@@ -36,6 +39,24 @@ void signal_deliver_pending();
 
 
 /**
+ * Save the user-mode context, and set the saved context to the signal handler
+ * defined in action.
+ * The user stack is used to save previous context, and a trampoline is set to
+ * do appropriate cleanup after the end of the signal handler.
+ */
+void arch_signal_prepare_sigcontext(struct _process_info *proc,
+		struct sigaction *action, int sig);
+
+
+/**
+ * Restore the user-mode context saved by arch_signal_prepare_sigcontext(),
+ * assuming the user stack is preserved...
+ */
+void arch_signal_restore_sigcontext(struct _process_info *proc);
+
+
+
+/**
  * sigaction() syscall implementation, change the way the signal sig is handled,
  * using the action described in act, and store the previous action in oact is
  * not NULL.
@@ -50,6 +71,23 @@ int sys_sigaction(int sig, const struct sigaction * act, struct sigaction * oact
  * For now, only positive pid value is accepted (select a single process).
  */
 int sys_kill(pid_t pid, int sig);
+
+
+/**
+ * sigprocmask() syscall implementation, allowing to check, block and
+ * unblock signals.
+ */
+int sys_sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+
+
+/**
+ * sigreturn() syscall implementation, restore the context of the process as
+ * it was before the signal interuption in execution flow.
+ * This syscall is only designed to be called in the signal trampoline, and
+ * should not be used in other places...
+ * This syscall never return.
+ */
+int sys_sigreturn();
 
 
 #endif //_SYS_SIGNAL_H

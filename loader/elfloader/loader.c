@@ -123,6 +123,7 @@ int elfloader_load_segment(struct file *filep,
 	vm_segaddr = (void*)(ph->vaddr);
 	for(i=0; i<ph->memsz; i += PM_PAGE_BYTES, vm_segaddr += PM_PAGE_BYTES) {
 		ssize_t nbread;
+		ssize_t toread;
 
 		if(mem_vm_prepare_page(&page, NULL, vm_segaddr,	MEM_VM_CACHED) < 0)
 		{
@@ -133,8 +134,13 @@ int elfloader_load_segment(struct file *filep,
 		pageaddr = mem_vm_physical_addr(&page);
 
 		// if we have a page, copy data from file
-		nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
-		printk("[I] %d bytes read from ELF.\n", nbread);
+		toread = ph->filesz - i;
+		toread = toread > PM_PAGE_BYTES ? PM_PAGE_BYTES : toread;
+
+		if(toread > 0) {
+			nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
+			printk("[I] %d bytes read from ELF.\n", nbread);
+		}
 
 		vm_add_entry(&(dest->vm), &page);
 		printk("[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);

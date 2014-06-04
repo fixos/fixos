@@ -27,6 +27,7 @@ C_SRC=loader/ramloader/loader.c loader/elfloader/loader.c \
 	  arch/sh/modules/usb.c \
 	  arch/sh/process.c arch/sh/rtc.c arch/sh/timer.c arch/sh/time.c\
 	  arch/sh/freq.c \
+	  arch/sh/signal.c \
 	  syscalls/arch/syscall.c \
 	  sys/time.c sys/stimer.c\
 	  sys/mutex.c \
@@ -37,7 +38,7 @@ ASM_SRC=utils/sh/strcmp.S arch/sh/interrupt_asm.s initialize.s utils/sh/memcpy.S
 	  arch/sh/scheduler.S \
 	  gcc_fix/udivsi3_i4i.S gcc_fix/movmem.S \
 	  device/display/T6K11/drawall.s device/display/T6K11/setpixel.s \
-	  arch/sh/signal.S
+	  arch/sh/signal_trampoline.S
 
 
 TMPSTUB:=$(ASM_SRC:.s=.o)

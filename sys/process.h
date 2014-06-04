@@ -136,16 +136,6 @@ int arch_process_mode(process_t *proc);
 
 
 /**
- * Save the user-mode context, and set the saved context to the signal handler
- * defined in action.
- * The user stack is used to save previous context, and a trampoline is set to
- * do appropriate cleanup after the end of the signal handler.
- */
-void arch_process_prepare_sigcontext(process_t *proc, struct sigaction *action,
-		int sig);
-
-
-/**
  * Run given process, switching context from current kernel context to
  * process context_info.
  * ASID and other things are changed before the real context jump is done.

@@ -133,7 +133,7 @@ static void try_deliver_one(struct _process_info *proc, int sig) {
 			}
 			else {
 				// this is a user-defined handler
-				arch_process_prepare_sigcontext(proc, action, sig);
+				arch_signal_prepare_sigcontext(proc, action, sig);
 				proc->sig_blocked |= (action->sa_mask & ~(SIGKILL | SIGSTOP));
 				arch_kernel_contextjmp(proc->acnt, & proc->acnt);
 				//process_contextjmp(proc);
@@ -148,7 +148,7 @@ void signal_raise(struct _process_info *proc, int sig) {
 	sigaddset(& proc->sig_pending, sig);
 	
 	// wake up destination process if any signal is pending
-	if((proc->sig_pending & proc->sig_blocked)
+	if((signal_pending(proc) != 0)
 			&& (proc->state == PROCESS_STATE_INTERRUPTIBLE))
 	{
 		sched_wake_up(proc);
@@ -169,7 +169,7 @@ void signal_deliver_pending() {
 	process_t *proc;
 
 	proc = process_get_current();
-	todeliver = proc->sig_pending & proc->sig_blocked;
+	todeliver = signal_pending(proc);
 
 	if(todeliver != 0) {
 		int atomicstate;
@@ -179,6 +179,7 @@ void signal_deliver_pending() {
 
 		for(cursig=0; cursig<SIGNAL_MAX; cursig++) {
 			if(sigismember(&todeliver, cursig)) {
+				printk("signal: try to deliver %d\n", cursig);
 				try_deliver_one(proc, cursig);
 			}
 		}
@@ -190,18 +191,94 @@ void signal_deliver_pending() {
 
 
 int sys_sigaction(int sig, const struct sigaction *act, struct sigaction *oact) {
-	// TODO
-	(void)sig;
-	(void)act;
-	(void)oact;
-	return -1;
+	if(sig>=0 && sig<SIGNAL_MAX) {
+		int index;
+		index = _trans_number2index[sig];
+
+		if(index != _SIGUNDEF) {
+			process_t *cur;
+			cur = process_get_current();
+
+			if(oact != NULL) {
+				*oact = cur->sig_array[index];
+			}
+
+			if(act != NULL) {
+				// can't change the actions for SIGKILL or SIGSTOP
+				if(sig == SIGKILL || sig == SIGSTOP) {
+					return -1;
+				}
+				cur->sig_array[index] = *act;
+			}
+		}
+		else {
+			return -1;
+		}
+
+	}
+	else {
+		return -1;
+	}
+
+	return 0;
 }
 
 
 
 int sys_kill(pid_t pid, int sig) {
-	// TODO
-	(void)pid;
-	(void)sig;
+	if(sig>=0 && sig<SIGNAL_MAX && _trans_number2index[sig] != _SIGUNDEF) {
+		process_t *dest;
+
+		dest = process_from_pid(pid);
+		printk("signal: kill(%d(@%p), %d)\n", pid, dest, sig);
+		if(dest != NULL) {
+			signal_raise(dest, sig);
+		}
+		else {
+			return -1;
+		}
+	}
+	else {
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int sys_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
+	process_t *cur;
+
+	cur = process_get_current();
+	if(oldset != NULL) {
+		*oldset = cur->sig_blocked;
+	}
+
+	if(set != NULL) {
+		switch(how) {
+		case SIG_SETMASK:
+			cur->sig_blocked = *set & ~(SIGKILL | SIGSTOP);
+			break;
+		case SIG_BLOCK:
+			cur->sig_blocked |= (*set & ~(SIGKILL | SIGSTOP));
+			break;
+		case SIG_UNBLOCK:
+			cur->sig_blocked &= ~(*set);
+			break;
+		}
+	}
+
+	return 0;
+}
+
+
+int sys_sigreturn() {
+	process_t *cur = process_get_current();
+
+	sched_preempt_block();
+	arch_signal_restore_sigcontext(cur);
+	sched_preempt_unblock();
+
+	process_contextjmp(cur);
 	return -1;
 }
