@@ -9,7 +9,7 @@
 
 #include <sys/scheduler.h>
 #include <sys/process.h>
-#include <syscalls/arch/syscall.h>
+#include <sys/syscall.h>
 #include <utils/log.h>
 
 extern void syscall_entry();

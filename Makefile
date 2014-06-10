@@ -34,7 +34,6 @@ endif
 # top level sources
 
 C_SRC+= \
-	syscalls/arch/syscall.c \
 	init.c tests.c
 
 ASM_SRC+= \

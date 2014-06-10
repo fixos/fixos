@@ -4,7 +4,8 @@ C_SRC_L:= \
 	process.c files.c scheduler.c \
 	time.c stimer.c\
 	mutex.c \
-	signal.c
+	signal.c \
+	syscall.c
 
 
 CURDIR:=sys
