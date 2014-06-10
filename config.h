@@ -20,6 +20,10 @@
 
 // TODO
 
+// If defined, try to force optimizer to remove printk() calls (and constants
+// passed to it), usefull to check how much size is used by printk() messages
+//#define CONFIG_PRINTK_DUMMY		y
+
 
 #endif //_FIXOS_CONFIG_H
 

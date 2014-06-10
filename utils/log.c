@@ -15,7 +15,7 @@ static struct file *current_log_file = NULL;
 
 static void print_to_file(const char *str);
 
-
+#ifndef CONFIG_PRINTK_DUMMY
 void printk(const char *str, ...)
 {
 	if(current_kernel_print != NULL) {
@@ -90,6 +90,7 @@ void printk(const char *str, ...)
 		va_end(vargs);
 	}
 }
+#endif //!CONFIG_PRINTK_DUMMY
 
 
 void set_kernel_print(print_callback_t func)

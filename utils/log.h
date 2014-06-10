@@ -11,7 +11,15 @@ struct file;
  * Currently, only some modifier are allowed : %s, %x, %p, %d
  * The print callback will be called at least once, but it may be called many time.
  */
+#ifdef CONFIG_PRINTK_DUMMY
+extern inline void printk(const char *str, ...) {
+	(void)str;
+}
+#else
 void printk(const char *str, ...) __attribute__ ((format (printf, 1, 2)));
+#endif
+
+
 
 /**
  * Set the printk function used for print a string chunk.
