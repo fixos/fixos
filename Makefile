@@ -30,7 +30,6 @@ include utils/subdir.mk
 endif
 
 
-
 # top level sources
 
 C_SRC+= \
@@ -42,6 +41,7 @@ ASM_SRC+= \
 
 
 OBJ:=$(filter %.o, $(C_SRC:.c=.o) $(ASM_SRC:.S=.o) $(ASM_SRC:.s=.o))
+DEPS:=$(C_SRC:.c=.d)
 
 
 $(KERNELNAME): $(OBJ)
@@ -49,8 +49,18 @@ $(KERNELNAME): $(OBJ)
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $@.big $@
 
 
+
+# auto-generated dependencies (assume CC is compatible with gcc -M family commands)
+# (may use -MG if generated headers are used?)
+-include $(DEPS)
+
+%.d:
+	@touch $@
+
+
 %.o: %.c
 	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) $(CCFLAGS) -M -MF"$(<:.c=.d)" -MP -MT"$@" -MT"$(<:.c=.d)" "$<"
 
 %.o: %.s
 	$(CC) -c $(CCFLAGS) -o $@ $<
@@ -71,7 +81,7 @@ bootloader:
 .PHONY: clean distclean re all user bootloader
 
 clean:
-	rm -f $(OBJ) $(ELF) $(BINARY) config.mk
+	rm -f $(OBJ) $(DEPS) config.mk
 	$(MAKE) -C user/ clean
 	$(MAKE) -C bootloader/ clean
 
@@ -80,7 +90,11 @@ distclean: clean
 	$(MAKE) -C user/ distclean
 	$(MAKE) -C bootloader/ distclean
 
-re: distclean all
+# yes, that seems weird, but ensures order (even if invoked with -jX)
+re:
+	$(MAKE) -C ./ distclean
+	$(MAKE) -C ./ all
+
 
 
 # autogenerate configuration file for makefiles from config.h

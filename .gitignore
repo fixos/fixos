@@ -3,6 +3,8 @@
 *.o
 fixos
 *.elf
+*.d
+config.mk
 bootloader/bootldr.bin
 bootloader/bootldr.elf
 bootloader/bootldr.g1a
