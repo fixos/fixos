@@ -11,7 +11,7 @@
 
 
 
-#define SYSCALL_NUMBER		16
+#define SYSCALL_NUMBER		17
 
 // for kernel-part syscall handling
 extern void* _syscall_funcs[];

@@ -212,6 +212,40 @@ void test_handle_sig(int sig) {
 }
 
 
+// try to create a pipe, then to fork
+// the parent process will copy each byte in fdin to pipe input, and
+// the child process will copy each byte in pipe output to fdout
+void test_fork_pipe(int fdin, int fdout) {
+	pid_t pid;
+	int pipefd[2];
+	char buf;
+
+	if(pipe2(pipefd, 0) != 0) {
+		write_const(fdout, "pipe failed!\n");
+		exit(1);
+	}
+
+	pid = fork();
+	if(pid == 0) {
+		// child process
+		write_const(fdout, "And I am his son!\n");
+		while(1) {
+			if(read(pipefd[1], &buf, 1) > 0)
+				write(fdout, &buf, 1);
+		}
+	}
+	else {
+		// parent process
+		write_const(fdout, "I'm the father!\n");
+		while(1) {
+			if(read(fdin, &buf, 1) > 0)
+				write(pipefd[0], &buf, 1);
+		}
+	}
+}
+
+
+
 int usertest_main(int argc, char **argv) {
 	// try to open "/dev/console"
 	int fd;
@@ -223,6 +257,9 @@ int usertest_main(int argc, char **argv) {
 	fd_serial = open("/dev/serial", 456);
 
 	write_const(fd_serial, "*** Hi, dear serial terminal!\n");
+
+	test_fork_pipe(fd, fd_serial);
+
 	if(argc>0) {
 		test_handle_sig(SIGINT);
 		print_args(fd_serial, argc, argv);

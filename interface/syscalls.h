@@ -51,4 +51,7 @@
 //extern int sigreturn();
 #define SYSCALL_SIGRETURN	15
 
+//extern int pipe2(int pipefd[2], int flags);
+#define SYSCALL_PIPE2		16
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

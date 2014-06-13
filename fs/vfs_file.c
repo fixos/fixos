@@ -47,8 +47,8 @@ struct file *vfs_open(inode_t *inode) {
 
 void vfs_close(struct file *filep) {
 	// release the file and free it
-	if(filep->inode->file_op->release != NULL) {
-		filep->inode->file_op->release(filep);
+	if(filep->op->release != NULL) {
+		filep->op->release(filep);
 	}
 
 	vfs_file_free(filep);
@@ -56,8 +56,8 @@ void vfs_close(struct file *filep) {
 
 
 size_t vfs_read(struct file *filep, void *dest, size_t nb) {
-	if(filep->inode->file_op->read != NULL) {
-		return filep->inode->file_op->read(filep, dest, nb);
+	if(filep->op->read != NULL) {
+		return filep->op->read(filep, dest, nb);
 	}
 	else {
 		// TODO return -1 (and change return type to a signed type -> off_t)
@@ -67,8 +67,8 @@ size_t vfs_read(struct file *filep, void *dest, size_t nb) {
 
 
 size_t vfs_write(struct file *filep, const void *source, size_t nb) {
-	if(filep->inode->file_op->write != NULL) {
-		return filep->inode->file_op->write(filep, (void*)source, nb);
+	if(filep->op->write != NULL) {
+		return filep->op->write(filep, (void*)source, nb);
 	}
 	else {
 		// TODO return -1 (and change return type to a signed type -> off_t)
@@ -77,8 +77,8 @@ size_t vfs_write(struct file *filep, const void *source, size_t nb) {
 }
 
 off_t vfs_lseek(struct file *filep, off_t offset, int whence) {
-	if(filep->inode->file_op->lseek != NULL) {
-		return filep->inode->file_op->lseek(filep, offset, whence);
+	if(filep->op->lseek != NULL) {
+		return filep->op->lseek(filep, offset, whence);
 	}
 	else {
 		return filep->pos;
@@ -87,8 +87,8 @@ off_t vfs_lseek(struct file *filep, off_t offset, int whence) {
 
 
 int vfs_ioctl(struct file *filep, int cmd, void *data) {
-	if(filep->inode->file_op->ioctl != NULL) {
-		return filep->inode->file_op->ioctl(filep, cmd, data);
+	if(filep->op->ioctl != NULL) {
+		return filep->op->ioctl(filep, cmd, data);
 	}
 	else {
 		return -1;

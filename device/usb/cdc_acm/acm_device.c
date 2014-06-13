@@ -37,6 +37,7 @@ struct file_operations* acm_usb_get_file_op(uint16 minor) {
 
 int acm_usb_open(inode_t *inode, struct file *filep) {
 	if(inode->typespec.dev.minor == ACM_DEVICE_MINOR) {
+		filep->op = &_fop_acm_usb;
 		return 0;
 	}
 

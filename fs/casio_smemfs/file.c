@@ -25,6 +25,7 @@ int smemfs_open (inode_t *inode, struct file *filep) {
 	else {
 		//printk("smemfs_open: file %p opened.\n", filep);
 		filep->private_data = NULL;
+		filep->op = & smemfs_file_operations;
 		return 0;
 	}
 }

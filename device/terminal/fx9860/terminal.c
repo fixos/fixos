@@ -197,6 +197,7 @@ int fx9860_term_open(inode_t *inode, struct file *filep) {
 	// consider this function may be called many times, and only for minor 1
 	
 	if(inode->typespec.dev.minor == FX9860_TERM_MINOR_TERMINAL) {
+		filep->op = &_fop_screen;
 		return 0;
 	}
 

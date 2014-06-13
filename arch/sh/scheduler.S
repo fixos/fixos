@@ -43,5 +43,6 @@ _arch_sched_preempt_task:
 	mov.l r15, @r4
 
 	jmp @r5
+	nop
 
 

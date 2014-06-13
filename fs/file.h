@@ -20,9 +20,12 @@ struct file {
 	int open_mode;
 	int flags;
 
-	// inode associated to this file
-	// file_operations can be retrievied using inode->file_op
+	// inode associated to this file, may be NULL for special files (pipes...)
 	inode_t *inode;
+
+	// file operations to use, usualy the same as inode->file_op (but must be
+	// used because inode may be NULL, not op!)
+	struct file_operations *op;
 
 	// Pointer to a data structure depending of the FS of the file (may be NULL)
 	void *private_data; 
