@@ -468,7 +468,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 					"mov %4, r0;"
 					"jmp @r0;"
 					"nop;" : : "r"(cur->kernel_stack - sizeof(*(cur->acnt))), "r"(&mem_pm_release_page),
-							"r"(old_kstack), "r"(cur), "r"(&process_contextjmp)
+							"r"(old_kstack-1), "r"(cur), "r"(&process_contextjmp)
 							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
 
 			printk("execve: this should not happen!\n");
