@@ -25,7 +25,7 @@ _initialize:
 init:
   .long _init
 stack_start:
-  .long 0x88010000  ! temp stack address, at RAM + 64kio
+  .long _end_stack		! defined in fixos.ld
 
 
 !TODO change stack address...

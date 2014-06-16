@@ -6,13 +6,11 @@
 #include <sys/memory.h>
 
 // symbols and const for computing number of pages...
-extern void * end_static_ram;
-// size of RAM in bytes (2^16)
-#define RAM_SIZE (1024<<6)
+extern void * end_stack;
+// default size of the RAM, as a log2 of bytes (used if unable to auto-detect)
+#define RAM_DEFAULT_ORDER (17)
 #define RAM_START_ADDRESS 0x08000000
 
-// TODO better solution
-#define STACK_PAGES	4
 
 // global symbol for the first free page :
 static pm_freepage_head_t *pm_first_free = (void*)0;
@@ -20,24 +18,74 @@ static pm_freepage_head_t *pm_first_free = (void*)0;
 // mainly for debuging
 static int pm_nbfree = 0;
 
+// variable used to detect RAM size
+static unsigned int pm_watermark = 0;
+#define WATERMARK_START		0x12345678
+#define WATERMARK_CHECK		0xF0F00F0F
+#define WATERMARK_CONFIRM	0x0F0FF0F0
+
+
+// try to guess the RAM size by taking advantage of partial address decoding
+// return the log2(RAM size)
+static int pm_discover_ram_order() {
+	int cur_order;
+	int confirmed = 0;
+	volatile unsigned int *watermark;
+
+	watermark = P2_SECTION_BASE + SECTION_OFFSET(&pm_watermark);
+	*watermark = WATERMARK_START;
+
+	for(cur_order = PM_PAGE_ORDER; !confirmed && cur_order<26 ; cur_order++) {
+		volatile unsigned int *tocheck;
+
+		tocheck = ((void*)watermark) + (1<<cur_order);
+		// test if watermark can be accessed by the two ptr
+		if(*tocheck == WATERMARK_START) {
+			*watermark = WATERMARK_CHECK;
+
+			if(*tocheck == WATERMARK_CHECK) {
+				*watermark = WATERMARK_CONFIRM;
+				if(*tocheck == WATERMARK_CONFIRM)
+					confirmed = cur_order;
+			}
+
+			if(!confirmed)
+				*watermark = WATERMARK_START;
+		}
+
+	}
+
+	if(!confirmed) {
+		printk("pm_discover: unable to discover RAM size!\n");
+		// default value
+		return (RAM_DEFAULT_ORDER);
+	}
+
+	return confirmed;
+}
+
+
+
 void pm_init_pages()
 {
-	// TODO STAAAAACK!!! Not in free page list :'(
-	
 	pm_freepage_head_t *page;
 	
 	unsigned int phy_end;
 	int i;
 	int nb_pages;
+	int ram_order;
 
-	phy_end = (unsigned int)(&end_static_ram) & 0x1FFFFFFF;
+	phy_end = (unsigned int)(&end_stack) & 0x1FFFFFFF;
+
+	ram_order = pm_discover_ram_order();
+	printk("Total RAM size about %dKio...\n", 1<<(ram_order-10));
 
 	// go to the first *fully* free page
 	page = (void*)( ((phy_end-1) & (0xFFFFFFFF << PM_PAGE_ORDER))
 			+ (1<<PM_PAGE_ORDER) );
 
-	nb_pages = ( (RAM_SIZE + RAM_START_ADDRESS) - (unsigned int)(page) )
-		/ PM_PAGE_BYTES - STACK_PAGES;
+	nb_pages = ( ((1<<ram_order) + RAM_START_ADDRESS) - (unsigned int)(page) )
+		/ PM_PAGE_BYTES;
 
 	// don't forget to 'translate' page pointer to P1 or P2 area!
 	page = (void*)((int)page + P1_SECTION_BASE);
@@ -66,7 +114,7 @@ int pm_get_free_page(unsigned int *ppn)
 	{
 		*ppn = PM_PHYSICAL_PAGE(pm_first_free);
 		pm_first_free = pm_first_free->next;
-		//printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
+		printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
 		pm_nbfree--;
 		return 0;
 	}
@@ -87,10 +135,10 @@ void pm_free_page(unsigned int ppn)
 		page = PM_PHYSICAL_ADDR(ppn);
 		page = (void*)((int)page + P1_SECTION_BASE);
 
+		printk("free pm: %p (->%p)\n", page, pm_first_free);
+
 		page->next = pm_first_free;
 		pm_first_free = page;
-
-		//printk("free pm: %p\n", page);
 
 		pm_nbfree++;
 	}

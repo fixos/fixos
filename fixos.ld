@@ -15,7 +15,7 @@ ENTRY(_initialize)
 
 MEMORY
 {
-	osram :   o = 0x88000000, l = 64k  /* for fx-9860G */
+	osram :   o = 0x88000000, l = 128k  /* for fx-9860G */
 }
 
 SECTIONS
@@ -68,6 +68,12 @@ SECTIONS
 
 		/* symbol for the end of static data */
 		_end_static_ram = . ;
+		/* initial kernel stack is set here, inside the .bss section, but can be
+		 * free'd once control is transfered to user-space init */
+		. = ALIGN(1024);
+		_begin_stack = . ;
+		. = . + 4096 ;
+		_end_stack = . ;
 	} > osram
 }
 
