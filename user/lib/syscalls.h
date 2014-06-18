@@ -44,4 +44,7 @@ extern int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
 
 extern int pipe2(int pipefd[2], int flags);
 
+extern int ioctl(int fd, int request, void *arg);
+ 
+
 #endif //_SYSCALLS_SYSCALLS_H

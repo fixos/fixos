@@ -76,6 +76,20 @@ ssize_t sys_write(int fd, const char *source, int nb){
 	return -1;
 }
 
+int sys_ioctl(int fd, int request, void *arg) {
+	process_t *proc;
+
+	proc = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+		return vfs_ioctl(proc->files[fd], request, arg);	
+	}
+	else {
+		printk("sys_ioctl: invalid fd (%d)\n", fd);
+	}	
+
+	return -1;
+}
+
 
 int sys_pipe2(int pipefd[2], int flags) {
 	process_t *proc;

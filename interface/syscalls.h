@@ -54,4 +54,7 @@
 //extern int pipe2(int pipefd[2], int flags);
 #define SYSCALL_PIPE2		16
 
+//extern int ioctl(int fd, int request, void *arg);
+#define SYSCALL_IOCTL		17
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

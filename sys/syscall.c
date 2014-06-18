@@ -23,7 +23,8 @@ void* _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_kill,
 	&sys_sigprocmask,
 	&sys_sigreturn,
-	&sys_pipe2
+	&sys_pipe2,
+	&sys_ioctl
 };
 
 
