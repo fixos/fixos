@@ -27,6 +27,8 @@
 #include "device/keyboard/fx9860/keymatrix.h"
 #include "arch/sh/rtc.h"
 
+#include "device/display/display.h"
+
 #include "arch/sh/freq.h"
 
 #include "tests.h"
@@ -182,6 +184,13 @@ void init() {
 
 	vfs_mount("smemfs", "/mnt/smem", VFS_MOUNT_NORMAL);
 	
+	DBG_WAIT;
+
+	// set /dev/display device
+	_display_device.init();
+	dev_register_device(&_display_device, 0x20);
+	vfs_create("/dev", "display", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00200001);
+
 	DBG_WAIT;
 
 	//test_keymatrix();
