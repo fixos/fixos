@@ -20,6 +20,13 @@ MEMORY
 
 SECTIONS
 {
+	/* place for command-line arguments */
+	.cmdargs : {
+		_cmdargs_begin = . ;
+		. = . + 1024 ;
+		_cmdargs_end = . ;
+	} > osram
+
 	.text : {
 		*(.pretext);     /* init stuff */
 		*(.text);

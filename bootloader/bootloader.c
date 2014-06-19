@@ -36,12 +36,15 @@
 #include <fs/casio_smemfs/smemfs_primitives_ng.h>
 #include <utils/strutils.h>
 
-
 // absolute path of configuration file in SMEM
 #define CFG_FILE_PATH	"/bootldr.cfg"
 
 #define _CASIO_FS ((void*)(0xA0270000))
 #define _CASIO_STORAGE_MEM ((void*)(0xA0000000)) 
+
+// for now, command line arguments are designed to work for FiXos kernel design
+#define CMDLINE_ADDR	(void*)(0x88000000)
+#define CMDLINE_MAX		1024
 
 
 // bootloader configuration
@@ -163,6 +166,20 @@ static void parse_config_file(struct smem_file *file) {
 }
 
 
+static void bootloader_boot_entry(struct boot_entry *entry) {
+	char *cmdline;
+	int i;
+
+	// boot on current entry
+	// TODO test entry type
+	cmdline = entry->args;
+	if(cmdline[0] == '\0')
+		cmdline = NULL;
+
+	elf_load_kernel(entry->kernel, cmdline, CMDLINE_ADDR,
+			CMDLINE_MAX);
+}
+
 
 void bootloader_init() {
 	struct smem_file cfgfile;
@@ -259,9 +276,7 @@ void bootloader_init() {
 			}
 
 			else if(key == KEY_CTRL_EXE  || key == KEY_CTRL_SHIFT) {
-				// boot on current entry
-				// TODO test entry type
-				elf_load_kernel(_entries[selected-1].kernel);
+				bootloader_boot_entry(& _entries[selected-1]);
 
 				// if function return, we have a problem...
 				casio_Bdisp_AllClr_VRAM();
@@ -276,9 +291,7 @@ void bootloader_init() {
 	}
 	else {
 		// quiet mode, do not echo any thing and start immediatly default entry
-
-		// TODO test entry type
-		elf_load_kernel(_entries[selected-1].kernel);
+		bootloader_boot_entry(& _entries[selected-1]);
 
 		// if function return, we have a problem...
 		casio_Bdisp_AllClr_VRAM();

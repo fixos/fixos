@@ -26,10 +26,14 @@ int elf_load_segment(struct smem_file *filep, const struct elf_prog_header *ph);
 /**
  * Load all segments of the given ELF file, after checking everything is
  * correct.
+ * If cmdline is not NULL, its content is copied at cmd_addr, overwriting any
+ * content set before. Note that cmdline is expected to be a C string, and will
+ * be truncated if its size is greater than cmd_max.
  * In success case, jump to the entry point immediately after kernel is loaded
  * (and never return, of course).
  * Else, a negative value is returned.
  */
-int elf_load_kernel(const char *path);
+int elf_load_kernel(const char *path, const char *cmdline, void *cmd_addr,
+		int cmd_max);
 
 #endif //_BOOTLOADER_ELF_LOADER_H

@@ -35,6 +35,8 @@
 #include "utils/strutils.h"
 
 extern void * fixos_vbr;  // see fixos.ld
+extern char cmdargs_begin;
+extern char cmdargs_end;
 
 
 volatile int _magic_lock = 0;
@@ -91,9 +93,10 @@ void init() {
 	rtc_init();
 	time_init();
 
-	set_kernel_print(&earlyterm_write);
-
 	earlyterm_write("Kernel initialization...\n");
+
+	set_kernel_print(&earlyterm_write);
+	printk("cmd args: '%s'\n", &cmdargs_begin);
 
 	mmu_init();
 	pm_init_pages();

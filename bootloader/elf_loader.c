@@ -45,7 +45,9 @@ int elf_load_segment(struct smem_file *filep, const struct elf_prog_header *ph) 
 
 
 
-int elf_load_kernel(const char *path) {
+int elf_load_kernel(const char *path, const char *cmdline, void *cmd_addr,
+		int cmd_max)
+{
 	struct smem_file kernel;
 	struct elf_header header;
 	int ret = -1;
@@ -90,10 +92,19 @@ int elf_load_kernel(const char *path) {
 			}
 
 			if(!error) {
-					// success, jump to entry point!
-					void (*entry)() = (void*)header.entry;
-					entry();
-					// never reach this line...
+				// copy the given command line arguments
+				if(cmdline != NULL) {
+					for(i=0; i<cmd_max && cmdline[i] != '\0'; i++)
+						((char*)cmd_addr)[i] = cmdline[i];
+
+					if(i >= cmd_max)
+						i--;
+					((char*)cmd_addr)[i] = '\0';
+				}
+				// success, jump to entry point!
+				void (*entry)() = (void*)header.entry;
+				entry();
+				// never reach this line...
 			}
 			else
 				ret = -2;
