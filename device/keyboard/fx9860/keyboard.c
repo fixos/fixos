@@ -3,6 +3,9 @@
 #include "key_codes.h"
 #include "matrix_codes.h"
 
+// to enable virtual term switching
+#include <device/terminal/virtual_term.h>
+
 
 static kbd_key_handler _kbd_key_stroke = NULL;
 
@@ -43,8 +46,8 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 
 	if(_kbd_status & KBD_STATE_ALPHA) {
 		switch (matrixcode) {
-			case K_F1:	return KEY_; break;
-			case K_F2: return KEY_; break;
+			case K_F1:	return KEY_F1; break;
+			case K_F2: return KEY_F2; break;
 			case K_F3: return KEY_; break;
 			case K_F4: return KEY_; break;
 			case K_F5: return KEY_; break;
@@ -106,8 +109,8 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 	}
 	else if(_kbd_status & KBD_STATE_SHIFT) {
 		switch (matrixcode) {
-			case K_F1:	return KEY_; break;
-			case K_F2: return KEY_; break;
+			case K_F1:	return KEY_F1; break;
+			case K_F2: return KEY_F2; break;
 			case K_F3: return KEY_; break;
 			case K_F4: return KEY_; break;
 			case K_F5: return KEY_; break;
@@ -169,8 +172,8 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 	}
 	else {
 		switch (matrixcode) {
-			case K_F1:	return KEY_; break;
-			case K_F2: return KEY_; break;
+			case K_F1:	return KEY_F1; break;
+			case K_F2: return KEY_F2; break;
 			case K_F3: return KEY_; break;
 			case K_F4: return KEY_; break;
 			case K_F5: return KEY_; break;
@@ -261,6 +264,7 @@ void kbd_kpressed_handler(int code) {
 	else {
 		int i;
 		struct kbd_keypressed *kfree = NULL;
+		int converted;
 
 		// check in the list of key pressed if this one exists, else add it
 		for(i=0; i<KBD_MAX_KEYS; i++) {
@@ -279,8 +283,14 @@ void kbd_kpressed_handler(int code) {
 		}
 
 
-		if(_kbd_key_stroke != NULL)
-			_kbd_key_stroke(kdb_convert_keymatrix_code(code));
+		converted = kdb_convert_keymatrix_code(code);
+		// low-level key events : switch virtual terminals
+		if(converted >= KEY_F1 && converted <= KEY_F6) {
+			vt_set_active(converted - KEY_F1);
+		}
+		else if(_kbd_key_stroke != NULL) {
+			_kbd_key_stroke(converted);
+		}
 
 		// clear SHIFT/ALPHA flags
 		if((_kbd_status & KBD_STATE_ALPHALOCK) == KBD_STATE_ALPHALOCK)

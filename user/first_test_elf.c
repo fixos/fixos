@@ -3,6 +3,7 @@
  */
 
 #include "lib/syscalls.h"
+#include <display.h>
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
 
@@ -85,14 +86,16 @@ void print_args(int fd, int argc, char **argv) {
 	int car;
 	write_const(fd, "Args:\n");
 	for(argnb=0; argnb<argc; argnb++) {
-		/*for(car=0; argv[argnb][car] != '\0'; car++);
+		for(car=0; argv[argnb][car] != '\0'; car++);
 		write(fd, "\"", 1);
 		write(fd, argv[argnb], car);
 		write(fd, "\"\n", 2);
-		*/
+		
+		/*
 		write_const(fd, "  0x");
 		write_int_hex(fd, (unsigned int)argv[argnb]);
 		write_const(fd, "\n");
+		*/
 	}
 }
 
@@ -166,7 +169,7 @@ void test_fork_wait(int fd_serial) {
 	}
 }
 */
-
+/*
 void test_simple_signals(int fdout, int fdin, pid_t pid) {
 	int state;
 
@@ -243,7 +246,68 @@ void test_fork_pipe(int fdin, int fdout) {
 		}
 	}
 }
+*/
 
+
+// test direct display using /dev/display device
+int test_display(int fdout) {
+	int disp;
+	struct display_info info;
+	char *vram;
+
+	disp = open("/dev/display", 123);
+
+	ioctl(disp, DISPCTL_INFO, &info);
+	write_const(fdout, "info :\n  w=0x");
+	write_int_hex(fdout, info.width);
+	write_const(fdout, "\n  h=0x");
+	write_int_hex(fdout, info.height);
+	write_const(fdout, "\n  size=0x");
+	write_int_hex(fdout, info.vram_size);
+	write_const(fdout, "\n");
+
+
+	// simple "FPS" test
+	if(ioctl(disp, DISPCTL_SETMODE, (void*)(DISPMODE_ACTIVATE)) == 0) {
+		if(ioctl(disp, DISPCTL_MAPVRAM, &vram) == 0) {
+			struct hr_time prev;
+			unsigned char val = 0xFF;
+			int i;
+			int fps = 0;
+
+			gettimeofday(&prev, NULL);
+			while(1) {
+				struct hr_time cur;
+				for(i=0; i<info.vram_size; i++)
+					vram[i] = val;
+
+				if(val == 0x00)
+					val = 0xFF;
+				else
+					val = 0x00;
+
+				ioctl(disp, DISPCTL_DISPLAY, NULL);
+
+				fps++;
+
+				gettimeofday(&cur, NULL);
+				if(cur.sec - prev.sec >= 1) {
+					prev.sec = cur.sec;
+					prev.nano = cur.nano;
+					write_const(fdout, "fps: 0x");
+					write_int_hex(fdout, fps);
+					write_const(fdout, "\n");
+					fps = 0;
+				}
+		
+			}
+		}
+	}
+
+
+	while(1);
+	return 0;
+}
 
 
 int usertest_main(int argc, char **argv) {
@@ -258,8 +322,18 @@ int usertest_main(int argc, char **argv) {
 
 	write_const(fd_serial, "*** Hi, dear serial terminal!\n");
 
-	test_fork_pipe(fd, fd_serial);
+	int tty1 = open("/dev/tty1", 123);
+	int tty2 = open("/dev/tty2", 123);
 
+	write_const(tty1, "I'm writing on tty1.\n");
+	write_const(tty2, "I'm writing on tty2.\n");
+
+	test_copy_files(tty2, tty1, 1);
+
+	//test_display(fd_serial);
+	
+	//test_fork_pipe(fd, fd_serial);
+/*
 	if(argc>0) {
 		test_handle_sig(SIGINT);
 		print_args(fd_serial, argc, argv);
@@ -284,7 +358,8 @@ int usertest_main(int argc, char **argv) {
 			test_simple_signals(fd_serial, fd, pid);
 		}
 	}
+*/
 
-
+	exit(0);
 	return 0;
 }

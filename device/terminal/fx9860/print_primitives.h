@@ -8,8 +8,7 @@
 
 #define FX9860_TERM_CURSOR_CHAR	((char)177)
 /**
- * write a character with the terminal police
- * TODO : less arguments to write_char!!!
+ * write a character with the terminal font
  */
 void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c, int back_c, char c, void *vram);
 

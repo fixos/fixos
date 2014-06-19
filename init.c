@@ -18,6 +18,7 @@
 
 #include "device/device_registering.h"
 #include "device/terminal/fx9860/terminal.h"
+#include "device/terminal/virtual_term.h"
 
 #include "device/usb/usb_device_protocol.h"
 #include "device/usb/cdc_acm/acm_device.h"
@@ -130,10 +131,11 @@ void init() {
 	vfs_init();
 	vfs_file_init();
 
-	// add fx9860 terminal in device list, with major number 20
 	dev_init();
-	_fx9860_term_device.init();
-	dev_register_device(&_fx9860_term_device, 20);
+	// add virtual terminal device (on major 4)
+	virtual_term_device.init();
+	dev_register_device(&virtual_term_device, 4);
+
 
 	// add usb-acm device, major number 3
 	// USB initialisation
@@ -146,7 +148,9 @@ void init() {
 	vfs_mount("protofs", NULL, VFS_MOUNT_ROOT);
 
 	vfs_create("/", "dev", INODE_TYPE_PARENT, INODE_FLAG_READ | INODE_FLAG_EXEC, 0);
-	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00140001);
+	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040000);
+	vfs_create("/dev", "tty1", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040000);
+	vfs_create("/dev", "tty2", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040001);
 	vfs_create("/dev", "serial", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00030000);
 
 	DBG_WAIT;
@@ -165,9 +169,10 @@ void init() {
 			 // vfs_write(filep, "Hello!\n", 7); 
 
 			 // set printk() callback func
+			 vt_set_active(0);
 			 set_kernel_print_file(console);
 			 printk("From fx9860 terminal : Hello!\nNow using /dev/console device!\n");
-			 kbd_set_kstroke_handler(&fx9860_term_key_stroke);
+			 kbd_set_kstroke_handler(&vt_key_stroke);
 		 }
 		 else {
 			 printk("[W] Unable to open fx9860 term\n");
