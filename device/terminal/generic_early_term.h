@@ -5,6 +5,7 @@
  * Interface and definitions for the early terminal, used to print informations
  * during first boot steps.
  * The interface need to be implemented by platform-specific files.
+ * TODO make early term implementation generic, on the top of text_display interface!
  *
  * The goal of these functions is to allow to use display before initialization
  * of high-level part of the kernel, such as device registering and VFS.

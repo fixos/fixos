@@ -17,7 +17,6 @@
 #include "fs/vfs_file.h"
 
 #include "device/device_registering.h"
-#include "device/terminal/fx9860/terminal.h"
 #include "device/terminal/virtual_term.h"
 
 #include "device/usb/usb_device_protocol.h"
