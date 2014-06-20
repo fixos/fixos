@@ -34,6 +34,8 @@
 #include "tests.h"
 #include "utils/strutils.h"
 
+#include "sys/cmdline.h"
+
 extern void * fixos_vbr;  // see fixos.ld
 extern char cmdargs_begin;
 extern char cmdargs_end;
@@ -50,6 +52,37 @@ void print_usb_ep2(const char *str) {
 }
 
 
+static int _console_usb = -1;
+// default is tty1
+static int _console_tty = 1;
+
+int parse_console(const char *val) {
+	//printk("ARG: console='%s'\n", val);
+	if(val != NULL) {
+		if(val[0]=='t' && val[1]=='t' && val[2]=='y') {
+			// check for ttyn
+			if(val[3] >= '1' && val[3] <= '9') {
+				_console_tty = val[3] - '0';
+				_console_usb = -1;
+				printk("console: will use tty%d soon\n", _console_tty);
+				return 0;
+			}
+
+			// check for USB0
+			else if(!strcmp(val+3, "USB0")) {
+				_console_usb = 0;
+				_console_tty = -1;
+				printk("console: will use USB soon\n");
+				return 0;
+			}
+		}
+	}
+	printk("malformed 'console' parameter\n");
+	return -1;
+}
+
+
+KERNEL_BOOT_ARG(console, parse_console);
 
 
 // Real entry point of the OS :
@@ -97,6 +130,8 @@ void init() {
 
 	set_kernel_print(&earlyterm_write);
 	printk("cmd args: '%s'\n", &cmdargs_begin);
+
+	cmdline_parse(&cmdargs_begin, 1024);
 
 	mmu_init();
 	pm_init_pages();
@@ -150,10 +185,18 @@ void init() {
 	vfs_mount("protofs", NULL, VFS_MOUNT_ROOT);
 
 	vfs_create("/", "dev", INODE_TYPE_PARENT, INODE_FLAG_READ | INODE_FLAG_EXEC, 0);
-	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040000);
 	vfs_create("/dev", "tty1", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040000);
 	vfs_create("/dev", "tty2", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040001);
 	vfs_create("/dev", "serial", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00030000);
+
+	// choose console to use :
+	uint32 console_node = 0x00040000;
+	if(_console_tty > 0)
+		console_node = 0x00040000 + (_console_tty - 1);
+	else if(_console_usb != -1)
+		console_node = 0x00030000;
+
+	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, console_node);
 
 	DBG_WAIT;
 

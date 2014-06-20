@@ -5,7 +5,8 @@ C_SRC_L:= \
 	time.c stimer.c\
 	mutex.c \
 	signal.c \
-	syscall.c
+	syscall.c \
+	cmdline.c
 
 
 CURDIR:=sys

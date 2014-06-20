@@ -58,6 +58,10 @@ SECTIONS
 	} > osram
 
 	.rodata : {
+		. = ALIGN(4);
+		_argvector_begin = . ;
+		*(.vector.kernelarg);
+		_argvector_end = . ;
 		*(.rodata);
 		*(.rodata.*);
 	} > osram
