@@ -32,7 +32,7 @@ struct _file_system smemfs_file_system = {
 	.next_sibling = smemfs_next_sibling,
 	.find_sub_node = smemfs_find_sub_node,
 	.get_inode = smemfs_get_inode,
-	.create_node = NULL
+	.create_node = NULL,
 };
 
 // 1 if SMEM FS instance is already mounted
@@ -154,7 +154,7 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 
 
 	ret->fs_op = inst;
-	ret->file_op = &smemfs_file_operations;
+	ret->open = &smemfs_open;
 	ret->abstract = (void*)header; // more data ?
 
 	if(header == NULL)
@@ -186,3 +186,21 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 	
 	return ret;
 }
+
+
+int smemfs_open (inode_t *inode, struct file *filep) {
+	// if node is not a directory or ROOT node
+	// TODO maybe a directory must be openned to use readdir-like function
+	
+	if((inode->type_flags & INODE_TYPE_PARENT) || (inode->type_flags & INODE_TYPE_ROOT)) {
+		//printk("smemfs_open: bad flags (%p)\n", (void*)inode->type_flags);
+		return -1;	
+	}
+	else {
+		//printk("smemfs_open: file %p opened.\n", filep);
+		filep->private_data = NULL;
+		filep->op = & smemfs_file_operations;
+		return 0;
+	}
+}
+

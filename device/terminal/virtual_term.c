@@ -30,12 +30,11 @@ static int _vt_current;
 struct device virtual_term_device = {
 	.name = "v-term",
 	.init = &vt_init,
-	.get_file_op = &vt_get_file_op
+	.open = &vt_open
 };
 
 
 static struct file_operations _vt_fop = {
-	.open = &vt_open,
 	.release = &vt_release,
 	.write = &vt_write,
 	.read = &vt_read,
@@ -163,14 +162,6 @@ void vt_key_stroke(int code) {
 }
 
 
-struct file_operations *vt_get_file_op(uint16 minor) {
-	if(minor < VT_MAX_TERMINALS) {
-		return &_vt_fop;
-	}
-	return NULL;
-}
-
-
 void vt_set_active(int term) {
 	if(term >= -1 && term < VT_MAX_TERMINALS) {
 		if(term != _vt_current) {
@@ -185,8 +176,7 @@ void vt_set_active(int term) {
 
 
 
-int vt_open(inode_t *inode, struct file *filep) {
-	uint16 minor = inode->typespec.dev.minor;
+int vt_open(uint16 minor, struct file *filep) {
 	if(minor < VT_MAX_TERMINALS) {
 		filep->op = &_vt_fop;
 		filep->private_data = (void*)((int)minor);

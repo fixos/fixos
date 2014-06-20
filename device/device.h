@@ -6,6 +6,7 @@
  */
 
 #include <utils/types.h>
+#include <fs/file.h>
 
 
 #define DEVICE_MAX_NAME 12
@@ -22,11 +23,10 @@ struct device {
 	void (*init)();
 
 	/**
-	 * Get file_operations structure corresponding to a minor ID.
-	 * If the minor doesn't exists in this device, returns NULL.
+	 * Open the device as a file, for the given minor ID.
+	 * filep is a pointer to an already allocated file structure.
 	 */
-	struct file_operations* (*get_file_op)(uint16 minor);
-
+	int (*open)(uint16 minor, struct file *filep);
 };
 
 #endif //_DEVICE_DEVICE_H

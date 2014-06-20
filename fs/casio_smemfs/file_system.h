@@ -26,4 +26,6 @@ inode_t * smemfs_find_sub_node (inode_t *target, const char *name);
 
 inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 node);
 
+int smemfs_open (inode_t *inode, struct file *filep);
+
 #endif //_FS_SMEMFS_FILE_SYSTEM_H

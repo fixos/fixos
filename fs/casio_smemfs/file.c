@@ -6,29 +6,11 @@
 
 
 struct file_operations smemfs_file_operations = {
-	.open = smemfs_open,
 	.release = smemfs_release,
 	.read = smemfs_read,
 	.lseek = smemfs_lseek
 };
 
-
-
-int smemfs_open (inode_t *inode, struct file *filep) {
-	// if node is not a directory or ROOT node
-	// TODO maybe a directory must be openned to use readdir-like function
-	
-	if((inode->type_flags & INODE_TYPE_PARENT) || (inode->type_flags & INODE_TYPE_ROOT)) {
-		//printk("smemfs_open: bad flags (%p)\n", (void*)inode->type_flags);
-		return -1;	
-	}
-	else {
-		//printk("smemfs_open: file %p opened.\n", filep);
-		filep->private_data = NULL;
-		filep->op = & smemfs_file_operations;
-		return 0;
-	}
-}
 
 
 int smemfs_release (struct file *filep) {

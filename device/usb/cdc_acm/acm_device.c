@@ -7,12 +7,11 @@
 struct device _acm_usb_device = {
 	.name = "usb-acm",
 	.init = acm_usb_init,
-	.get_file_op = acm_usb_get_file_op
+	.open = acm_usb_open
 };
 
 
 static struct file_operations _fop_acm_usb = {
-	.open = acm_usb_open,
 	.release = acm_usb_release,
 	.write = acm_usb_write,
 	.read = acm_usb_read,
@@ -27,16 +26,8 @@ void acm_usb_init() {
 }
 
 
-struct file_operations* acm_usb_get_file_op(uint16 minor) {
-	if(minor == ACM_DEVICE_MINOR)
-		return &_fop_acm_usb;
-
-	return NULL;
-}
-
-
-int acm_usb_open(inode_t *inode, struct file *filep) {
-	if(inode->typespec.dev.minor == ACM_DEVICE_MINOR) {
+int acm_usb_open(uint16 minor, struct file *filep) {
+	if(minor == ACM_DEVICE_MINOR) {
 		filep->op = &_fop_acm_usb;
 		return 0;
 	}

@@ -17,14 +17,6 @@ struct file;
 
 struct file_operations {
 	/**
-	 * Try to open the object designed by inode.
-	 * filep is the struct allocated to store opened file informations, and
-	 * is allocated and partialy set by the caller.
-	 * Returns 0 if success, negative value else (so filep will be free'd).
-	 */
-	int (*open) (inode_t *inode, struct file *filep);
-
-	/**
 	 * Release the file opened instance ("close" it).
 	 * This can be used if some ressources must be cleaned, or specific job done.
 	 */

@@ -17,12 +17,11 @@ static unsigned char *_display_vram;
 struct device _display_device = {
 	.name = "display",
 	.init = display_init,
-	.get_file_op = display_get_file_op
+	.open = display_open
 };
 
 
 static struct file_operations _fop_display = {
-	.open = display_open,
 	.release = display_release,
 	.write = NULL,
 	.read = NULL,
@@ -43,18 +42,10 @@ void display_init() {
 }
 
 
-struct file_operations* display_get_file_op(uint16 minor) {
-	if(minor == DISPLAY_DEFAULT_MINOR) {
-		return &_fop_display;
-	}
-	return NULL;
-}
-
-
-int display_open(inode_t *inode, struct file *filep) {
+int display_open(uint16 minor, struct file *filep) {
 	// consider this function may be called many times, and only for minor 1
 	
-	if(inode->typespec.dev.minor == DISPLAY_DEFAULT_MINOR) {
+	if(minor == DISPLAY_DEFAULT_MINOR) {
 		filep->op = &_fop_display;
 		filep->private_data = 0;
 		return 0;

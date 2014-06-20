@@ -30,11 +30,20 @@
 
 struct _fs_instance; // instance of a filesystem
 
+struct file;
+
 struct _inode {
 	char name[INODE_MAX_NAME];
 
 	struct _fs_instance *fs_op;
-	struct file_operations *file_op;
+
+	/**
+	 * Try to open the object designed by inode.
+	 * filep is the struct allocated to store opened file informations, and
+	 * is allocated and partialy set by the caller.
+	 * Returns 0 if success, negative value else (so filep will be free'd).
+	 */
+	int (*open) (struct _inode *inode, struct file *filep);
 
 	// corresponding internal number and parent number in the FS instance
 	uint32 node;

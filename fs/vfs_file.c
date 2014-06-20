@@ -1,6 +1,7 @@
 #include "vfs_file.h"
 #include <utils/log.h>
 #include <utils/pool_alloc.h>
+#include <device/device_registering.h>
 #include "file_operations.h"
 
 
@@ -23,6 +24,8 @@ struct file *vfs_open(inode_t *inode) {
 	filep = vfs_file_alloc();
 	//printk("vfs_open: allocate file %p\n", filep);
 	if(filep != NULL) {
+		int done = 0;
+
 		// TODO
 		filep->flags = 0;
 		filep->inode = inode;
@@ -30,11 +33,25 @@ struct file *vfs_open(inode_t *inode) {
 		filep->pos = 0;
 
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
-		if((inode->file_op->open(inode, filep)) == 0) {
-			// file is correctly openned
 
+		// if file is a special node, this is the time to call specific open()
+		if(inode->type_flags & INODE_TYPE_DEV) {
+			struct device *dev = dev_device_from_major(inode->typespec.dev.major);
+			if(dev == NULL) {
+				printk("vfs: open invalid device inode (major %d)\n",
+						inode->typespec.dev.major);
+			}
+			else {
+				if(dev->open(inode->typespec.dev.minor, filep) == 0)
+					done = 1;
+			}
 		}
-		else {
+		else if((inode->open(inode, filep)) == 0) {
+			// file is correctly openned
+			done = 1;
+		}
+
+		if(!done) {
 			printk("vfs_open: inode-specific open() failed\n");
 			// free file structure
 			vfs_file_free(filep);

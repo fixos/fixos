@@ -8,7 +8,6 @@
  */
 
 #include <device/device.h>
-#include <fs/inode.h>
 #include <fs/file.h>
 
 
@@ -18,9 +17,7 @@ extern struct device _acm_usb_device;
 
 void acm_usb_init();
 
-struct file_operations* acm_usb_get_file_op(uint16 minor);
-
-int acm_usb_open(inode_t *inode, struct file *filep);
+int acm_usb_open(uint16 minor, struct file *filep);
 
 int acm_usb_release(struct file *filep);
 

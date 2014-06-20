@@ -9,6 +9,9 @@
  * The main way to control this device is through ioctl (see interface/display.h).
  */
 
+#include <fs/file.h>
+#include <device/device.h>
+
 
 #define DISPLAY_DEFAULT_MINOR	1
 
@@ -17,9 +20,7 @@ extern struct device _display_device;
 
 void display_init();
 
-struct file_operations* display_get_file_op(uint16 minor);
-
-int display_open(inode_t *inode, struct file *filep);
+int display_open(uint16 minor, struct file *filep);
 
 int display_release(struct file *filep);
 

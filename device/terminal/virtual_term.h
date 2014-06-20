@@ -2,7 +2,6 @@
 #define _DEVICE_TERMINAL_VIRTUAL_TERM_H
 
 #include <device/device.h>
-#include <fs/inode.h>
 #include <fs/file.h>
 
 /**
@@ -35,10 +34,7 @@ void vt_set_active(int term);
 
 void vt_init();
 
-struct file_operations* vt_get_file_op(uint16 minor);
-
-
-int vt_open(inode_t *inode, struct file *filep);
+int vt_open(uint16 minor, struct file *filep);
 
 int vt_release(struct file *filep);
 

@@ -11,8 +11,6 @@
 extern struct file_operations smemfs_file_operations;
 
 
-int smemfs_open (inode_t *inode, struct file *filep);
-
 int smemfs_release (struct file *filep);
 
 size_t smemfs_read (struct file *filep, void *dest, size_t len);
