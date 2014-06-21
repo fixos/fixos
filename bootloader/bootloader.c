@@ -168,7 +168,6 @@ static void parse_config_file(struct smem_file *file) {
 
 static void bootloader_boot_entry(struct boot_entry *entry) {
 	char *cmdline;
-	int i;
 
 	// boot on current entry
 	// TODO test entry type

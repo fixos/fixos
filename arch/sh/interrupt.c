@@ -9,8 +9,45 @@
 #include <sys/scheduler.h>
 
 
+extern void * fixos_vbr;  // see fixos.ld
+
+
 // Globals callbacks functions address :
 interrupt_callback_t g_interrupt_callback[INT__NUMBER] = {NULL};
+
+
+void interrupt_init() {
+	// init exceptions/interruptions handling
+	interrupt_set_vbr(&fixos_vbr);
+
+	// disable each individual interrupt source
+	INTERRUPT_PRIORITY_IRQ0 = 0;
+	INTERRUPT_PRIORITY_IRQ1 = 0;
+	INTERRUPT_PRIORITY_IRQ2 = 0;
+	INTERRUPT_PRIORITY_IRQ3 = 0;
+	INTERRUPT_PRIORITY_IRQ4 = 0;
+	INTERRUPT_PRIORITY_IRQ5 = 0;
+	INTERRUPT_PRIORITY_PINT0_7 = 0;
+	INTERRUPT_PRIORITY_PINT8_15 = 0;
+	INTERRUPT_PRIORITY_DMAC = 0;
+	INTERRUPT_PRIORITY_SCIF0 = 0;
+	INTERRUPT_PRIORITY_SCIF2 = 0;
+	INTERRUPT_PRIORITY_ADC = 0;
+	INTERRUPT_PRIORITY_USB	= 0;
+	INTERRUPT_PRIORITY_TPU0 = 0;
+	INTERRUPT_PRIORITY_TPU1 = 0;
+	INTERRUPT_PRIORITY_TPU2 = 0;
+	INTERRUPT_PRIORITY_TPU3 = 0;
+	INTERRUPT_PRIORITY_TMU0 = 0;
+	INTERRUPT_PRIORITY_TMU1 = 0;
+	INTERRUPT_PRIORITY_TMU2 = 0;
+	INTERRUPT_PRIORITY_TMU3 = 0;
+	INTERRUPT_PRIORITY_RTC = 0;
+	INTERRUPT_PRIORITY_WDT = 0;
+
+	INTERRUPT_PRIORITY_REF = 0;
+}
+
 
 void interrupt_set_vbr(void *vbr)
 {

@@ -20,9 +20,19 @@ typedef void(*interrupt_callback_t)();
 
 #define INT__NUMBER		0x07   // interruptions number
 
-// Inhibit or dishinibit all interruptions/exceptions
-// if mode == 0, interrupts will be inhibited, else they will be handled
+/**
+ * Inhibit or dishinibit all interruptions/exceptions
+ * if mode == 0, interrupts will be inhibited, else they will be handled
+ */
 extern void interrupt_inhibit_all(int mode);
+
+
+/**
+ * Initialize interrupts and exceptions (set the VBR, set each interrupt
+ * priority to 0 to disable them...)
+ */
+void interrupt_init();
+
 
 /**
  * Used to define "weak atomic" code.

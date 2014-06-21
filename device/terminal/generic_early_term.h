@@ -24,10 +24,9 @@
 
 
 /**
- * Initialize the early terminal, using the given VRAM if needed by implementation.
- * TODO better design : VRAM size is not abstracted...
+ * Initialize the early terminal.
  */
-void earlyterm_init(void *vram);
+void earlyterm_init();
 
 
 /**

@@ -14,7 +14,7 @@ static int g_front_c = EARLYTERM_COLOR_BLACK;
 static int g_back_c = EARLYTERM_COLOR_WHITE;
 static int g_posx = 0;
 static int g_posy = 0;
-static void *g_terminal_vram = NULL;
+static char g_terminal_vram[1024];
 
 
 // tmp
@@ -76,7 +76,6 @@ void earlyterm_set_colors(int front_c, int back_c) {
 
 void earlyterm_clear() {
 	// for now, direct VRAM access, only compatible with fx-9860 like models!
-	// TODO a better system of course!
 	unsigned int back = term_prim_mask_color(g_back_c);
 	int i;
 	unsigned int *l_vram = (unsigned int *)g_terminal_vram;
@@ -105,8 +104,8 @@ int earlyterm_posy() {
 
 
 
-void earlyterm_init(void *vram) {
-	g_terminal_vram = vram;
+void earlyterm_init() {
+	// nothing to do
 }
 
 
