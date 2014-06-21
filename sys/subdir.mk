@@ -6,7 +6,8 @@ C_SRC_L:= \
 	mutex.c \
 	signal.c \
 	syscall.c \
-	cmdline.c
+	cmdline.c \
+	console.c
 
 
 CURDIR:=sys

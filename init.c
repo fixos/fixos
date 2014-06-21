@@ -35,6 +35,7 @@
 #include "utils/strutils.h"
 
 #include "sys/cmdline.h"
+#include "sys/console.h"
 
 extern void * fixos_vbr;  // see fixos.ld
 extern char cmdargs_begin;
@@ -51,38 +52,6 @@ void print_usb_ep2(const char *str) {
 	usb_send(USB_EP_ADDR_EP2IN/*_epdesc2.b_endpoint_addr*/, str, i);
 }
 
-
-static int _console_usb = -1;
-// default is tty1
-static int _console_tty = 1;
-
-int parse_console(const char *val) {
-	//printk("ARG: console='%s'\n", val);
-	if(val != NULL) {
-		if(val[0]=='t' && val[1]=='t' && val[2]=='y') {
-			// check for ttyn
-			if(val[3] >= '1' && val[3] <= '9') {
-				_console_tty = val[3] - '0';
-				_console_usb = -1;
-				printk("console: will use tty%d soon\n", _console_tty);
-				return 0;
-			}
-
-			// check for USB0
-			else if(!strcmp(val+3, "USB0")) {
-				_console_usb = 0;
-				_console_tty = -1;
-				printk("console: will use USB soon\n");
-				return 0;
-			}
-		}
-	}
-	printk("malformed 'console' parameter\n");
-	return -1;
-}
-
-
-KERNEL_BOOT_ARG(console, parse_console);
 
 
 // Real entry point of the OS :
@@ -143,6 +112,30 @@ void init() {
 
 	interrupt_inhibit_all(0);
 
+
+	// console initialisation as soon as possible
+	dev_init();
+	// add virtual terminal device (on major 4)
+	virtual_term_device.init();
+	dev_register_device(&virtual_term_device, 4);
+
+	// add usb-acm device, major number 3
+	// USB initialisation
+	usb_init();
+	_acm_usb_device.init();
+	dev_register_device(&_acm_usb_device, 3);
+
+	DBG_WAIT;
+
+	// will be the last message displayed on early console
+	printk("Switching screen to tty1...\n  The display will be cleared.\n");
+	console_make_active();
+
+	// in all cases, Virtual Terminals should be made active (tty1)
+	DBG_WAIT;
+	vt_set_active(0);
+
+
 	// need to be changed for "overclocking" :
 	//freq_change(FREQ_STC_4, FREQ_DIV_1, FREQ_DIV_4);
 	
@@ -168,18 +161,6 @@ void init() {
 	vfs_init();
 	vfs_file_init();
 
-	dev_init();
-	// add virtual terminal device (on major 4)
-	virtual_term_device.init();
-	dev_register_device(&virtual_term_device, 4);
-
-
-	// add usb-acm device, major number 3
-	// USB initialisation
-	usb_init();
-	_acm_usb_device.init();
-	dev_register_device(&_acm_usb_device, 3);
-
 	vfs_register_fs(&smemfs_file_system, VFS_REGISTER_STATIC);
 	vfs_register_fs(&protofs_file_system, VFS_REGISTER_STATIC);
 	vfs_mount("protofs", NULL, VFS_MOUNT_ROOT);
@@ -189,43 +170,14 @@ void init() {
 	vfs_create("/dev", "tty2", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00040001);
 	vfs_create("/dev", "serial", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00030000);
 
-	// choose console to use :
-	uint32 console_node = 0x00040000;
-	if(_console_tty > 0)
-		console_node = 0x00040000 + (_console_tty - 1);
-	else if(_console_usb != -1)
-		console_node = 0x00030000;
-
-	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, console_node);
+	vfs_create("/dev", "console", INODE_TYPE_DEV, INODE_FLAG_WRITE, 
+			console_get_device());
 
 	DBG_WAIT;
 
-	// switch from early_terminal to fx9860 console 
-	printk("Trying to use fx9860-terminal device...\n");
+	// keyboard input for virtual terminals
+	kbd_set_kstroke_handler(&vt_key_stroke);
 
-	struct file *console = NULL;
-	inode_t *console_inode = vfs_resolve("/dev/console");
-	if(console_inode != NULL) {
-		 console = vfs_open(console_inode);
-		 if(console != NULL) {
-			 printk("fx9860 terminal ready...\nThe display will be cleared.\n");
-			 DBG_WAIT;
-
-			 // vfs_write(filep, "Hello!\n", 7); 
-
-			 // set printk() callback func
-			 vt_set_active(0);
-			 set_kernel_print_file(console);
-			 printk("From fx9860 terminal : Hello!\nNow using /dev/console device!\n");
-			 kbd_set_kstroke_handler(&vt_key_stroke);
-		 }
-		 else {
-			 printk("[W] Unable to open fx9860 term\n");
-		}
-	}
-	else {
-		printk("[W] Not found node /dev/console\n");
-	}
 
 
 	// mount additional filesystems
