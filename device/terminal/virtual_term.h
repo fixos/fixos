@@ -19,7 +19,7 @@
 
 #define VT_MAX_TERMINALS		2
 
-extern struct device virtual_term_device;
+extern const struct device virtual_term_device;
 
 
 // call this function to add the given character as keyboard input

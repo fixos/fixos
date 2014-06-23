@@ -15,7 +15,7 @@
 
 #define DISPLAY_DEFAULT_MINOR	1
 
-extern struct device _display_device;
+extern const struct device _display_device;
 
 
 void display_init();

@@ -27,14 +27,14 @@ struct vt_instance {
 static struct vt_instance _vts[VT_MAX_TERMINALS];
 static int _vt_current;
 
-struct device virtual_term_device = {
+const struct device virtual_term_device = {
 	.name = "v-term",
 	.init = &vt_init,
 	.open = &vt_open
 };
 
 
-static struct file_operations _vt_fop = {
+static const struct file_operations _vt_fop = {
 	.release = &vt_release,
 	.write = &vt_write,
 	.read = &vt_read,

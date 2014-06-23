@@ -88,7 +88,7 @@ inode_t *vfs_next_sibling(inode_t *target);
  * Register a file system into VFS.
  * Flag should be VFS_REGISTER_AUTO!
  */
-void vfs_register_fs(file_system_t *fs, int flags);
+void vfs_register_fs(const file_system_t *fs, int flags);
 
 
 /**

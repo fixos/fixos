@@ -14,7 +14,7 @@
 #define SYSCALL_NUMBER		18
 
 // for kernel-part syscall handling
-extern void* _syscall_funcs[];
+extern void* const _syscall_funcs[];
 
 /**
  * Returns the syscall function associated to sysnum, or NULL if the given

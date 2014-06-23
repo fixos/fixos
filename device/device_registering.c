@@ -3,7 +3,7 @@
 
 // entry of register vector, not used if dev == NULL
 struct device_entry {
-	struct device *dev;
+	const struct device *dev;
 	uint16 major;
 };
 
@@ -18,7 +18,7 @@ void dev_init() {
 }
 
 
-int dev_register_device(struct device *dev, uint16 major_id) {
+int dev_register_device(const struct device *dev, uint16 major_id) {
 	int i;
 
 	// get the first free entry
@@ -34,7 +34,7 @@ int dev_register_device(struct device *dev, uint16 major_id) {
 }
 
 
-struct device* dev_device_from_major(uint16 major_id) {
+const struct device* dev_device_from_major(uint16 major_id) {
 	int i;
 
 	for(i=0; i<DEVICE_REGISTER_MAX; i++) {

@@ -6,7 +6,7 @@
 #include <sys/memory.h>
 #include <utils/strutils.h>
 
-struct text_display fx9860_text_display = {
+const struct text_display fx9860_text_display = {
 	.cwidth = FX9860_TERM_WIDTH,
 	.cheight = FX9860_TERM_HEIGHT,
 

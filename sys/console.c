@@ -51,7 +51,7 @@ KERNEL_BOOT_ARG(console, parse_console);
 
 
 void console_make_active() {
-	struct device *console_dev;
+	const struct device *console_dev;
 
 	console_dev = dev_device_from_major((uint16)(_console_node >> 16));
 	if(console_dev != NULL) {

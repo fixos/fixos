@@ -9,7 +9,7 @@ struct tdisp_data {
 	unsigned char *vram;
 };
 
-extern struct text_display fx9860_text_display;
+extern const struct text_display fx9860_text_display;
 
 
 void fx9860_tdisp_init_disp(struct tdisp_data *disp);

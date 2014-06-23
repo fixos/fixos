@@ -24,7 +24,7 @@
  */
 inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *header, inode_t *ret);
 
-struct _file_system smemfs_file_system = {
+const struct _file_system smemfs_file_system = {
 	.name = "smemfs",
 	.mount = smemfs_mount,
 	.get_root_node = smemfs_get_root_node,

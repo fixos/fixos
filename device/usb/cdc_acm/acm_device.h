@@ -13,7 +13,7 @@
 
 #define ACM_DEVICE_MINOR	0
 
-extern struct device _acm_usb_device;
+extern const struct device _acm_usb_device;
 
 void acm_usb_init();
 

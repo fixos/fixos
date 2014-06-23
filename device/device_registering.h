@@ -23,14 +23,14 @@ void dev_init();
  * Try to register a new device, using major_id as MAJOR.
  * Returns 0 if the device is correctly registered, negative value else.
  */
-int dev_register_device(struct device *dev, uint16 major_id);
+int dev_register_device(const struct device *dev, uint16 major_id);
 
 
 /**
  * Find a registered device using its MAJOR number.
  * Returns NULL if the device is not found (not registered or removed).
  */
-struct device* dev_device_from_major(uint16 major_id);
+const struct device* dev_device_from_major(uint16 major_id);
 
 
 /**

@@ -5,7 +5,7 @@
 #include "smemfs_primitives_ng.h"
 
 
-struct file_operations smemfs_file_operations = {
+const struct file_operations smemfs_file_operations = {
 	.release = smemfs_release,
 	.read = smemfs_read,
 	.lseek = smemfs_lseek

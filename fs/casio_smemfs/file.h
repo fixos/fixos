@@ -8,7 +8,7 @@
  * Implementation of file operations for the Casio SMEM FS.
  */
 
-extern struct file_operations smemfs_file_operations;
+extern const struct file_operations smemfs_file_operations;
 
 
 int smemfs_release (struct file *filep);

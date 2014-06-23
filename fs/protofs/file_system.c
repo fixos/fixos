@@ -6,7 +6,7 @@
 #include "primitives.h"
 
 
-struct _file_system protofs_file_system = {
+const struct _file_system protofs_file_system = {
 	.name = "protofs",
 	.mount = protofs_mount,
 	.get_root_node = protofs_get_root_node,

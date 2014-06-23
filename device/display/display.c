@@ -14,14 +14,14 @@
 
 static unsigned char *_display_vram; 
 
-struct device _display_device = {
+const struct device _display_device = {
 	.name = "display",
 	.init = display_init,
 	.open = display_open
 };
 
 
-static struct file_operations _fop_display = {
+static const struct file_operations _fop_display = {
 	.release = display_release,
 	.write = NULL,
 	.read = NULL,

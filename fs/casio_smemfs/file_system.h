@@ -12,7 +12,7 @@
 
 #define SMEMFS_INVALID_NODE			0xFFFFFFFF
 
-extern file_system_t smemfs_file_system;
+extern const file_system_t smemfs_file_system;
 
 fs_instance_t *smemfs_mount (unsigned int flags);
 

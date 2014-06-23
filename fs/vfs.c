@@ -16,7 +16,7 @@ static fs_instance_t *_root_fs;
 
 static struct _fs_mount_point _mounted_fs[VFS_MAX_MOUNT];
 
-static file_system_t *vfs_fslist[VFS_MAX_FS];
+static file_system_t const * vfs_fslist[VFS_MAX_FS];
 
 
 void vfs_init()
@@ -111,7 +111,7 @@ inode_t *vfs_next_sibling(inode_t *target)
 
 
 
-void vfs_register_fs(file_system_t *fs, int flags)
+void vfs_register_fs(const file_system_t *fs, int flags)
 {
 	int ok = 0;
 
@@ -137,7 +137,7 @@ void vfs_register_fs(file_system_t *fs, int flags)
 
 int vfs_mount(const char *fsname, const char *path, int flags)
 {
-	file_system_t *fs = NULL;
+	const file_system_t *fs = NULL;
 	int i;
 
 	for(i=0; i<VFS_MAX_FS && fs==NULL; i++)

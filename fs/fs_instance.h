@@ -10,7 +10,7 @@
 struct _file_system;
 
 struct _fs_instance {
-	struct _file_system *fs;
+	const struct _file_system *fs;
 	void *instd; // instance data, may be NULL for some FS
 };
 

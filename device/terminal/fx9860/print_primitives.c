@@ -7,7 +7,7 @@
 #include "print_primitives.h"
 
 // Font 3x5 (usual bitmap format)
-static unsigned char _font_3x5[129][5] = {
+static const unsigned char _font_3x5[129][5] = {
 {0, 224, 160, 224, 0}, //Character 000 [NUL]
 {0, 224, 160, 224, 0}, //Character 001 [SOH]
 {0, 224, 160, 224, 0}, //Character 002 [STX]
@@ -151,7 +151,7 @@ void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c
 	if((c >= 0 || c==FX9860_TERM_CURSOR_CHAR) && (x>-3) && (x<128) 
 			&& (y>-5) && (y<64))
 	{
-		unsigned char *raw_char;
+		const unsigned char *raw_char;
 		// union used to be sure char_bmp is 4-bytes aligned
 		union {
 			unsigned char char_bmp[6]; // 6*4 bitmap, containing character and borders

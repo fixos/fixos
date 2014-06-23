@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <sys/signal.h>
 
-void* _syscall_funcs[SYSCALL_NUMBER] = {
+void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	NULL,
 	&sys_open,
 	&sys_read,

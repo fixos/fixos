@@ -36,7 +36,9 @@ struct file *vfs_open(inode_t *inode) {
 
 		// if file is a special node, this is the time to call specific open()
 		if(inode->type_flags & INODE_TYPE_DEV) {
-			struct device *dev = dev_device_from_major(inode->typespec.dev.major);
+			const struct device *dev;
+			
+			dev = dev_device_from_major(inode->typespec.dev.major);
 			if(dev == NULL) {
 				printk("vfs: open invalid device inode (major %d)\n",
 						inode->typespec.dev.major);

@@ -4,14 +4,14 @@
 #include <utils/strutils.h>
 
 
-struct device _acm_usb_device = {
+const struct device _acm_usb_device = {
 	.name = "usb-acm",
 	.init = acm_usb_init,
 	.open = acm_usb_open
 };
 
 
-static struct file_operations _fop_acm_usb = {
+static const struct file_operations _fop_acm_usb = {
 	.release = acm_usb_release,
 	.write = acm_usb_write,
 	.read = acm_usb_read,

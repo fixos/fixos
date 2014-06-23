@@ -12,7 +12,7 @@
  * In protofs, a node represent an offset in the internal node list.
  */
 
-extern file_system_t protofs_file_system;
+extern const file_system_t protofs_file_system;
 
 fs_instance_t *protofs_mount (unsigned int flags);
 
