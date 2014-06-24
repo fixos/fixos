@@ -3,7 +3,6 @@
 #include "device/display/T6K11/T6K11.h"
 #include "device/terminal/generic_early_term.h"
 #include "arch/sh/interrupt.h"
-#include "arch/sh/virtual_memory.h"
 #include "arch/sh/mmu.h"
 #include "sys/process.h"
 #include "sys/scheduler.h"
@@ -304,6 +303,7 @@ void test_vfs() {
 
 
 void test_virtual_mem() {
+	/*
 	process_t *mock = process_from_asid(0xFF);
 
 	vm_page_t page;
@@ -336,7 +336,7 @@ void test_virtual_mem() {
 		printk("Page number : %d\n", ppn1);
 	}
 
-
+	*/
 }
 
 

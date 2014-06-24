@@ -207,7 +207,8 @@ pid_t sys_wait(int *status) {
 			if(_tasks[i] != NULL && _tasks[i]->ppid == ppid) {
 				if(_tasks[i]->state == PROCESS_STATE_ZOMBIE) {
 					ret = _tasks[i]->pid;
-					*status = _tasks[i]->exit_status;
+					if(status != NULL)
+						*status = _tasks[i]->exit_status;
 
 					// destroy the waiting process
 					// do not forget kernel_stack is set to the first byte of the

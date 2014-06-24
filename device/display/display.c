@@ -8,7 +8,6 @@
 
 #include <interface/display.h>
 
-#include <arch/sh/virtual_memory.h>
 #include <sys/process.h>
 
 
@@ -84,12 +83,14 @@ static int _ioctl_mapvram(void **virt_vram) {
 		// the goal is to do a mmap-like, and to asign _display_vram buffer
 		// to a process user-space area
 		// FIXME will work only in case of 1024 bytes buffer in a single page
-		struct _vm_page vpage;
+		union pm_page page;
 		process_t *cur;
 
-		mem_vm_prepare_page(&vpage, _display_vram, (void*)0x18000000, MEM_VM_CACHED);
 		cur = process_get_current();
-		vm_add_entry(& cur->vm, &vpage);
+
+		page.private.ppn = PM_PHYSICAL_PAGE(_display_vram);
+		page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
+		mem_insert_page(& cur->dir_list , &page, (void*)0x18000000);
 
 		*virt_vram = (void*)0x18000000;
 		return 0;

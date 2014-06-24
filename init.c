@@ -1,7 +1,6 @@
 #include "arch/sh/7705_Casio.h"
 #include "device/terminal/generic_early_term.h"
 #include "arch/sh/interrupt.h"
-#include "arch/sh/virtual_memory.h"
 #include "arch/sh/mmu.h"
 #include "arch/sh/physical_memory.h"
 #include "utils/log.h"

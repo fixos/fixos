@@ -2,7 +2,7 @@
 
 
 C_SRC_L:= \
-	physical_memory.c mmu.c virtual_memory.c \
+	physical_memory.c mmu.c \
 	interrupt.c exception.c \
 	memory/c_s29jl032h.c \
 	kdelay.c\

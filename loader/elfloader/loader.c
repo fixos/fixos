@@ -38,22 +38,24 @@ int elfloader_load(struct file *filep, process_t *dest) {
 			return -1;
 		}
 
-		vm_init_table(&(dest->vm));
 		if(pheader.type == ELFP_TYPE_LOAD
 				&& elfloader_load_segment(filep, &pheader, dest) == 0)
 		{
-			vm_page_t page;
+			union pm_page page;
+			void *vmstack;
+
 			void *pageaddr;
 
 			// alloc physical page and set it as the VM process stack
-			if(mem_vm_prepare_page(&page, NULL, 
-					(void*)(ARCH_UNEWPROC_DEFAULT_STACK - PM_PAGE_BYTES),
-					MEM_VM_CACHED) < 0)
-			{
+			vmstack = mem_pm_get_free_page(MEM_PM_CACHED);
+			if(vmstack == NULL) {
 				printk("elfloader: no physical page\n");
 				return -1;
 			}
-			vm_add_entry(&(dest->vm), &page);
+			page.private.ppn = PM_PHYSICAL_PAGE(vmstack);
+			page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
+			mem_insert_page(& dest->dir_list , &page,
+					(void*)(ARCH_UNEWPROC_DEFAULT_STACK - PM_PAGE_BYTES));
 
 			// set kernel stack address, for now any physical memory
 			pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
@@ -117,8 +119,6 @@ int elfloader_load_segment(struct file *filep,
 		const struct elf_prog_header *ph, process_t *dest)
 {
 	int i;
-	vm_page_t page;
-	void *pageaddr;
 	void *vm_segaddr;
 
 	vfs_lseek(filep, ph->offset, SEEK_SET);
@@ -127,14 +127,19 @@ int elfloader_load_segment(struct file *filep,
 	for(i=0; i<ph->memsz; i += PM_PAGE_BYTES, vm_segaddr += PM_PAGE_BYTES) {
 		ssize_t nbread;
 		ssize_t toread;
+		union pm_page page;
+		void *pageaddr;
 
-		if(mem_vm_prepare_page(&page, NULL, vm_segaddr,	MEM_VM_CACHED) < 0)
-		{
+
+		pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
+		if(pageaddr == NULL) {
 			printk("elfloader: no physical page\n");
 			// TODO really dirty way to exit, need to clean all done job!
 			return -1;
 		}
-		pageaddr = mem_vm_physical_addr(&page);
+
+		page.private.ppn = PM_PHYSICAL_PAGE(pageaddr);
+		page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
 
 		// if we have a page, copy data from file
 		toread = ph->filesz - i;
@@ -145,7 +150,7 @@ int elfloader_load_segment(struct file *filep,
 			printk("[I] %d bytes read from ELF.\n", nbread);
 		}
 
-		vm_add_entry(&(dest->vm), &page);
+		mem_insert_page(& dest->dir_list , &page, vm_segaddr);
 		printk("[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
 	}
 

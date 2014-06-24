@@ -8,8 +8,8 @@
 #include <utils/types.h>
 #include <sys/signal.h>
 #include <interface/process.h>
+#include <sys/memory.h>
 
-#include <arch/sh/virtual_memory.h>
 // TODO remove this include (now context is saved as a pointer to arch-spec context)
 #include <arch/sh/process.h>
 
@@ -57,7 +57,7 @@ struct _process_info {
 	asid_t asid;
 
 	// virtual memory managing data :
-	vm_table_t vm;
+	struct page_dir *dir_list;
 
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];

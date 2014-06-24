@@ -10,6 +10,7 @@
 #include <sys/scheduler.h>
 #include <sys/process.h>
 #include <sys/syscall.h>
+#include <sys/memory.h>
 #include <utils/log.h>
 
 extern void syscall_entry();
@@ -140,7 +141,7 @@ void exception_handler()
 
 
 /**
- * This handler is very important when Virtual Memory, it has to check
+ * This handler is very important for Virtual Memory, it has to check
  * if the current process could or not access to the given page, and to load
  * the corresponding TLB entry faster than possible.
  */
@@ -148,33 +149,54 @@ void tlbmiss_handler()
 {
 	// for now, no difference between read and write miss
 	// TODO : it's possible to be faster by using TTB register
-	// to store the table for the current process (but that assume only 1 task at a time)
-	vm_page_t *page;
+	union pm_page *page;
+	uint32 vpn;
 	process_t *curpr;
 	
-	// find the process wich cause the miss :
+	// find the process which cause the miss :
 	curpr = process_from_asid(mmu_getasid());
 
-
-	//printk("[I] process id = %d, ptr=%p\n[I] vpn = %d\n", mmu_getasid(), curpr, MMU.PTEH.BIT.VPN);
 	// find the corresponding page, if exists
-	page = vm_find_vpn(&(curpr->vm), MMU.PTEH.BIT.VPN);
-	if(page != (void*)0) {
-		unsigned int register flags;
-		
+	vpn = MMU.PTEH.BIT.VPN; 
+	page = mem_find_page(curpr->dir_list,
+			(void*)(vpn << PM_PAGE_ORDER) );
+
+	if(page != NULL) {
+		unsigned int flags;
+		uint32	ppn = 0;
+
 		//fill flags, don't forget the dirty flag for now ;)
-		flags = TLB_VALID | TLB_NOTSHARED | TLB_PROT_U_RW | TLB_DIRTY;
-		if(page->size)
-			flags |= TLB_SIZE_4K;
-		if(page->cache)
-			flags |= TLB_CACHEABLE;
+		flags = TLB_NOTSHARED | TLB_PROT_U_RW | TLB_DIRTY;
+
+		if(page->private.flags & MEM_PAGE_PRIVATE) {
+				if(page->private.flags & MEM_PAGE_VALID) {
+					flags |= TLB_VALID;
+					ppn = page->private.ppn;
+
+					if(page->private.flags & MEM_PAGE_CACHED)
+						flags |= TLB_CACHEABLE;
+				}
+				else {
+					// not a valid page
+				}
+		}
+		else {
+			// TODO shared page
+		}
+
 		
-		// load the TLB entry!
-		mmu_tlb_fillload(page->ppn, flags);
-		printk("vm: page tr #(%p)->@(%p)\n", (void*)(page->ppn << 10), (void*)(page->vpn << 10));
+		if(flags & TLB_VALID) {
+			// load the TLB entry!
+			mmu_tlb_fillload(ppn, flags);
+			printk("vm: [pid %d] page tr #(%p)->@(%p)\n", curpr->pid, (void*)(ppn << PM_PAGE_ORDER),
+					(void*)(vpn << PM_PAGE_ORDER));
+		}
+		else {
+			page = NULL; // temp stuff to have an error
+		}
 	}
-	else
-	{	
+
+	if(page == NULL) {	
 		int spcval;
 		void *stack;
 

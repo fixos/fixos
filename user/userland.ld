@@ -8,7 +8,7 @@ ENTRY(_main)
 MEMORY
 {
 	/* virtual memory, read-write segment */
-	userram : o = 0x10000000, l = 64k
+	userram : o = 0x10000000, l = 256k
 
 	/* virtual memory, read-exec segment */
 	/* Unused for now (everything in the same segment is lighter... */

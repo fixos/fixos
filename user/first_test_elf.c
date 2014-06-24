@@ -310,6 +310,8 @@ int test_display(int fdout) {
 }
 
 
+char nawak[64*1024] = {};
+
 int usertest_main(int argc, char **argv) {
 	// try to open "/dev/console"
 	int fd;
@@ -323,12 +325,27 @@ int usertest_main(int argc, char **argv) {
 	write_const(fd_serial, "*** Hi, dear serial terminal!\n");
 
 	int tty1 = open("/dev/tty1", 123);
-	int tty2 = open("/dev/tty2", 123);
 
-	write_const(tty1, "I'm writing on tty1.\n");
-	write_const(tty2, "I'm writing on tty2.\n");
+	pid_t pid;
+	pid = fork();
+	if(pid) {
+		int tty2 = open("/dev/tty2", 123);
 
-	test_copy_files(tty2, tty1, 1);
+		write_const(tty1, "I'm writing on tty1.\n");
+		write_const(tty2, "I'm writing on tty2.\n");
+
+		wait(NULL);
+		test_copy_files(tty2, tty1, 1);
+	}
+	else {
+		int i;
+		for(i=0; i<64*1024; i++) 
+			nawak[64*1024-i-1] = nawak[i];
+
+		write_const(fd, "Child is dying...\n");
+		exit(1);
+		//test_copy_files(tty1, fd_serial, 1);
+	}
 
 	//test_display(fd_serial);
 	

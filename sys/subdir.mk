@@ -7,7 +7,8 @@ C_SRC_L:= \
 	signal.c \
 	syscall.c \
 	cmdline.c \
-	console.c
+	console.c \
+	memory.c
 
 
 CURDIR:=sys

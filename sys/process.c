@@ -32,10 +32,7 @@ static process_t mock_process =
 {
 	.pid = 0,
 	.asid = 0xFF,
-	.vm = {
-		.direct = {{0}, {0}, {0}},
-		.indir1 = (void*)0
-	},
+	.dir_list = NULL,
 	.state = PROCESS_STATE_RUNNING,
 	.acnt = NULL,
 	.kernel_stack = NULL,
@@ -97,7 +94,8 @@ process_t *process_alloc() {
 		proc->ppid = 0;
 		proc->state = PROCESS_STATE_CREATE;
 		proc->asid = ASID_INVALID;
-		vm_init_table(&(proc->vm));
+
+		proc->dir_list = NULL;
 
 		sigemptyset(& proc->sig_blocked);
 		sigemptyset(& proc->sig_pending);
@@ -194,7 +192,8 @@ void process_contextjmp(process_t *proc) {
 
 
 void process_terminate(process_t *proc, int status) {
-	int i;
+	struct page_dir *curdir;
+	struct page_dir *nextdir;
 
 	// TODO close files?
 	
@@ -202,12 +201,11 @@ void process_terminate(process_t *proc, int status) {
 	// TODO do not invalidate ALL entries, select only this ASID
 	// in addition, free each allocated physical pages
 	mmu_tlbflush();
-	for(i=0; i<3; i++) {
-		if(proc->vm.direct[i].valid) {
-			mem_pm_release_page((void*)(PM_PHYSICAL_ADDR(proc->vm.direct[i].ppn)));
-		}
+	for(curdir = proc->dir_list; curdir != NULL; curdir = nextdir) {
+		nextdir = curdir->next;
+		mem_release_dir(curdir);
 	}
-	// TODO indirect pages
+	proc->dir_list = NULL;
 	
 	// VM is not used after, but the process need to have an ASID until
 	// it will be remove from Zombie list.
@@ -232,6 +230,7 @@ pid_t sys_fork() {
 	process_t *newproc;
 	int i;
 	int atomicsaved;
+	struct page_dir *dir;	
 
 
 	cur = process_get_current();
@@ -259,16 +258,18 @@ pid_t sys_fork() {
 
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
-	for(i=0; i<3; i++) {
-		/*printk("page: [%s] p[%d] v[%d]\n", cur->vm.direct[i].valid ? "V" : "!v",
-				cur->vm.direct[i].ppn, cur->vm.direct[i].vpn);*/
-		if(cur->vm.direct[i].valid) {
-			mem_vm_copy_page(&(cur->vm.direct[i]), &(newproc->vm.direct[i]),
-					MEM_VM_COPY_ONWRITE);
+	for(dir = cur->dir_list; dir != NULL; dir = dir->next) {
+		// stupid implementation : copy each page if valid
+		for(i=0; i<MEM_DIRECTORY_PAGES; i++) {
+			if((dir->pages[i].private.flags & MEM_PAGE_PRIVATE)
+					&& (dir->pages[i].private.flags & MEM_PAGE_VALID) )
+			{
+				mem_copy_page(&dir->pages[i], &newproc->dir_list,
+						MEM_PAGE_ADDRESS(dir->dir_id, i));
+			}
+			// TODO shared pages
 		}
 	}
-	// TODO indirect pages
-	newproc->vm.indir1 = NULL;
 
 	// copy signal info
 	sigemptyset(& newproc->sig_pending);
@@ -354,20 +355,21 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		int arg_argc;
 		void *arg_argv;
 
-		vm_page_t page;
+		union pm_page page;
 
 		sched_preempt_block();
 		cur = process_get_current();
 
 
-		if(mem_vm_prepare_page(&page, NULL, (void*)ARCH_UNEWPROC_DEFAULT_ARGS,
-					MEM_VM_CACHED) < 0)
-		{
+		args_page = mem_pm_get_free_page(MEM_PM_CACHED);
+		if(args_page == NULL) {
 			printk("execve: not enought memory\n");
 			// TODO abort
 			while(1);
 		}
-		args_page = mem_vm_physical_addr(&page);
+		page.private.ppn = PM_PHYSICAL_PAGE(args_page);
+		page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
+		// do not map the page now, the process old address space must be cleaned
 
 		args_pos = 0;
 		// copy argv
@@ -417,13 +419,14 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		// TODO do not invalidate ALL entries, select only this ASID
 		// in addition, free each allocated physical pages
 		mmu_tlbflush();
-		for(i=0; i<VM_TABLE_FIXED_NB; i++) {
-			if(cur->vm.direct[i].valid) {
-				mem_pm_release_page(mem_vm_physical_addr(&(cur->vm.direct[i])));
-			}
-		}
-		// TODO indirect pages
 
+		struct page_dir *curdir;
+		struct page_dir *nextdir;
+		for(curdir = cur->dir_list; curdir != NULL; curdir = nextdir) {
+			nextdir = curdir->next;
+			mem_release_dir(curdir);
+		}
+		cur->dir_list = NULL;
 
 		// TODO do not release kernel stack, ELF loader should not set it?
 		void *old_kstack = cur->kernel_stack;
@@ -447,7 +450,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			int dummy;
 
 			// add virtual memory page for args
-			vm_add_entry(&(cur->vm), &page);
+			mem_insert_page(& cur->dir_list , &page, (void*)ARCH_UNEWPROC_DEFAULT_ARGS);
 			
 			cur->acnt->reg[4] = arg_argc;
 			cur->acnt->reg[5] = (uint32)arg_argv;
