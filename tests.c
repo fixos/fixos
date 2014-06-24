@@ -16,7 +16,6 @@
 #include "fs/vfs_op.h"
 #include "fs/vfs_file.h"
 
-#include "loader/ramloader/loader.h"
 #include "loader/elfloader/loader.h"
 #include "arch/sh/process.h"
 
