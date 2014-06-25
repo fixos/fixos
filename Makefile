@@ -1,8 +1,9 @@
 CC=sh3eb-elf-gcc
-CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin -include config.h
+CCFLAGS=-Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin -include config.h
 
 LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 
+NM=sh3eb-elf-nm
 OBJCOPY=sh3eb-elf-objcopy
 OBJCOPY_FLAGS=-S
 
@@ -29,6 +30,15 @@ include sys/subdir.mk
 include utils/subdir.mk
 endif
 
+ifeq ($(CONFIG_DEBUG_STACK),y)
+CCFLAGS+=
+#-funwind-tables -fno-omit-frame-pointer
+# frame pointer with GCC are not useful for sh3 stack analysis
+# (local variables between @r14 and previous frame pointer...)
+# TODO implement limited DWARF engine to have more accurate analysis
+$(warning, Config option "CONFIG_DEBUG_STACK" is not implemented (no effect))
+endif
+
 
 # top level sources
 
@@ -43,12 +53,17 @@ ASM_SRC+= \
 OBJ:=$(filter %.o, $(C_SRC:.c=.o) $(ASM_SRC:.S=.o) $(ASM_SRC:.s=.o))
 DEPS:=$(C_SRC:.c=.d)
 
+$(KERNELNAME).big: $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
 
-$(KERNELNAME): $(OBJ)
-	$(CC) $(LDFLAGS) -o $@.big $^
-	$(OBJCOPY) $(OBJCOPY_FLAGS) $@.big $@
+$(KERNELNAME).debug: $(OBJ) $(DEBUG_OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
+
+$(KERNELNAME): $(KERNELNAME).debug
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $< $@
 
 
+# command line used to generate the "text symbols" informations
 
 # auto-generated dependencies (assume CC is compatible with gcc -M family commands)
 # (may use -MG if generated headers are used?)
@@ -81,12 +96,12 @@ bootloader:
 .PHONY: clean distclean re all user bootloader
 
 clean:
-	rm -f $(OBJ) $(DEPS) config.mk
+	rm -f $(OBJ) $(DEPS) $(KERNELNAME).big $(KERNELNAME).debug $(DEBUG_OBJ)  config.mk
 	$(MAKE) -C user/ clean
 	$(MAKE) -C bootloader/ clean
 
 distclean: clean
-	rm -f $(G1A)
+	rm -f $(KERNELNAME)
 	$(MAKE) -C user/ distclean
 	$(MAKE) -C bootloader/ distclean
 
@@ -107,3 +122,8 @@ config.mk: config.h
 
 config.h:
 	$(error File '$@' not found, needed for makefile configuration configuration)
+
+# as config.h is included in every compiled file, this is a big dependency
+$(C_SRC) $(ASM_SRC): config.h
+
+

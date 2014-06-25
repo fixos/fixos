@@ -24,6 +24,14 @@
 // passed to it), usefull to check how much size is used by printk() messages
 //#define CONFIG_PRINTK_DUMMY		y
 
+// Used to enable stack-debuging (allow more powerful post-mortem stack analysis)
+//#define CONFIG_DEBUG_STACK		y
+
+// Add debug information in binary, with ability to find corresponding text
+// symbol name from any text address.
+// Allow to see function names in call trace
+#define CONFIG_DEBUG_SYMBOL_NAMES	y
+
 
 #endif //_FIXOS_CONFIG_H
 

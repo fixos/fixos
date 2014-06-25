@@ -10,7 +10,8 @@ C_SRC_L:= \
 	modules/usb.c \
 	process.c rtc.c timer.c time.c \
 	freq.c \
-	signal.c
+	signal.c \
+	oops.c
 
 
 ASM_SRC_L:= \
@@ -22,3 +23,18 @@ ASM_SRC_L:= \
 
 C_SRC:=$(C_SRC) $(addprefix arch/sh/, $(C_SRC_L))
 ASM_SRC:=$(ASM_SRC) $(addprefix arch/sh/, $(ASM_SRC_L))
+
+
+ifeq ($(CONFIG_DEBUG_SYMBOL_NAMES),y)
+DEBUG_OBJ:=$(DEBUG_OBJ) text_symbols_map.o
+
+text_symbols_map.s: $(KERNELNAME).big
+	$(NM) $< \
+		| grep ".* [Tt] "\
+		| uniq -f 2 \
+		| sort \
+		| sed 's/^\(.*\) [Tt] \(.*\)$$/\.section "\.symbols.entries"; \.align 2; \.long 0x\1; \.long \2_name; \.section "\.symbols.names"; \2_name: \.asciz "\2"/' > $@
+endif
+	
+
+

@@ -28,6 +28,7 @@ SECTIONS
 	} > osram
 
 	.text : {
+		_kernel_text_begin = . ;
 		*(.pretext);     /* init stuff */
 		*(.text);
 		*(.text.*);
@@ -55,6 +56,8 @@ SECTIONS
 		*(.handler.interrupt);  /* Interrupt Handler, VBR + 0x600 */
 		_inthandler_size = ABSOLUTE(.) - _binthandler ;
 		*(.handler.stuff);
+
+		_kernel_text_end = . ;
 	} > osram
 
 	.rodata : {
@@ -64,6 +67,11 @@ SECTIONS
 		_argvector_end = . ;
 		*(.rodata);
 		*(.rodata.*);
+		. = ALIGN(4);
+		_symbols_begin = . ;
+		*(.symbols.entries);
+		_symbols_end = . ;
+		*(.symbols.names)
 	} > osram
 
 	.data : {
