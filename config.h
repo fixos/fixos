@@ -33,5 +33,9 @@
 #define CONFIG_DEBUG_SYMBOL_NAMES	y
 
 
+// Add kernel-part support for ELF shared libraries
+#define CONFIG_ELF_SHARED			y
+
+
 #endif //_FIXOS_CONFIG_H
 

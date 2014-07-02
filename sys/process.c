@@ -106,6 +106,10 @@ process_t *process_alloc() {
 
 		proc->uticks = 0;
 		proc->kticks = 0;
+
+#ifdef CONFIG_ELF_SHARED
+		proc->shared.file = NULL;
+#endif //CONFIG_ELF_SHARED
 	}
 	return proc;
 }

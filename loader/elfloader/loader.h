@@ -12,4 +12,37 @@
 
 int elfloader_load(struct file *filep, process_t *dest);
 
+
+#ifdef CONFIG_ELF_SHARED
+/**
+ * Load a dynamic library in desy address space.
+ * For now, only try <SMEM_root>/lib/<soname>.
+ */
+int elfloader_load_dynlib(const char *soname, process_t *dest);
+
+
+/**
+ * Try to resolve a symbol through loaded dynamic libraries in the given
+ * process.
+ * NULL is returned if symbol is not found.
+ * FIXME if symbol is equal to NULL, it will seem unfound.
+ */
+void *elfloader_resolve_dynsymbol(const char *symbol, process_t *target);
+
+
+/**
+ * dynbind() syscall implementation, look for given symbol in loaded
+ * dynamic libraries, and write its value in *dest if not NULL.
+ * Returns 0 if symbol is found, negative value else.
+ */
+int sys_dynbind(const char *symbol, void **dest);
+#else
+static inline int sys_dynbind(const char *symbol, void **dest) {
+	(void)symbol;
+	(void)dest;
+	return -1;
+}
+#endif //CONFIG_ELF_SHARED
+
+
 #endif //_LOADER_ELFLOADER_LOADER_H

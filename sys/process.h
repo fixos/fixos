@@ -46,6 +46,15 @@ struct file;
 // of process struct (see arch/sh/scheduler.S for example)
 struct _context_info;
 
+#ifdef CONFIG_ELF_SHARED
+// loaded library associated to a process
+struct elf_shared_lib {
+	struct file *file;
+	void *offset;
+};
+#endif //CONFIG_ELF_SHARED
+
+
 struct _process_info {
 	// address on the kernel stack of the process, or NULL if running out of any
 	// interrupt...
@@ -74,6 +83,12 @@ struct _process_info {
 	// clock ticks ellapsed in User mode and in Kernel mode
 	clock_t uticks;
 	clock_t kticks;
+
+	// shared libraries loaded
+	// TODO better design
+#ifdef CONFIG_ELF_SHARED
+	struct elf_shared_lib shared;
+#endif //CONFIG_ELF_SHARED
 };
 
 typedef struct _process_info process_t;

@@ -57,4 +57,8 @@
 //extern int ioctl(int fd, int request, void *arg);
 #define SYSCALL_IOCTL		17
 
+
+//extern int dynbind(const char *symbol, void **dest);
+#define SYSCALL_DYNBIND		18
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

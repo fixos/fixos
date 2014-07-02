@@ -6,6 +6,8 @@
 #include <sys/time.h>
 #include <sys/signal.h>
 
+#include <loader/elfloader/loader.h>
+
 void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	NULL,
 	&sys_open,
@@ -24,7 +26,8 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_sigprocmask,
 	&sys_sigreturn,
 	&sys_pipe2,
-	&sys_ioctl
+	&sys_ioctl,
+	&sys_dynbind
 };
 
 
