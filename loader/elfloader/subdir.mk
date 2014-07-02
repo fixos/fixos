@@ -1,7 +1,8 @@
 # makefile part for loader/elfloader/ sub-directory
 
 C_SRC_L:= \
-	loader.c
+	loader.c \
+	elf_utils.c
 
 
 CURDIR:=loader/elfloader
