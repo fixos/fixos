@@ -1,7 +1,10 @@
 #include <utils/log.h>
 #include <sys/process.h>
+#include <sys/memory.h>
 #include "process.h"
 #include "mmu.h"
+
+#include <sys/kdebug.h>
 
 
 // in fixos.ld
@@ -13,17 +16,12 @@ extern uint16 kernel_text_end;
 #define MAX_STACK_FRAMES	15
 
 
-struct symbol_entry {
-	uint32 val;
-	const char *name;
-};
-
 #ifdef CONFIG_DEBUG_SYMBOL_NAMES
 extern struct symbol_entry symbols_begin;
 extern struct symbol_entry symbols_end;
 
 
-static const struct symbol_entry *get_nearest_symbol(void *addr) {
+const struct symbol_entry *kdebug_nearest_symbol(void *addr) {
 	const struct symbol_entry *ret = NULL;
 	const struct symbol_entry *cur;
 
@@ -37,14 +35,16 @@ static const struct symbol_entry *get_nearest_symbol(void *addr) {
 }
 
 #else
-static inline const struct symbol_entry *get_nearest_symbol(void *addr) {
+const struct symbol_entry *kdebug_nearest_symbol(void *addr) {
 	(void)addr;
 	return NULL;
 }
 #endif //CONFIG_DEBUG_SYMBOL_NAMES
 
 
-void arch_print_trace(uint32 *stack, uint32 *bottom) {
+
+
+static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 	int i;
 
 	/*
@@ -57,18 +57,9 @@ void arch_print_trace(uint32 *stack, uint32 *bottom) {
 	i = 0;
 	while(stack < bottom && i < MAX_STACK_FRAMES) {
 		if(IS_KERNEL_TEXT(*stack)) {
-			const struct symbol_entry *symbol;
-
-			// try to get symbol name and offset if registered
-			symbol = get_nearest_symbol((void*)*stack);
-			
-			if(symbol != NULL) {
-				printk("@%p: <%s + %d> (%p)\n", stack, symbol->name,
-						*stack - symbol->val, (void*)*stack);
-			}
-			else {
-				printk("@%p: <%p>\n", stack, (void*)(*stack));
-			}
+			printk("@%p: ", stack);
+			kdebug_print_symbol((void*)*stack);
+			printk("\n");
 			i++;
 		}
 		stack++;
@@ -77,19 +68,50 @@ void arch_print_trace(uint32 *stack, uint32 *bottom) {
 }
 
 
-void kernel_oops() {
+
+void kdebug_print_trace() {
 	process_t *proc;
 	void *stack;
 
-	printk("Fatal kernel oops!\n"
-			"Following informations may help :\n");
+	proc = process_get_current();
+
+	asm volatile ("mov r15, %0" : "=r"(stack) : : );
+	arch_print_trace(stack, (uint32*)(proc->acnt));//proc->kernel_stack);
+}
+
+
+
+void kdebug_oops(const char *errstr) {
+	process_t *proc;
+	struct _context_info *cont;
+	
+
+	printk("Fatal kernel oops!\n");
+	if(errstr != NULL)
+		printk("(%s)\n", errstr);
+	printk("Following informations may help :\n");
 
 	proc = process_get_current();
 	if(proc != NULL) {
 		printk("Running pid %d (asid=%d)\n", proc->pid, mmu_getasid());
 	}
 
-	asm volatile ("mov r15, %0" : "=r"(stack) : : );
-	arch_print_trace(stack, (uint32*)(proc->acnt));//proc->kernel_stack);
+	kdebug_print_vmspace(proc);
+
+	// print each kernel context information
+	kdebug_print_trace();
+
+	cont = proc->acnt;
+	while(cont != NULL && cont->previous != NULL) {
+		printk("---- Previous Context ----\n       PC: ");
+		kdebug_print_symbol((void*)(cont->pc));
+		printk("\n       PR: ");
+		kdebug_print_symbol((void*)(cont->pr));
+		printk("\n");
+
+		arch_print_trace((uint32*)(cont->reg[15]), (uint32*)(cont->previous) );
+		cont = cont->previous;
+	}
+
 	while(1);
 }

@@ -12,8 +12,7 @@
 #include <sys/syscall.h>
 #include <sys/memory.h>
 #include <utils/log.h>
-
-extern void syscall_entry();
+#include <sys/kdebug.h>
 
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
@@ -43,16 +42,14 @@ void exception_handler()
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		printk("Fatal:\nCPU Access Violation (R/W)\n  Address : %p\n", (void*)tea);
-		printk("SPC Value = %p\nStack = %p\n", spcval, stackval);
-		while(1);
+		printk("> Address : %p\n", (void*)tea);
+		printk("> SPC Value = %p\n", spcval);
+		kdebug_oops("CPU Access Violation (R/W)");
 		break;
 
 	case EXP_CODE_TRAPA:
 		tra = INTC.TRA >> 2; 
 		//printk("TRAPA (%d) catched!\n", tra);
-		//TODO syscall_entry();
-
 		{
 			void *func;
 			func = syscall_get_function(tra);
@@ -83,12 +80,13 @@ void exception_handler()
 
 	case EXP_CODE_BAD_INSTR:
 	case EXP_CODE_BAD_SLOTINSTR:
-		printk("Fatal:\nIllegal %sinstruction.\n", evt == EXP_CODE_BAD_SLOTINSTR ?
-				"slot " : "");
-		printk("TEA value = %p\n", (void*)tea);
-		printk("    *=(%p)\n", (void*)(*(int*)(tea-(tea%4))));
-		printk("SPC Value = %p\n", spcval);
-		while(1);
+		printk("> TEA value = %p\n", (void*)tea);
+		printk(">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
+		printk("> SPC Value = %p\n", spcval);
+		if(EXP_CODE_BAD_SLOTINSTR)
+			kdebug_oops("Illegal slot instruction");
+		else
+			kdebug_oops("Illegal instruction");
 		break;
 
 	case EXP_CODE_USER_BREAK:
@@ -97,8 +95,7 @@ void exception_handler()
 		break;
 
 	case EXP_CODE_DMA_ERROR:
-		printk("Fatal:\nDMA error.\n");
-		while(1);
+		kdebug_oops("DMA error");
 		break;
 
 	case EXP_CODE_TLB_INITWRITE:
@@ -107,16 +104,14 @@ void exception_handler()
 
 	case EXP_CODE_TLB_PROTECT_R:
 	case EXP_CODE_TLB_PROTECT_W:
-		printk("Fatal:\nTLB protection violation.\n");
-		while(1);
+		kdebug_oops("TLB protection violation");
 		break;
 
 	// TLB contains the needed address, but V bit is 0
 	// These two codes are re-directed to tlbmiss_handler, and should never happen
 	case EXP_CODE_TLB_READ:
 	case EXP_CODE_TLB_WRITE:
-		printk("Fatal:\nTLB error.\n");
-		while(1);
+		kdebug_oops("TLB miss");
 		break;
 
 	default:
@@ -202,7 +197,8 @@ void tlbmiss_handler()
 
 		asm volatile("stc spc, %0":"=r"(spcval));
 		asm volatile("mov r15, %0":"=r"(stack));
-		printk("Fatal:\nAccess to forbiden page.\nAt address %p\nWith PC=%p\nStack=%p\n", (void*)TEA, (void*)spcval, stack);
-		while(1);
+		printk("> Dereference %p\n> With PC=%p\n",
+				(void*)TEA, (void*)spcval);
+		kdebug_oops("Access to a forbiden page");
 	}
 }

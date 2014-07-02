@@ -8,7 +8,8 @@ C_SRC_L:= \
 	syscall.c \
 	cmdline.c \
 	console.c \
-	memory.c
+	memory.c \
+	kdebug.c
 
 
 CURDIR:=sys

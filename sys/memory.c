@@ -55,7 +55,9 @@ int mem_insert_page(struct page_dir **dir_list, union pm_page *page, void *addr)
 			if(cur->dir_id > dir_id) {
 				newdir->next = cur;
 				newdir->prev = cur->prev;
-				if(cur->prev != NULL)
+				if(cur->prev == NULL)
+					*dir_list = newdir;
+				else
 					cur->prev->next = newdir;
 				cur->prev = newdir;
 			}
