@@ -4,6 +4,7 @@
 
 #include "lib/syscalls.h"
 #include <display.h>
+#include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
 
@@ -310,7 +311,14 @@ int test_display(int fdout) {
 }
 
 
-char nawak[64*1024] = {};
+void test_sharedlib() {
+	name("First call");
+	name("Second call");
+	tada(10);
+}
+
+
+//char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
 	// try to open "/dev/console"
@@ -326,6 +334,8 @@ int usertest_main(int argc, char **argv) {
 
 	int tty1 = open("/dev/tty1", 123);
 
+	test_sharedlib();
+
 	pid_t pid;
 	pid = fork();
 	if(pid) {
@@ -335,12 +345,17 @@ int usertest_main(int argc, char **argv) {
 		write_const(tty2, "I'm writing on tty2.\n");
 
 		wait(NULL);
+
+		//int disp;
+		//disp = open("/dev/display", 123);
+		//ioctl(disp, DISPCTL_INFO, (void*)(&disp)+3);
+
 		test_copy_files(tty2, tty1, 1);
 	}
 	else {
-		int i;
-		for(i=0; i<64*1024; i++) 
-			nawak[64*1024-i-1] = nawak[i];
+	//	int i;
+		//for(i=0; i<64*1024; i++) 
+		//	nawak[64*1024-i-1] = nawak[i];
 
 		write_const(fd, "Child is dying...\n");
 		exit(1);

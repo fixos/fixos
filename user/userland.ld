@@ -8,32 +8,44 @@ ENTRY(_main)
 MEMORY
 {
 	/* virtual memory, read-write segment */
-	userram : o = 0x10000000, l = 256k
+	userram (rwx) : o = 0x10000000, l = 256k
 
 	/* virtual memory, read-exec segment */
 	/* Unused for now (everything in the same segment is lighter... */
 	/*userrom : o = 0x30000000, l = 64k*/
 }
 
+PHDRS
+{
+	sharedlibs PT_SHLIB;
+	text PT_LOAD ;
+	data PT_LOAD ;
+}
+
 SECTIONS
 {
+	.libraries : {
+		*(.libraries)
+	} : sharedlibs
+
 	.text : {
 		*(.text)
 		*(.text.*)
-	} > userram /*userrom*/
+	} : text
 
 	.rodata : {
 		*(.rodata);
 		*(.rodata.*);
-	} > userram /*userrom*/
+	}
 
-	.data : {
+	.data ALIGN(1024) : {
+		*(.plt);
 		*(.data);
 		*(.data.*);
-	} > userram
+	} : data
 
 	.bss : {
 		*(.bss) *(COMMON);
-	} > userram
+	}
 }
 

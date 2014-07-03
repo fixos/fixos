@@ -46,5 +46,6 @@ extern int pipe2(int pipefd[2], int flags);
 
 extern int ioctl(int fd, int request, void *arg);
  
+extern int dynbind(const char *symbol, void **dest);
 
 #endif //_SYSCALLS_SYSCALLS_H

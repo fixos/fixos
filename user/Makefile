@@ -1,48 +1,55 @@
-CC=sh3eb-elf-gcc
-CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
+include ../global.mk
 
-LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
 
-OBJCOPY=sh3eb-elf-objcopy
-OBJCOPY_FLAGS=-S
+INCLUDE_PATH:=-I. -I../interface
+CFLAGS:=$(INCLUDE_PATH) $(CFLAGS) 
 
-INCLUDE_PATH=-I. -I../interface
-LDSCRIPT=userland.ld
+LDSCRIPT:=userland.ld
+LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)
 
-EXEC=test.elf
-ENTRY_POINT=_usertest_main
+LDLIBS:=-Lsharedtest -ltest-shared
 
-C_SRC=first_test_elf.c lib/syscalls.c
+
+EXEC:=test.elf
+ENTRY_POINT:=_usertest_main
+
+C_SRC:=first_test_elf.c lib/syscalls.c dynld.c
 	
-ASM_SRC=
+ASM_SRC:=dynld_solvename_call.s
 #../gcc_fix/udivsi3_i4i.S
 
-OBJ=$(C_SRC:.c=.o) $(ASM_SRC:.S=.o)
+OBJ:=$(filter %.o, $(C_SRC:.c=.o) $(ASM_SRC:.S=.o) $(ASM_SRC:.s=.o)) 
+
 
 
 all: $(EXEC)
 
-$(EXEC): $(OBJ)
-	$(CC) $(LDFLAGS) -e $(ENTRY_POINT) -o $@.big $^
+$(EXEC): sharedlib $(OBJ)
+	$(CC) $(LDFLAGS) -e $(ENTRY_POINT) -o $@.big $(OBJ) $(LDLIBS)
 	$(OBJCOPY) -S $@.big $@
 
+sharedlib:
+	$(MAKE) -C sharedtest/ all 
+
 %.o: %.c
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.s
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 
-.PHONY: clean distclean re all
+.PHONY: clean distclean re all sharedlib
 
 clean:
 	rm -f $(OBJ)
 	rm -f $(EXEC).big
+	$(MAKE) -C sharedtest/ clean
 
 distclean: clean
 	rm -f $(EXEC)
+	$(MAKE) -C sharedtest/ distclean
 
 re: distclean all
