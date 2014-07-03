@@ -1,14 +1,11 @@
-CC=sh3eb-elf-gcc
-CCFLAGS=-Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin -include config.h
+include global.mk
 
-LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
+INCLUDE_PATH:=-I.
+CFLAGS:=$(INCLUDE_PATH) -include config.h $(CFLAGS)
 
-NM=sh3eb-elf-nm
-OBJCOPY=sh3eb-elf-objcopy
-OBJCOPY_FLAGS=-S
+LDSCRIPT:=fixos.ld
+LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)
 
-INCLUDE_PATH=-I.
-LDSCRIPT=fixos.ld
 
 KERNELNAME=fixos
 
@@ -31,7 +28,7 @@ include utils/subdir.mk
 endif
 
 ifeq ($(CONFIG_DEBUG_STACK),y)
-CCFLAGS+=
+CFLAGS+=
 #-funwind-tables -fno-omit-frame-pointer
 # frame pointer with GCC are not useful for sh3 stack analysis
 # (local variables between @r14 and previous frame pointer...)
@@ -60,7 +57,7 @@ $(KERNELNAME).debug: $(OBJ) $(DEBUG_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(KERNELNAME): $(KERNELNAME).debug
-	$(OBJCOPY) $(OBJCOPY_FLAGS) $< $@
+	$(OBJCOPY) -S $< $@
 
 
 # command line used to generate the "text symbols" informations
@@ -74,14 +71,14 @@ $(KERNELNAME): $(KERNELNAME).debug
 
 
 %.o: %.c
-	$(CC) -c $(CCFLAGS) -o $@ $<
-	$(CC) $(CCFLAGS) -M -MF"$(<:.c=.d)" -MP -MT"$@" -MT"$(<:.c=.d)" "$<"
+	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -M -MF"$(<:.c=.d)" -MP -MT"$@" -MT"$(<:.c=.d)" "$<"
 
 %.o: %.s
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 
 # Userland stuff sub-makefile

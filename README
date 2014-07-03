@@ -9,10 +9,10 @@ Informations
 FiXos is a project of kernel, targetting Casio's calculators in a first place,
 designed to be UNIX-like, even if full POSIX compatibility is not aimed.
 
-As Casio's default OS on these plateforms never switch to user mode, the kernel
+As Casio's default OS on these platforms never switch to user mode, the kernel
 can be started like an Addin and dealing with protected mode.
 A bootloader is included, and allow to run ELF files as kernel (so this is not
-realy a "bootloader", as the real boot is in all case done by Casio's code).
+really a "bootloader", as the real boot is in all case done by Casio's code).
 
 CPU first targeted is the SH3 7705 modified by Casio, used on fx9860, but other
 SuperH support may be added later.
@@ -20,8 +20,8 @@ This CPU is a modern architecture, with priviligied/user mode, MMU for virtual
 memory and memory access control, cache, embedded USB device controler...
 All these things allow to have a modern kernel, with a good process isolation.
 
-Finaly, do not forget the goal is not to do an amazing kernel. I am working on
-that because it's fun, realy interesting, and to do some proof-of-concept.
+Finally, do not forget the goal is not to do an amazing kernel. I am working on
+that because it's fun, really interesting, and to do some proof-of-concept.
 
 
 
@@ -32,7 +32,7 @@ Build and Install
 First of all : be sure about what you are doing before to start!
 This software is not a stable release of your favorite linux kernel. Any part
 of the program may cause damage to your machine, especialy if you are using a
-not tested plateform.
+not tested platform.
 Of course, I assure you I have never issued important problem when testing the
 kernel on my own calculator, but if for any reason this happen for you, you
 are warned.
@@ -48,17 +48,20 @@ Finaly, even if you can build everything by manually, the project use GNU make
 to be build.
 
 If you are using make tool, please check and modify the values of Makefile
-variables for the different tools names and locations.
+variables for the different tools names and locations (in most case, only
+"global.mk" need to be changed, or in simplest case you can add option
+"TOOLCHAIN_PREFIX=<prefix>" to make command).
 Check root Makefile for the kernel, bootloader/Makefile for the bootloader and
 user/Makefile for userspace things.
-You will probably have to change the values of CC, OBJCOPY and G1A_WRAPPER.
 
 Once all is configured, simply execute :
 $ make all
 to build the kernel, bootloader and userland programs.
 If everything works, to run the kernel using the bootloader, you will need
-to copy "bootloader/bootldr.g1a", "fixos" and "user/test.elf" on the root
-of your calculator SMEM file system.
+to copy "bootloader/bootldr.g1a", "bootloader/bootldr.cfg", "fixos" and
+"user/test.elf" on the root of your calculator SMEM file system.
+Any shared library (*.so file) should be put in a directory named "LIB" located
+on the root of SMEM.
 
 To run the kernel, start bootldr.g1a (its icon shows "FiXos"), and select the
 first loadable entry with [EXE].

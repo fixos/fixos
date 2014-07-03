@@ -1,30 +1,29 @@
-CC=sh3eb-elf-gcc
-CCFLAGS=-g -Wall -m3 -mb -Os $(INCLUDE_PATH) -fno-builtin
-
-LDFLAGS=-T"$(LDSCRIPT)" -nostdlib
-
-OBJCOPY=sh3eb-elf-objcopy
-ELFTOBIN_OBJCOPY_FLAGS=-R .comment -R .bss -O binary
-
-INCLUDE_PATH=-I..
-LDSCRIPT=bootloader.ld
-
-G1A_WRAPPER=c_g1awrapper
-G1A_ICON=../icon.bmp
+include ../global.mk
 
 
-BASENAME=bootldr
-BINARY=$(BASENAME).bin
-ELF=$(BASENAME).elf
-G1A=$(BASENAME).g1a
+INCLUDE_PATH:=-I..
+CFLAGS:=$(INCLUDE_PATH) $(CFLAGS)
 
-C_SRC=bootloader.c smem_file.c config_parser.c elf_loader.c \
+LDSCRIPT:=bootloader.ld
+LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)
+
+ELFTOBIN_OBJCOPY_FLAGS:=-R .comment -R .bss -O binary
+
+
+G1A_ICON:=../icon.bmp
+
+BASENAME:=bootldr
+BINARY:=$(BASENAME).bin
+ELF:=$(BASENAME).elf
+G1A:=$(BASENAME).g1a
+
+C_SRC:=bootloader.c smem_file.c config_parser.c elf_loader.c \
 	  ../fs/casio_smemfs/smemfs_primitives_ng.c
-ASM_SRC=bootloader_pre.s casio_syscalls.S \
+ASM_SRC:=bootloader_pre.s casio_syscalls.S \
 		../utils/sh/memcpy.S ../utils/sh/strcmp.S ../utils/sh/memset.S
 
-TMPSTUB:=$(ASM_SRC:.S=.o)
-OBJ=$(C_SRC:.c=.o) $(TMPSTUB:.s=.o)
+
+OBJ:=$(filter %.o, $(C_SRC:.c=.o) $(ASM_SRC:.S=.o) $(ASM_SRC:.s=.o))
 
 
 all: $(G1A)
@@ -40,13 +39,13 @@ $(ELF): $(OBJ)
 
 
 %.o: %.c
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.s
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CCFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
 
 .PHONY: clean distclean re all
