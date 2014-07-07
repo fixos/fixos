@@ -126,7 +126,13 @@ int display_ioctl(struct file *filep, int cmd, void *data) {
 
 	case DISPCTL_DISPLAY:
 		if((int)(filep->private_data) != 0) {
-			disp_mono_copy_to_dd(_display_vram);
+			// FIXME There is a typical cause of "cache/MMU synonym problem"
+			// for SH3 here, this will be a serious problem with shared memory!
+			// for now, the fix is really dirty (we use the same virtual
+			// address than the one used in userspace...)
+			// FIXME!
+			//disp_mono_copy_to_dd(_display_vram);
+			disp_mono_copy_to_dd((void*)0x18000000);
 		}
 		else {
 			retval = -1;
