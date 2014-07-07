@@ -58,15 +58,13 @@ int pipe_create(struct file *files[2]) {
 
 	in->inode = NULL;
 	in->pos = 0;
-	in->flags = 0;
-	in->open_mode = _FILE_READ;
+	in->flags = O_RDONLY;
 	in->private_data = page;
 	in->op = &pipe_file_ops;
 
 	out->inode = NULL;
 	out->pos = 0;
-	out->flags = 0;
-	out->open_mode = _FILE_WRITE;
+	out->flags = O_WRONLY;
 	out->private_data = page;
 	out->op = &pipe_file_ops;
 

@@ -23,7 +23,7 @@ int smemfs_release (struct file *filep) {
 
 
 size_t smemfs_read (struct file *filep, void *dest, size_t len) {
-	if((len == 0) || (filep->flags & _FILE_EOF_REATCHED) || !(filep->open_mode & _FILE_READ)) {
+	if(len == 0) { // FIXME || !(filep->flags & O_RDONLY)) {
 		return 0;
 	}
 	else {
@@ -79,7 +79,7 @@ size_t smemfs_read (struct file *filep, void *dest, size_t len) {
 		}
 
 		filep->pos += max_read;
-		if(filep->pos >= file_size) filep->flags |= _FILE_EOF_REATCHED;
+		//if(filep->pos >= file_size) filep->flags |= _FILE_EOF_REATCHED;
 		return max_read;
 	}
 }
@@ -106,13 +106,13 @@ off_t smemfs_lseek (struct file *filep, off_t offset, int whence) {
 		size = smemfs_prim_get_file_size((struct smemfs_file_preheader *)filep->inode->abstract);
 
 	filep->pos = tmp_pos > size ? size : tmp_pos; 
-	if(filep->pos == size) {
+	/*if(filep->pos == size) {
 		// end of file
 		filep->flags |= _FILE_EOF_REATCHED;
 	}
 	else {
 		filep->flags &= ~_FILE_EOF_REATCHED;
-	}
+	}*/
 
 	return filep->pos;
 }

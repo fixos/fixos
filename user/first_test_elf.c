@@ -4,6 +4,7 @@
 
 #include "lib/syscalls.h"
 #include <display.h>
+#include <fcntl.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
@@ -256,7 +257,7 @@ int test_display(int fdout) {
 	struct display_info info;
 	char *vram;
 
-	disp = open("/dev/display", 123);
+	disp = open("/dev/display", O_RDWR);
 
 	ioctl(disp, DISPCTL_INFO, &info);
 	write_const(fdout, "info :\n  w=0x");
@@ -311,44 +312,86 @@ int test_display(int fdout) {
 }
 
 
-void test_sharedlib() {
-	name("First call");
+static void test_sharedlib() {
+	name("rst call");
 	name("Second call");
 	tada(10);
 }
 
+
+static void test_sbrk(int fdout) {
+	int *cur_sbrk;
+	int i;
+	
+	cur_sbrk = sbrk(0);
+	write_const(fdout, "Current brk=");
+	write_int_hex(fdout, (unsigned int)cur_sbrk);
+	write_const(fdout, "\n");
+
+	for(i=0; i<1234; i++) {
+		int *cur;
+		cur = sbrk(sizeof(int));
+		*cur = i;
+	}
+
+	int ok = 1;
+	for(i=0; i<1234; i++) {
+		if(cur_sbrk[i] != i) ok = 0;
+	}
+
+	if(ok) {
+		write_const(fdout, "Alloc seems to work\n");
+	}
+	else {
+		write_const(fdout, "Alloc problem!\n");
+	}
+
+	cur_sbrk = sbrk(0);
+	write_const(fdout, "After alloc brk=");
+	write_int_hex(fdout, (unsigned int)cur_sbrk);
+	write_const(fdout, "\n");
+
+	cur_sbrk = sbrk(- sizeof(int) * 1234);
+
+	cur_sbrk = sbrk(0);
+	write_const(fdout, "After freeing brk=");
+	write_int_hex(fdout, (unsigned int)cur_sbrk);
+	write_const(fdout, "\n");
+}
 
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
 	// try to open "/dev/console"
 	int fd;
-	fd = open("/dev/console", 123);
+	fd = open("/dev/console", O_RDWR);
 
 	write_const(fd, "*** Hey! I'm a User process!\n*** I AM ALIVE!\n");
 
 	int fd_serial;
-	fd_serial = open("/dev/serial", 456);
+	fd_serial = open("/dev/serial", O_RDWR);
 
 	write_const(fd_serial, "*** Hi, dear serial terminal!\n");
 
-	int tty1 = open("/dev/tty1", 123);
+	int tty1 = open("/dev/tty1", O_RDWR);
 
-	test_sharedlib();
+	//test_sharedlib();
+
+	test_sbrk(fd);
 
 	pid_t pid;
 	pid = fork();
 	if(pid) {
-		int tty2 = open("/dev/tty2", 123);
+		int tty2 = open("/dev/tty2", O_RDWR);
 
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");
 
 		wait(NULL);
 
-		//int disp;
-		//disp = open("/dev/display", 123);
-		//ioctl(disp, DISPCTL_INFO, (void*)(&disp)+3);
+		int disp;
+		disp = open("/dev/display", O_RDWR);
+		ioctl(disp, DISPCTL_INFO, (void*)(&disp)+3);
 
 		test_copy_files(tty2, tty1, 1);
 	}

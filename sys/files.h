@@ -9,7 +9,8 @@
 #include <utils/types.h>
 
 
-int sys_open(const char *name, int mode);
+// FIXME add a "mode" argument
+int sys_open(const char *name, int flags);
 
 ssize_t sys_read(int fd, char *dest, int nb);
 

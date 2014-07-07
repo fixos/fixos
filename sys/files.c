@@ -8,11 +8,11 @@
 
 
 
-int sys_open(const char *name, int mode) {
+int sys_open(const char *name, int flags) {
 	process_t *proc;
 	int fd;
 
-	printk("Received sys_open :\n   ('%s', %d)\n", name, mode);
+	printk("Received sys_open :\n   ('%s', %d)\n", name, flags);
 	proc = process_get_current();
 
 	for(fd=0; fd<PROCESS_MAX_FILE && proc->files[fd] != NULL; fd++);
@@ -23,7 +23,7 @@ int sys_open(const char *name, int mode) {
 		inode = vfs_resolve(name);
 		if(inode != NULL) {
 			
-			proc->files[fd] = vfs_open(inode);
+			proc->files[fd] = vfs_open(inode, flags);
 			if(proc->files[fd] != NULL) {
 				printk("sys_open: new fd = %d\n", fd);
 

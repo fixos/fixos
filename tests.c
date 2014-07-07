@@ -212,7 +212,7 @@ void test_process() {
 	//test_keyboard_int();
 
 	elf_inode = vfs_resolve("/mnt/smem/test.elf");
-	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
+	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode, O_RDONLY)) == NULL ) {
 		printk("Not found /mnt/smem/test.elf\n");
 	}
 	else {
@@ -270,7 +270,7 @@ void test_vfs() {
 	char file_buf[50];
 	int nbread;
 
-	filep = vfs_open(curi);
+	filep = vfs_open(curi, O_RDONLY);
 
 	nbread = vfs_read(filep, file_buf, 49);
 	file_buf[nbread] = '\0';
@@ -287,7 +287,7 @@ void test_vfs() {
 	printk("Trying to use fx9860-terminal device...\n");
 
 	inode_t *console = vfs_resolve("/dev/console");
-	filep = vfs_open(console);
+	filep = vfs_open(console, O_RDWR);
 
 	vfs_write(filep, "This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n", sizeof("This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n")-1); 
 	DBG_WAIT;

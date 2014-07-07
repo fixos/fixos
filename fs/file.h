@@ -4,20 +4,13 @@
 #include <utils/types.h>
 #include "inode.h"
 
-// Internal constants definition
-#define _FILE_READ    1
-#define _FILE_WRITE   2
-
-// Flags :
-#define _FILE_WRITTEN 1
-#define _FILE_READED  2
-#define _FILE_EOF_REATCHED 4
+// for flags
+#include <interface/fcntl.h>
 
 struct file_operations;
 
 struct file {
 	size_t pos;
-	int open_mode;
 	int flags;
 
 	// inode associated to this file, may be NULL for special files (pipes...)

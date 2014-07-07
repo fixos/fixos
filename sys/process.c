@@ -346,7 +346,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 	// first, check if we can open and execute filename
 
 	elf_inode = vfs_resolve(filename);
-	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode)) == NULL ) {
+	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode, O_RDONLY)) == NULL ) {
 		printk("execve: failed to open '%s'\n", filename);
 	}
 	else {

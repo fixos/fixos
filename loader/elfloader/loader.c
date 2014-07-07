@@ -252,7 +252,7 @@ int elfloader_load_dynlib(const char *soname, process_t *dest) {
 	absname[39] = '\0';
 
 	ilib = vfs_resolve(absname);
-	if(ilib != NULL && (lib = vfs_open(ilib)) != NULL) {
+	if(ilib != NULL && (lib = vfs_open(ilib, O_RDONLY)) != NULL) {
 		// TODO runtime offset calculation
 		void *offset = (void*)0x15000000;
 

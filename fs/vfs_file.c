@@ -15,7 +15,7 @@ void vfs_file_init() {
 }
 
 
-struct file *vfs_open(inode_t *inode) {
+struct file *vfs_open(inode_t *inode, int flags) {
 	struct file *filep;
 
 	// allocate a struct file, fill it as much as possible, and call
@@ -26,10 +26,8 @@ struct file *vfs_open(inode_t *inode) {
 	if(filep != NULL) {
 		int done = 0;
 
-		// TODO
-		filep->flags = 0;
+		filep->flags = flags;
 		filep->inode = inode;
-		filep->open_mode = _FILE_READ | _FILE_WRITE;
 		filep->pos = 0;
 
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
