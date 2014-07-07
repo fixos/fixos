@@ -11,7 +11,7 @@
 
 
 
-#define SYSCALL_NUMBER		19
+#define SYSCALL_NUMBER		20
 
 // for kernel-part syscall handling
 extern void* const _syscall_funcs[];

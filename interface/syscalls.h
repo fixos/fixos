@@ -61,4 +61,9 @@
 //extern int dynbind(const char *symbol, void **dest);
 #define SYSCALL_DYNBIND		18
 
+
+// extern void *sbrk(int incr);
+#define SYSCALL_SBRK		19
+
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

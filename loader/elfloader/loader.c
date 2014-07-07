@@ -28,15 +28,19 @@ static int elfloader_load_segment(struct file *filep, void *offset,
  * Load all segment described in the given file, using offset as base virtual
  * address if not NULL, into the process dest.
  * If file is succefully loaded, header is filled with the ELF file header.
+ * If flag contain ELF_LOAD_SET_BRK, the last program header in memory will
+ * be used as base address for the heap of dest (dest->initial_brk will be
+ * set to the first byte beyond the last data section allocated).
  */
+#define ELF_LOAD_SET_BRK	(1<<0)
 int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
-		struct elf_header *header);
+		struct elf_header *header, int flags);
 
 
 int elfloader_load(struct file *filep, process_t *dest) {
 	struct elf_header header;
 
-	if(elfloader_load_all(filep, NULL, dest, &header) == 0) {
+	if(elfloader_load_all(filep, NULL, dest, &header, ELF_LOAD_SET_BRK) == 0) {
 		union pm_page page;
 		void *vmstack;
 
@@ -78,7 +82,7 @@ int elfloader_load(struct file *filep, process_t *dest) {
 
 
 int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
-		struct elf_header *header)
+		struct elf_header *header, int flags)
 {
 	// first step : read ELF header and check if it seems correct
 	if(elf_get_header(filep, header) == 0) {
@@ -89,6 +93,9 @@ int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
 		else {
 			struct elf_prog_header pheader;
 			int curph;
+
+			// to set brk if needed
+			void *cur_brk = NULL;
 
 			// now, do appropriate job for each program header, depending their type
 			for(curph=0; curph < header->phnum; curph++) {
@@ -101,6 +108,9 @@ int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
 				if(pheader.type == ELFP_TYPE_LOAD) {
 					if(elfloader_load_segment(filep, offset, &pheader, dest) == 0) {
 						//loadable = 1;
+						if(pheader.vaddr + pheader.memsz > (uint32)cur_brk) {
+							cur_brk = (void*)(pheader.vaddr + pheader.memsz);
+						}
 					}
 					else {
 						printk("elfloader: unable to load segment\n");
@@ -135,12 +145,19 @@ int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
 					printk("elfloader: no shared library support!\n");
 #endif //CONFIG_ELF_SHARED
 				}
+
+			}
+
+			if(flags & ELF_LOAD_SET_BRK) {
+				dest->initial_brk = cur_brk;
+				dest->current_brk = cur_brk;
 			}
 		}
 	}
 	else {
 		return -1;
 	}
+
 
 
 	return 0;
@@ -240,7 +257,7 @@ int elfloader_load_dynlib(const char *soname, process_t *dest) {
 		void *offset = (void*)0x15000000;
 
 		struct elf_header header;
-		if(elfloader_load_all(lib, offset, dest, &header) == 0) {
+		if(elfloader_load_all(lib, offset, dest, &header, 0) == 0) {
 			struct elf_section_header symtab;
 
 			printk("elfloader: library '%s' loaded!\n", absname);

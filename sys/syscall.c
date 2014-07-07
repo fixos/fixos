@@ -27,7 +27,8 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_sigreturn,
 	&sys_pipe2,
 	&sys_ioctl,
-	&sys_dynbind
+	&sys_dynbind,
+	&sys_sbrk
 };
 
 

@@ -89,6 +89,12 @@ struct _process_info {
 #ifdef CONFIG_ELF_SHARED
 	struct elf_shared_lib shared;
 #endif //CONFIG_ELF_SHARED
+
+	// initial data break address (end of static .data/.bss)
+	void *initial_brk;
+	// the current_brk is the current address of the top of the heap (changed
+	// by sbrk() )
+	void *current_brk;
 };
 
 typedef struct _process_info process_t;
@@ -183,6 +189,8 @@ void sys_exit(int status);
 pid_t sys_getpid();
 
 pid_t sys_getppid();
+
+void *sys_sbrk(int incr);
 
 
 /**

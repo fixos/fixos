@@ -107,6 +107,9 @@ process_t *process_alloc() {
 		proc->uticks = 0;
 		proc->kticks = 0;
 
+		proc->initial_brk = NULL;
+		proc->current_brk = NULL;
+
 #ifdef CONFIG_ELF_SHARED
 		proc->shared.file = NULL;
 #endif //CONFIG_ELF_SHARED
@@ -486,3 +489,91 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 }
 
 
+void *sys_sbrk(int incr) {
+	// current implementation is pretty simple (no check for stack/shared area)
+	process_t *cur;
+
+	cur = process_get_current();
+	if(cur->initial_brk != NULL) {
+		void *ret;
+
+		if(cur->current_brk == NULL)
+			cur->current_brk = cur->initial_brk;
+		ret = cur->current_brk;
+
+		printk("sbrk: incr=%d\n", incr);
+
+		// add or remove the given size
+		if(incr > 0) {
+			// add pages to process if needed
+			unsigned int curalign;
+			void *lastpos;
+
+			lastpos = cur->current_brk - 1;
+			curalign = (((unsigned int) lastpos)) % PM_PAGE_BYTES;
+			if(curalign + incr >= PM_PAGE_BYTES) {
+				union pm_page page;
+				void *curvm;
+				int relincr;
+
+				relincr = incr - (PM_PAGE_BYTES - curalign);
+				curvm = lastpos + (PM_PAGE_BYTES - curalign);
+
+				page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
+				while(relincr >= 0) {
+					void *pageaddr;
+
+					printk("sbrk: add page @%p\n", curvm);
+					pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
+					if(pageaddr == NULL) {
+						// FIXME clean before return
+						return (void*)-1;
+					}
+
+					page.private.ppn = PM_PHYSICAL_PAGE(pageaddr);
+					mem_insert_page(& cur->dir_list , &page, curvm);
+
+					relincr -= PM_PAGE_BYTES;
+					curvm += PM_PAGE_BYTES;
+				}
+			}
+		}
+
+		else if(incr < 0) {
+			// remove pages if possible
+			int curalign;
+
+			// impossible to reduce the size beyond the original heap begin addr
+			incr = cur->current_brk + incr <= cur->initial_brk ?
+				cur->initial_brk - cur->current_brk : incr ;
+
+			curalign = (((unsigned int) cur->current_brk) - 1) % PM_PAGE_BYTES;
+			if(curalign + incr < 0 ) {
+				union pm_page *page;
+				void *curvm;
+				int nbpages;
+
+				nbpages = (-incr - ((unsigned int)(cur->current_brk) % PM_PAGE_BYTES)
+						-1) / PM_PAGE_BYTES + 1;
+				curvm = cur->current_brk - ((unsigned int)(cur->current_brk)
+						% PM_PAGE_BYTES);
+
+				while(nbpages > 0) {
+					printk("sbrk: remove page @%p\n", curvm);
+
+					page = mem_find_page(cur->dir_list, curvm);
+					if(page != NULL) {
+						mem_release_page(page);
+					}
+
+					nbpages--;
+					curvm -= PM_PAGE_BYTES;
+				}
+			}
+		}
+
+		cur->current_brk += incr;
+		return ret;
+	}
+	return (void*)-1;
+}

@@ -48,4 +48,6 @@ extern int ioctl(int fd, int request, void *arg);
  
 extern int dynbind(const char *symbol, void **dest);
 
+extern void* sbrk(int incr);
+
 #endif //_SYSCALLS_SYSCALLS_H
