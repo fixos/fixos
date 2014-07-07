@@ -2,6 +2,7 @@
 
 C_SRC_L:= \
 	keymatrix.c keyboard.c \
+	keyboard_device.c
 
 
 CURDIR:=device/keyboard/fx9860

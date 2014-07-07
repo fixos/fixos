@@ -4,6 +4,7 @@
 
 #include "lib/syscalls.h"
 #include <display.h>
+#include <fxkeyboard.h>
 #include <fcntl.h>
 #include "sharedtest/test.h"
 
@@ -359,6 +360,27 @@ static void test_sbrk(int fdout) {
 	write_const(fdout, "\n");
 }
 
+static void test_fxkeyboard(int fdout) {
+	int kdb;
+	struct fxkey_event evt;
+
+	kdb = open("/dev/keyboard", O_RDONLY | O_NONBLOCK);
+	while(1) {
+		if(read(kdb, (char*)&evt, sizeof(evt)) == sizeof(evt)) {
+			if(evt.event == K_EVENT_PRESSED)
+				write_const(fdout, "+0x");
+			else
+				write_const(fdout, "-0x");
+
+			write_int_hex(fdout, evt.key);
+			write_const(fdout, "\n");
+		}
+		else {
+			write_const(fdout, "#");
+		}
+	}
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -377,7 +399,8 @@ int usertest_main(int argc, char **argv) {
 
 	//test_sharedlib();
 
-	test_sbrk(fd);
+	//test_sbrk(fd);
+	test_fxkeyboard(fd);
 
 	pid_t pid;
 	pid = fork();

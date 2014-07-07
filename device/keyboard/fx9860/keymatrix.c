@@ -4,6 +4,9 @@
 #include <sys/stimer.h>
 #include <sys/time.h>
 
+// not really clean way to update direct keyboard device (hard coded path)
+#include "keyboard_device.h"
+
 
 // saved status, 10 lines of 7 bits (MSB unused)
 static uint8 _hwkbd_status[10];
@@ -85,15 +88,25 @@ void hwkbd_update_status() {
 
 			for(curcol = 0; curcol<7; curcol++) {
 				if(xored & (1<<curcol)) {
+					struct fxkey_event event;
+					event.key = (curcol << 4) | curline;
+
 					// check if the diff is a key pressed or released
-					if( (cols & (1<<curcol)) && _hwkbd_released != NULL) {
+					if( (cols & (1<<curcol))) {
 						// if bit is now 1, the key is released
-						_hwkbd_released( (curcol << 4) | curline);
+						event.event = K_EVENT_RELEASED;
+						if (_hwkbd_released != NULL) 
+							_hwkbd_released( (curcol << 4) | curline);
 					}
-					else if(_hwkbd_pressed != NULL) {
+					else {
 						// if bit is now 0, the key is pressed
-						_hwkbd_pressed( (curcol << 4) | curline);
+						event.event = K_EVENT_PRESSED;
+						if(_hwkbd_pressed != NULL)
+							_hwkbd_pressed( (curcol << 4) | curline);
 					}
+
+					// hard coded update of direct keyboard device
+					fxkdb_insert_event(&event);
 				}
 			}
 			_hwkbd_status[curline] = cols;

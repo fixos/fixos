@@ -22,6 +22,7 @@
 #include "device/usb/cdc_acm/acm_device.h"
 #include "device/usb/cdc_acm/cdc_acm.h"
 
+#include "device/keyboard/fx9860/keyboard_device.h"
 #include "device/keyboard/fx9860/keyboard.h"
 #include "device/keyboard/fx9860/keymatrix.h"
 #include "arch/sh/rtc.h"
@@ -149,7 +150,6 @@ void init() {
 	kbd_set_kstroke_handler(&vt_key_stroke);
 
 
-
 	// mount additional filesystems
 	vfs_create("/", "mnt", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
 	vfs_create("/mnt", "smem", INODE_TYPE_PARENT, INODE_FLAG_WRITE, 0);
@@ -162,6 +162,13 @@ void init() {
 	_display_device.init();
 	dev_register_device(&_display_device, 0x20);
 	vfs_create("/dev", "display", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00200001);
+
+
+	// direct keyboard device on major 0x21
+	fxkeyboard_device.init();
+	dev_register_device(&fxkeyboard_device, 0x21);
+	vfs_create("/dev", "keyboard", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00210000);
+
 
 	DBG_WAIT;
 
