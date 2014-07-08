@@ -37,6 +37,8 @@
 #include "sys/cmdline.h"
 #include "sys/console.h"
 
+#include "sys/sysctl.h"
+
 extern char cmdargs_begin;
 extern char cmdargs_end;
 
@@ -117,6 +119,9 @@ void init() {
 
 	freq = freq_get_peripheral_hz();
 	printk("Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+
+	// initialize sysctl tables
+	ctl_init();
 
 	//test_keyboard_int();
 

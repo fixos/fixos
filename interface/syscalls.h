@@ -65,5 +65,12 @@
 // extern void *sbrk(int incr);
 #define SYSCALL_SBRK		19
 
+// extern int sysctl_read(const int *name, size_t name_len, void *buf,
+//			size_t *len);
+#define SYSCALL_SYSCTL_READ	20
+
+// extern int sysctl_write(const int *name, size_t name_len,
+//			const void *buf, size_t *len);
+#define SYSCALL_SYSCTL_WRITE	21
 
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

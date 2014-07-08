@@ -9,7 +9,8 @@ C_SRC_L:= \
 	cmdline.c \
 	console.c \
 	memory.c \
-	kdebug.c
+	kdebug.c \
+	sysctl.c
 
 
 CURDIR:=sys

@@ -2,7 +2,7 @@ include ../global.mk
 
 
 INCLUDE_PATH:=-I. -I../interface
-CFLAGS:=$(INCLUDE_PATH) $(CFLAGS) 
+CFLAGS:=$(INCLUDE_PATH) $(CFLAGS) -Wno-unused-function
 
 LDSCRIPT:=userland.ld
 LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)

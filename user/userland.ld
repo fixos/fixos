@@ -42,10 +42,9 @@ SECTIONS
 		*(.plt);
 		*(.data);
 		*(.data.*);
-	} : data
 
-	.bss : {
+		/* bss section included to avoid missaligned segment */
 		*(.bss) *(COMMON);
-	}
+	} : data
 }
 

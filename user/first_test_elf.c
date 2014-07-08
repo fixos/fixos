@@ -6,6 +6,7 @@
 #include <display.h>
 #include <fxkeyboard.h>
 #include <fcntl.h>
+#include <sysctl.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
@@ -39,7 +40,7 @@ void write_int_dec(int fd, int n)
 }
 */
 
-void write_int_hex(int fd, unsigned int val) {
+static void write_int_hex(int fd, unsigned int val) {
 	int cpt = 0;
 	int i = 0;
 	char c;
@@ -67,7 +68,7 @@ void write_int_hex(int fd, unsigned int val) {
 }
 
 
-void test_gettimeofday(int fd) {
+static void test_gettimeofday(int fd) {
 	struct hr_time prev;
 	gettimeofday(&prev, NULL);
 	while(1) {
@@ -84,7 +85,7 @@ void test_gettimeofday(int fd) {
 }
 
 
-void print_args(int fd, int argc, char **argv) {
+static void print_args(int fd, int argc, char **argv) {
 	int argnb;
 	int car;
 	write_const(fd, "Args:\n");
@@ -104,7 +105,7 @@ void print_args(int fd, int argc, char **argv) {
 
 
 // 0 < ibs <= 128 
-void test_copy_files(int fdin, int fdout, int ibs) {
+static void test_copy_files(int fdin, int fdout, int ibs) {
 	int nbread;
 	char buf[128];
 
@@ -118,7 +119,7 @@ void test_copy_files(int fdin, int fdout, int ibs) {
 }
 
 
-void test_execve(const char *path) {
+static void test_execve(const char *path) {
 	char *exec_argv[4];
 	exec_argv[0]="Hello";
 	exec_argv[1]="dear execve()";
@@ -253,7 +254,7 @@ void test_fork_pipe(int fdin, int fdout) {
 
 
 // test direct display using /dev/display device
-int test_display(int fdout) {
+static int test_display(int fdout) {
 	int disp;
 	struct display_info info;
 	char *vram;
@@ -381,6 +382,32 @@ static void test_fxkeyboard(int fdout) {
 	}
 }
 
+static void test_sysctl(int fdout) {
+	char buf[20];
+	int mib_ostype[2] = {CTL_KERN, KERN_OSTYPE};
+	size_t len;
+
+	len = 20;
+	if(sysctl_read(mib_ostype, 2, buf, &len) == 0) {
+		int i;
+		write_const(fdout, "kern.ostype = '");
+		
+		for(i=0; buf[i] != '\0'; i++);
+		write(fdout, buf, i);
+
+		write_const(fdout, "' len=0x");
+		write_int_hex(fdout, len);
+		write_const(fdout, "\n");
+	}
+	else {
+		write_const(fdout, "kern.ostype (error), len=0x");
+		write_int_hex(fdout, len);
+		write_const(fdout, "\n");
+	}
+
+	while(1);
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -400,7 +427,8 @@ int usertest_main(int argc, char **argv) {
 	//test_sharedlib();
 
 	//test_sbrk(fd);
-	test_fxkeyboard(fd);
+	//test_fxkeyboard(fd);
+	test_sysctl(fd);
 
 	pid_t pid;
 	pid = fork();

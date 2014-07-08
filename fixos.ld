@@ -65,8 +65,15 @@ SECTIONS
 		_argvector_begin = . ;
 		*(.vector.kernelarg);
 		_argvector_end = . ;
+
+		. = ALIGN(4);
+		_sysctl_objs_begin = . ;
+		*(.sysctl.objs);
+		_sysctl_objs_end = . ;
+
 		*(.rodata);
 		*(.rodata.*);
+
 		. = ALIGN(4);
 		_symbols_begin = . ;
 		*(.symbols.entries);
