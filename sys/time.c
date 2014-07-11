@@ -1,6 +1,7 @@
 #include "time.h"
 #include "process.h"
 #include <sys/scheduler.h>
+#include <sys/cpu_load.h>
 
 
 extern int stimer_do_tick();
@@ -74,6 +75,9 @@ void time_do_tick() {
 		else {
 			cur->kticks++;
 		}
+
+		// add a tick for average CPU usage count
+		load_proc_addtick(cur);
 	}
 
 	stimer_do_tick();

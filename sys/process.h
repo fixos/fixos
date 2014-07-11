@@ -54,6 +54,10 @@ struct elf_shared_lib {
 };
 #endif //CONFIG_ELF_SHARED
 
+// for per-process CPU load calculation (should be power of 2 for optimization!)
+#define PROC_LOAD_SAMPLES	4
+#define PROC_LOAD_SAMPMAX	64
+
 
 struct _process_info {
 	// address on the kernel stack of the process, or NULL if running out of any
@@ -95,6 +99,11 @@ struct _process_info {
 	// the current_brk is the current address of the top of the heap (changed
 	// by sbrk() )
 	void *current_brk;
+
+	// for process cpu load (should not be used directly, see cpu_load.h)
+	uint8 load_cursamp;
+	uint8 load_samples[PROC_LOAD_SAMPLES];
+	clock_t load_last;
 };
 
 typedef struct _process_info process_t;

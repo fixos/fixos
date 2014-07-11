@@ -35,9 +35,9 @@
 // proc_uinfo[]	: array of all running processes in the system
 #define KERN_PROC_ALL		0
 // pid_t[]		: array of pids of all running processes in the system
-#define KERN_PROC_ALL		0
+#define KERN_PROC_PIDALL	1
 // proc_uinfo	: process for the given PID (specified in fourth level) if any
-#define KERN_PROC_PID		1
+#define KERN_PROC_PID		2
 
 
 #endif //_FIXOS_INTERFACE_SYSCTL_H
