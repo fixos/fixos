@@ -218,6 +218,9 @@ pid_t sys_wait(int *status) {
 					// release ASID
 					process_release_asid(_tasks[i]);
 
+					// release PID
+					process_release_pid(_tasks[i]->pid);
+
 					process_free(_tasks[i]);
 					_tasks[i] = NULL;
 				}

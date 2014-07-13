@@ -121,6 +121,16 @@ process_t *process_from_asid(asid_t asid);
  */
 process_t *process_from_pid(pid_t pid);
 
+/**
+ * Get the next free PID, and mark it as "used".
+ */
+pid_t process_get_pid();
+
+/**
+ * Release a PID for a future usage.
+ */
+void process_release_pid(pid_t pid);
+
 
 /**
  * Alloc a new process in the process list, returns NULL if an error occurs.

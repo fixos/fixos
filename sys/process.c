@@ -6,16 +6,19 @@
 #include <utils/pool_alloc.h>
 #include "scheduler.h"
 #include <utils/log.h>
+#include <utils/bitfield.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>
 #include <fs/vfs.h>
 #include <fs/vfs_op.h>
 
+#include <sys/sysctl.h>
+#include <sys/cpu_load.h>
+
 // temp stuff
 #include <device/keyboard/fx9860/keymatrix.h>
 #include <device/keyboard/fx9860/matrix_codes.h>
-
 
 // pool allocation data
 static struct pool_alloc _proc_pool = POOL_INIT(process_t);
@@ -25,7 +28,9 @@ static struct pool_alloc _proc_pool = POOL_INIT(process_t);
 static process_t * _asid_proc_array[MAX_ASID];
 
 // contain the pid used for the next process creation
-static pid_t _pid_next_value = 1;
+static pid_t _pid_next;
+
+static BITFIELD_STATIC(_pid_used, CONFIG_PID_MAX);
 
 // Test purpose, like a kernel process
 static process_t mock_process = 
@@ -55,6 +60,11 @@ void process_init()
 	for(i=0; i<MAX_ASID; i++) {
 		_asid_proc_array[i] = NULL;
 	}
+
+	// clear pid usage bitfield, and set pid 0 as used (idle task)
+	bitfield_all_clear(_pid_used, CONFIG_PID_MAX);
+	bitfield_set(_pid_used, 0);
+	_pid_next = 1;
 
 	printk("process: proc/page=%d\n", _proc_pool.perpage);
 }
@@ -90,7 +100,7 @@ process_t *process_alloc() {
 
 		for(i=0; i<PROCESS_MAX_FILE; i++)
 			proc->files[i] = NULL;
-		proc->pid = _pid_next_value++;
+		proc->pid = process_get_pid();
 		proc->ppid = 0;
 		proc->state = PROCESS_STATE_CREATE;
 		proc->asid = ASID_INVALID;
@@ -577,3 +587,27 @@ void *sys_sbrk(int incr) {
 	}
 	return (void*)-1;
 }
+
+
+
+pid_t process_get_pid() {
+	pid_t ret;
+
+	// get the next PID from _pid_next, and check for the first free PID by
+	// wrapping around CONFIG_PID_MAX maximum value
+	
+	// TODO issue if CONFIG_PROC_MAX >= CONFIG_PID_MAX
+	for(ret = _pid_next; bitfield_get(_pid_used, ret);
+			ret = (ret+1) % CONFIG_PID_MAX);
+	
+	_pid_next = (ret+1) % CONFIG_PID_MAX;
+	bitfield_set(_pid_used, ret);
+	return ret;
+}
+
+
+void process_release_pid(pid_t pid) {
+	if(pid >= 0 && pid < CONFIG_PID_MAX)
+		bitfield_clear(_pid_used, pid);
+}
+

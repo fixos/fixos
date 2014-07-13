@@ -18,7 +18,12 @@
 //#define CONFIG_ENDIAN_LITTLE	y	
 #define CONFIG_PLATFORM			fx9860
 
-// TODO
+// maximum number of processes allowed
+#define CONFIG_PROC_MAX			100
+
+// number of PIDs (one more than the greatest PID allowed)
+// should be a power of 2 for optimization purpose
+#define CONFIG_PID_MAX			1024
 
 // If defined, try to force optimizer to remove printk() calls (and constants
 // passed to it), usefull to check how much size is used by printk() messages
