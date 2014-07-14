@@ -10,7 +10,8 @@ C_SRC_L:= \
 	console.c \
 	memory.c \
 	kdebug.c \
-	sysctl.c
+	sysctl.c \
+	waitqueue.c
 
 
 CURDIR:=sys

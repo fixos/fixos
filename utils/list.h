@@ -67,6 +67,7 @@ extern inline void dlist_push_front(struct dlist_head *head,
 {
 	element->next = head->next;
 	element->prev = head;
+	head->next->prev = element;
 	head->next = element;
 }
 
@@ -76,6 +77,7 @@ extern inline void dlist_push_back(struct dlist_head *head,
 {
 	element->prev = head->prev;
 	element->next = head;
+	head->prev->next = element;
 	head->prev = element;
 }
 
