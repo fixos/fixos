@@ -7,7 +7,7 @@ CFLAGS:=$(INCLUDE_PATH) $(CFLAGS) -Wno-unused-function
 LDSCRIPT:=userland.ld
 LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)
 
-LDLIBS:=-Lsharedtest -ltest-shared
+LDLIBS:=-Lsharedtest -ltest-shared -lgcc
 
 
 EXEC:=test.elf

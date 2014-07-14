@@ -32,6 +32,12 @@ static pid_t _pid_next;
 
 static BITFIELD_STATIC(_pid_used, CONFIG_PID_MAX);
 
+
+struct list_head _process_list = LIST_HEAD_INIT(_process_list);
+
+// number of processes in the system (not counting idle process)
+static int _process_number = 0;
+
 // Test purpose, like a kernel process
 static process_t mock_process = 
 {
@@ -43,7 +49,9 @@ static process_t mock_process =
 	.kernel_stack = NULL,
 
 	.uticks = 0,
-	.kticks = 0
+	.kticks = 0,
+
+	.list = LIST_HEAD_INIT(mock_process.list)
 };
 
 // this variable must be maintained by the scheduler as the
@@ -92,43 +100,55 @@ process_t *process_from_pid(pid_t pid)
 
 
 process_t *process_alloc() {
-	process_t *proc;
+	if(_process_number < CONFIG_PROC_MAX) {
+		process_t *proc;
 
-	proc = pool_alloc(&_proc_pool);
-	if(proc != NULL) {
-		int i;
+		proc = pool_alloc(&_proc_pool);
+		if(proc != NULL) {
+			int i;
 
-		for(i=0; i<PROCESS_MAX_FILE; i++)
-			proc->files[i] = NULL;
-		proc->pid = process_get_pid();
-		proc->ppid = 0;
-		proc->state = PROCESS_STATE_CREATE;
-		proc->asid = ASID_INVALID;
+			for(i=0; i<PROCESS_MAX_FILE; i++)
+				proc->files[i] = NULL;
+			proc->pid = process_get_pid();
+			proc->ppid = 0;
+			proc->state = PROCESS_STATE_CREATE;
+			proc->asid = ASID_INVALID;
 
-		proc->dir_list = NULL;
+			proc->dir_list = NULL;
 
-		sigemptyset(& proc->sig_blocked);
-		sigemptyset(& proc->sig_pending);
-		for(i=0; i<SIGNAL_INDEX_MAX; i++) {
-			proc->sig_array[i].sa_handler = SIG_DFL;
-			proc->sig_array[i].sa_flags = 0;
-		}
+			sigemptyset(& proc->sig_blocked);
+			sigemptyset(& proc->sig_pending);
+			for(i=0; i<SIGNAL_INDEX_MAX; i++) {
+				proc->sig_array[i].sa_handler = SIG_DFL;
+				proc->sig_array[i].sa_flags = 0;
+			}
 
-		proc->uticks = 0;
-		proc->kticks = 0;
+			proc->uticks = 0;
+			proc->kticks = 0;
 
-		proc->initial_brk = NULL;
-		proc->current_brk = NULL;
+			proc->initial_brk = NULL;
+			proc->current_brk = NULL;
 
 #ifdef CONFIG_ELF_SHARED
-		proc->shared.file = NULL;
+			proc->shared.file = NULL;
 #endif //CONFIG_ELF_SHARED
+
+			list_push_front(&_process_list, & proc->list);
+			_process_number++;
+		}
+		return proc;
 	}
-	return proc;
+	
+	printk("process_alloc: no more allowed process\n");
+	return NULL;
 }
 
 
 void process_free(process_t *proc) {
+	list_remove(&_process_list, & proc->list);
+	process_release_pid(proc->pid);
+	_process_number--;
+
 	pool_free(&_proc_pool, proc);
 	printk("free proc %p\n", proc);
 }
@@ -610,4 +630,100 @@ void process_release_pid(pid_t pid) {
 	if(pid >= 0 && pid < CONFIG_PID_MAX)
 		bitfield_clear(_pid_used, pid);
 }
+
+
+/**
+ * Process-related sysctls
+ */
+
+static void copy_proc_user(process_t *proc, void *userbuf) {
+	struct proc_uinfo *uinfo = (struct proc_uinfo*)userbuf;
+
+	uinfo->cpu_usage = load_proc_average(proc);
+	uinfo->kticks = proc->kticks;
+	uinfo->uticks = proc->uticks;
+
+	uinfo->pid = proc->pid;
+	uinfo->ppid = proc->ppid;
+
+	uinfo->state = proc->state;
+	uinfo->exit_status = proc->exit_status;
+}
+
+static SYSCTL_OBJECT(ctl__proc) = {
+	.parent = &ctl__kern,
+	.name = "proc",
+	.id = KERN_PROC,
+	.type = CTL_TYPE_NODE
+};
+
+static int access_proc_pid(void *oldbuf, size_t *oldlen, const void *newbuf,
+		size_t newlen, int index)
+{
+	if(oldlen != NULL) {
+		process_t *proc;
+		proc = process_from_pid((pid_t)index);
+
+		if(proc != NULL && *oldlen >= sizeof(struct proc_uinfo) ) {
+			*oldlen = sizeof(struct proc_uinfo);
+			if(oldbuf != NULL) {
+				copy_proc_user(proc, oldbuf);
+				return 0;
+			}
+		}
+		*oldlen = sizeof(struct proc_uinfo);
+	}
+	return -1;
+}
+
+
+static SYSCTL_OBJECT(ctl_proc_pid) = {
+	.parent = &ctl__proc,
+	.name = "pid",
+	.id = KERN_PROC_PID,
+	.type = CTL_TYPE_OPAQUE_NDX,
+	.access.indexed = &access_proc_pid
+};
+
+
+
+static int access_proc_all(void *oldbuf, size_t *oldlen, const void *newbuf,
+		size_t newlen)
+{
+	if(oldlen != NULL) {
+		size_t size;
+
+		// TODO lock processes list and _process_number during this
+		size = _process_number * sizeof(struct proc_uinfo);
+		if(*oldlen >= size) {
+			*oldlen = size;
+			if(oldbuf != NULL) {
+				struct proc_uinfo *cur_uinfo;
+				struct list_head *cur;
+
+				cur_uinfo = (struct proc_uinfo*)oldbuf;
+				list_for_each(cur, &_process_list) {
+					copy_proc_user(container_of(cur, process_t, list), cur_uinfo);
+					cur_uinfo++;
+					if((void*)cur_uinfo > (oldbuf+size))
+						break;
+				}
+				return 0;
+			}
+		}
+		// if maximum size is too small, lie about the needed size to ensure
+		// the next call have small chances to fail if new processes are added
+		*oldlen = size + sizeof(struct proc_uinfo);
+	}
+	return -1;
+}
+
+
+static SYSCTL_OBJECT(ctl_proc_all) = {
+	.parent = &ctl__proc,
+	.name = "all",
+	.id = KERN_PROC_ALL,
+	.type = CTL_TYPE_OPAQUE,
+	.access.data = &access_proc_all
+};
 

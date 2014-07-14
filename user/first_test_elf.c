@@ -7,13 +7,13 @@
 #include <fxkeyboard.h>
 #include <fcntl.h>
 #include <sysctl.h>
+#include <process.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
 
 
 // need division implementation...
-/*
 void write_int_dec(int fd, int n)
 {
 	if(n==0) {
@@ -38,7 +38,6 @@ void write_int_dec(int fd, int n)
 		write(fd, string, cpt);
 	}
 }
-*/
 
 static void write_int_hex(int fd, unsigned int val) {
 	int cpt = 0;
@@ -408,6 +407,77 @@ static void test_sysctl(int fdout) {
 	while(1);
 }
 
+
+static struct proc_uinfo _proc[20];
+
+static void test_print_all_proc(int fdout) {
+//	char line[100];
+	int mib[3] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL};
+
+	size_t size = 0;
+/*
+	sysctl_read(mib, 3, NULL, &size);
+
+	// allocate the needed size
+	static struct proc_uinfo *proc = NULL;
+	proc = realloc(proc, size);
+*/
+	size = sizeof(_proc);
+	if(sysctl_read(mib, 3, _proc, &size) == 0) {
+		int i;
+		int nb;
+
+		nb = size/sizeof(*_proc);
+		for(i=0; i<nb; i++) {
+			write_const(fdout, "pid ");
+			write_int_dec(fdout, _proc[i].pid);
+
+			write_const(fdout, " : cpu=");
+			write_int_dec(fdout, _proc[i].cpu_usage/100);
+
+			write_const(fdout, "%, {");
+			write_int_dec(fdout, _proc[i].uticks);
+
+			write_const(fdout, ",");
+			write_int_dec(fdout, _proc[i].kticks);
+
+			write_const(fdout, "}\n");
+/*			
+			int nbchar = snprintf(line, 100, "pid %d : cpu=%d%%, {%d,%d}\n",
+					_proc[i].pid, _proc[i].cpu_usage/100, _proc[i].uticks,
+					_proc[i].kticks);
+			if(nbchar > 0) {
+				write(fdout, line, nbchar);
+			}
+*/
+		}
+	}
+	else {
+		write_const(fdout, "sysctl() error, with size=");
+		write_int_dec(fdout, size);
+		write_const(fdout, "\n");
+	}
+}
+
+static void test_sysctl_proc(int fdout) {
+	struct hr_time prev;
+
+	gettimeofday(&prev, NULL);
+
+	while(1) {
+		struct hr_time cur;
+		gettimeofday(&cur, NULL);
+
+		if(cur.sec - prev.sec >= 1) {
+			prev.sec = cur.sec;
+			prev.nano = cur.nano;
+
+			test_print_all_proc(fdout);
+		}
+
+	}
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -428,7 +498,7 @@ int usertest_main(int argc, char **argv) {
 
 	//test_sbrk(fd);
 	//test_fxkeyboard(fd);
-	test_sysctl(fd);
+	//test_sysctl(fd);
 
 	pid_t pid;
 	pid = fork();
@@ -438,11 +508,7 @@ int usertest_main(int argc, char **argv) {
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");
 
-		wait(NULL);
-
-		int disp;
-		disp = open("/dev/display", O_RDWR);
-		ioctl(disp, DISPCTL_INFO, (void*)(&disp)+3);
+	//	wait(NULL);
 
 		test_copy_files(tty2, tty1, 1);
 	}
@@ -451,8 +517,11 @@ int usertest_main(int argc, char **argv) {
 		//for(i=0; i<64*1024; i++) 
 		//	nawak[64*1024-i-1] = nawak[i];
 
-		write_const(fd, "Child is dying...\n");
-		exit(1);
+		//write_const(fd, "Child is dying...\n");
+		//exit(1);
+
+		test_sysctl_proc(fd);
+
 		//test_copy_files(tty1, fd_serial, 1);
 	}
 

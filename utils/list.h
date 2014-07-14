@@ -33,20 +33,39 @@ struct dlist_head {
 	(ptr)->prev = (ptr)
 
 
+#define list_for_each(cur, head) \
+	for(cur=(head)->next; cur!=(head); cur = cur->next)
+
+// same implementation
+#define dlist_for_each(cur, head) \
+	list_for_each(cur, head)
+
 
 extern inline void list_push_front(struct list_head *head,
 		struct list_head *element)
 {
-	element->next = head->next->next;
+	element->next = head->next;
 	head->next = element;
 }
 
+// not possible to remove an element in O(1) in a simply linked list
+extern inline void list_remove(struct list_head *head,
+		struct list_head *element)
+{
+	struct list_head *prev;
+
+	for(prev=head; prev->next!=element && prev->next!=head; prev=prev->next);
+	if(prev->next == element) {
+		prev->next = element->next;
+		element->next = element;
+	}
+}
 
 
 extern inline void dlist_push_front(struct dlist_head *head,
 		struct dlist_head *element)
 {
-	element->next = head->next->next;
+	element->next = head->next;
 	element->prev = head;
 	head->next = element;
 }
@@ -55,8 +74,18 @@ extern inline void dlist_push_front(struct dlist_head *head,
 extern inline void dlist_push_back(struct dlist_head *head,
 		struct dlist_head *element)
 {
-	element->prev = head->prev->prev;
+	element->prev = head->prev;
 	element->next = head;
 	head->prev = element;
 }
+
+// no need of the head of the list here
+extern inline void dlist_remove(struct dlist_head *element)
+{
+	element->next->prev = element->prev;
+	element->prev->next = element->next;
+	element->prev = element;
+	element->next = element;
+}
+
 #endif //_UTILS_LIST_H

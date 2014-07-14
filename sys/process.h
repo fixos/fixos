@@ -9,6 +9,7 @@
 #include <sys/signal.h>
 #include <interface/process.h>
 #include <sys/memory.h>
+#include <utils/list.h>
 
 // TODO remove this include (now context is saved as a pointer to arch-spec context)
 #include <arch/sh/process.h>
@@ -104,9 +105,16 @@ struct _process_info {
 	uint8 load_cursamp;
 	uint8 load_samples[PROC_LOAD_SAMPLES];
 	clock_t load_last;
+
+	// linked list used to represent every processes
+	struct list_head list;
 };
 
 typedef struct _process_info process_t;
+
+
+// list of all processes
+extern struct list_head _process_list;
 
 // Init process manager
 void process_init();

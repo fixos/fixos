@@ -16,7 +16,7 @@ typedef uint8 asid_t;
  * offsetof() compute the byte offset between the beginning of a structure
  * and the given field.
  */
-#define offset(type, field) \
+#define offsetof(type, field) \
 	( (unsigned int)( &((type *)0)->field) )
 
 

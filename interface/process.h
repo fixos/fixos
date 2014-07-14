@@ -28,4 +28,22 @@
 #define WUNTRACED	(1<<1)
 #define WCONTINUED	(1<<2)
 
+
+// process information for user (through sysctl() interfaces)
+struct proc_uinfo {
+	pid_t pid;
+	pid_t ppid;
+
+	// FIXME state definition here
+	int state;
+	int exit_status; // only valid when state is PROCESS_STATE_ZOMBIE
+
+	clock_t uticks;
+	clock_t kticks;
+
+	// TODO real fixed point
+	// 100 times the average CPU usage in percent
+	int cpu_usage;
+};
+
 #endif //_FIXOS_INTERFACE_PROCESS_H
