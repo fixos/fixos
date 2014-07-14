@@ -460,21 +460,11 @@ static void test_print_all_proc(int fdout) {
 }
 
 static void test_sysctl_proc(int fdout) {
-	struct hr_time prev;
-
-	gettimeofday(&prev, NULL);
+	struct hr_time val = { .sec=0, .nano=500000000 };
 
 	while(1) {
-		struct hr_time cur;
-		gettimeofday(&cur, NULL);
-
-		if(cur.sec - prev.sec >= 1) {
-			prev.sec = cur.sec;
-			prev.nano = cur.nano;
-
-			test_print_all_proc(fdout);
-		}
-
+		test_print_all_proc(fdout);
+		nanosleep(&val, NULL);
 	}
 }
 

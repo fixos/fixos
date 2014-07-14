@@ -2,6 +2,7 @@
 #include <sys/memory.h>
 #include <sys/interrupt.h>
 #include <utils/log.h>
+#include <sys/stimer.h>
 
 
 #define SCHED_MAX_TASKS		10
@@ -33,6 +34,7 @@ static int _started = 0;
 
 // kernel preemption is allowed when _preempt_level is zero
 static int _preempt_level = 0;
+
 
 void sched_init() {
 	int i;
@@ -69,15 +71,19 @@ static void context_saved_next() {
 	int i;
 
 	//  start to search from the next process
-	for(i=1; i<SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
+	for(i=1; i<=SCHED_MAX_TASKS && ( _tasks[(i+_cur_task)%SCHED_MAX_TASKS]==NULL
 				|| _tasks[(i+_cur_task)%SCHED_MAX_TASKS]->state != PROCESS_STATE_RUNNING) ; i++);
 
 	_cur_quantum_left = SCHED_QUANTUM_TICKS;
 	_need_reschedule = 0;
 
-	if(i<SCHED_MAX_TASKS) {
+	if(i<=SCHED_MAX_TASKS) {
 		_cur_task = (i+_cur_task)%SCHED_MAX_TASKS;
 		process_contextjmp(_tasks[_cur_task]);
+	}
+	else {
+		// idle process
+		process_contextjmp(&_arch_idle_task);
 	}
 }
 
@@ -91,7 +97,7 @@ void sched_schedule() {
 
 
 void sched_start() {
-	// look for the first task
+	/*// look for the first task
 	int i;
 
 	for(i=0; i<SCHED_MAX_TASKS && _tasks[i]==NULL; i++);
@@ -100,7 +106,14 @@ void sched_start() {
 		_cur_task = i;
 		_started = 1;
 		process_contextjmp(_tasks[i]);
-	}
+	}*/
+
+	// this is a strange way to start processes, but its the simplest
+	arch_init_idle();
+	_started = 1;
+	_cur_task = 0;
+	_need_reschedule = 1;
+	process_contextjmp(&_arch_idle_task);
 }
 
 
@@ -236,4 +249,38 @@ pid_t sys_wait(int *status) {
 	}
 
 	return ret;
+}
+
+
+
+static void nanosleep_timeout(void *data) {
+	process_t *towake;
+
+	towake = (process_t*)data;
+	sched_wake_up(towake);
+}
+
+int sys_nanosleep(const struct hr_time *req, struct hr_time *rem) {
+	(void)rem;
+	if(req != NULL) {
+		process_t *cur;
+		clock_t ticks;
+
+		ticks = req->sec * TICK_HZ + req->nano/(1000*1000*1000/TICK_HZ);
+		cur = process_get_current();
+
+		sched_preempt_block();
+		stimer_add(&nanosleep_timeout, cur, ticks);
+		cur->state = PROCESS_STATE_UNINTERRUPTIBLE;
+		sched_preempt_unblock();
+
+		sched_schedule();
+
+		if(rem != NULL) {
+			rem->nano = 0;
+			rem->sec = 0;
+		}
+		return 0;
+	}
+	return -1;
 }

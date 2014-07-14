@@ -42,4 +42,18 @@ struct _context_info {
 
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt);
 
+
+/**
+ * Process used as "idle task", executed once scheduler is stared, when no other
+ * task should be done.
+ * As the scheduler is initialized after all the early init job, the stack
+ * used may be the kernel init stack.
+ */
+extern struct _process_info _arch_idle_task;
+
+/**
+ * Initialize the idle task, should be called just before the scheduler start.
+ */
+void arch_init_idle();
+
 #endif //_ARCH_SH_PROCESS_H

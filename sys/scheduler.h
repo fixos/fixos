@@ -10,6 +10,7 @@
  */
 
 #include <sys/process.h>
+#include <sys/time.h>
 
 typedef process_t task_t;
 
@@ -127,6 +128,14 @@ process_t *sched_find_pid(pid_t pid);
  * exit status
  */
 pid_t sys_wait(int *status);
+
+/**
+ * sleep for the given req time, with a nanosecond precision value
+ * TODO allow signal to interrupt the syscall, use rem to store the remaining
+ * time if needed, and add special case of busy-loop waiting if a process
+ * is using real time scheduling policy with a small time amount.
+ */
+int sys_nanosleep(const struct hr_time *req, struct hr_time *rem);
 
 
 #endif //_SYS_SCHEDULER_H

@@ -38,25 +38,14 @@ struct list_head _process_list = LIST_HEAD_INIT(_process_list);
 // number of processes in the system (not counting idle process)
 static int _process_number = 0;
 
-// Test purpose, like a kernel process
-static process_t mock_process = 
-{
-	.pid = 0,
-	.asid = 0xFF,
-	.dir_list = NULL,
-	.state = PROCESS_STATE_RUNNING,
-	.acnt = NULL,
-	.kernel_stack = NULL,
-
-	.uticks = 0,
-	.kticks = 0,
-
-	.list = LIST_HEAD_INIT(mock_process.list)
-};
-
-// this variable must be maintained by the scheduler as the
-// current running process at *ANY* time
-process_t *_proc_current = &mock_process;
+/**
+ * this variable must be maintained by the scheduler as the
+ * current running process at *ANY* time
+ * TODO using idle task before scheduler start is working here because of
+ * obscure implementation details, but its simpler than using NULL.
+ * A good idea should be to make all that clean and use NULL at initialization?
+ */
+process_t *_proc_current = &_arch_idle_task;
 
 
 
@@ -82,7 +71,7 @@ void process_init()
 process_t *process_from_asid(asid_t asid)
 {
 	if(asid == 0xFF)
-		return &mock_process;
+		return &_arch_idle_task;
 	else if(asid < MAX_ASID)
 		return _asid_proc_array[asid];
 	return NULL;
@@ -93,8 +82,9 @@ process_t *process_from_asid(asid_t asid)
 // be changed soon
 process_t *process_from_pid(pid_t pid)
 {
+	// should not return anything for PID 0 ?
 	if(pid == 0)
-		return &mock_process;
+		return &_arch_idle_task;
 	else return sched_find_pid(pid);
 }
 

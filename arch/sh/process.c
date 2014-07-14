@@ -10,6 +10,21 @@
 #define SR_MD_MASK		(1<<30)
 
 
+// virtual task for idle
+process_t _arch_idle_task = {
+	.pid = 0,
+	.asid = 0xFF,
+	.dir_list = NULL,
+	.state = PROCESS_STATE_RUNNING,
+	.acnt = NULL,
+	.kernel_stack = NULL,
+
+	.uticks = 0,
+	.kticks = 0,
+
+	.list = LIST_HEAD_INIT(_arch_idle_task.list),
+};
+
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt) {
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
 
@@ -68,4 +83,31 @@ int arch_process_mode(process_t *proc) {
 
 
 
+void arch_idle_func();
 
+asm (
+		"	.section \".text\" ;"
+		"	.align 1 ;"
+		"_arch_idle_func:"
+		"	sleep;"
+		"	bra _arch_idle_func;"
+		"	nop;");
+
+
+extern char end_stack; // defined in linker script
+
+void arch_init_idle() {
+	static struct _context_info acnt_idle;
+	acnt_idle.previous = NULL;
+	acnt_idle.pr = (uint32)&arch_idle_func;
+	acnt_idle.pc = (uint32)&arch_idle_func;
+	acnt_idle.sr = 0x40000000; // MD=1, RB=0, BL=0, enable interrupts
+
+	// we should reuse the kernel init stack safely
+	acnt_idle.reg[15] = (uint32)&end_stack;
+	_arch_idle_task.acnt = &acnt_idle;
+	_arch_idle_task.dir_list = NULL;
+	_arch_idle_task.kernel_stack = &end_stack;
+	sigemptyset(& _arch_idle_task.sig_pending);
+	sigfillset(& _arch_idle_task.sig_blocked);
+}

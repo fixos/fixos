@@ -73,4 +73,7 @@
 //			const void *buf, size_t *len);
 #define SYSCALL_SYSCTL_WRITE	21
 
+// extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
+#define SYSCALL_NANOSLEEP	22
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

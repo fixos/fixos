@@ -56,4 +56,6 @@ extern int sysctl_read(const int *name, size_t name_len, void *buf, size_t *len)
 extern int sysctl_write(const int *name, size_t name_len,
 		const void *buf, size_t *len);
 
+extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
+
 #endif //_SYSCALLS_SYSCALLS_H
