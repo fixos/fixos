@@ -1,6 +1,7 @@
 #include "virtual_term.h"
 #include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
+#include <sys/waitqueue.h>
 #include "text_display.h"
 
 #include <device/terminal/fx9860/text_display.h>
@@ -21,6 +22,8 @@ struct vt_instance {
 
 	char line_buf[VT_LINE_BUFFER];
 	int line_pos;
+
+	struct wait_queue wqueue;
 };
 
 
@@ -45,7 +48,6 @@ static const struct file_operations _vt_fop = {
 static const struct text_display *_tdisp = &fx9860_text_display;
 
 
-
 void vt_init() {
 	int i;
 
@@ -63,6 +65,8 @@ void vt_init() {
 
 		_vts[i].posx = 0;
 		_vts[i].posy = 0;
+
+		INIT_WAIT_QUEUE(& _vts[i].wqueue);
 	}
 }
 
@@ -154,6 +158,7 @@ void vt_key_stroke(int code) {
 					if(code == '\n') {
 						cfifo_push(& term->fifo, term->line_buf, term->line_pos);
 						term->line_pos = 0;
+						wqueue_wakeup(& term->wqueue);
 					}
 				}
 			}
@@ -216,12 +221,12 @@ size_t vt_read(struct file *filep, void *dest, size_t len) {
 		while(curlen < len) {
 			size_t readlen;
 
-			readlen =  *fifo_size;
-			if(readlen > 0) {
-				readlen = readlen + curlen > len ? len - curlen : readlen;
-				cfifo_pop(& _vts[term].fifo, dest, readlen);
-				curlen += readlen;
-			}
+			wait_until_condition(& _vts[term].wqueue, (readlen=*fifo_size) > 0);
+
+			// at least 1 byte available in the FIFO
+			readlen = readlen + curlen > len ? len - curlen : readlen;
+			cfifo_pop(& _vts[term].fifo, dest, readlen);
+			curlen += readlen;
 		}
 		
 		return curlen;
