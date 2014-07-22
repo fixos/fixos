@@ -14,7 +14,7 @@
 
 
 // need division implementation...
-void write_int_dec(int fd, int n)
+static void write_int_dec(int fd, int n)
 {
 	if(n==0) {
 		write(fd, "0", 1);
@@ -468,6 +468,45 @@ static void test_sysctl_proc(int fdout) {
 	}
 }
 
+
+static int sysctl_rdbyname(const char *strname, void *oldbuf, size_t *oldlen) {
+	int name[5];
+	int name_len;
+
+	// try to find the integer name
+	name_len = 5;
+	if(sysctl_mibname(strname, name, &name_len) == 0) {
+		return sysctl_read(name, name_len, oldbuf, oldlen);
+	}
+	write_const(0, "{???}");
+	return 1;
+}
+
+static void test_print_sysinfo(int fdout) {
+	char infobuf[64];
+	size_t size;
+
+	size=64;
+	if(!sysctl_rdbyname("kern.ostype", infobuf, &size))
+		write(fdout, infobuf, size-1);
+	write_const(fdout, " ");
+
+	size=64;
+	if(!sysctl_rdbyname("kern.osrelease", infobuf, &size))
+		write(fdout, infobuf, size-1);
+	write_const(fdout, " (");
+
+	size=64;
+	if(!sysctl_rdbyname("kern.osbuilddate", infobuf, &size))
+		write(fdout, infobuf, size-1);
+	write_const(fdout, ") ");
+
+	size=64;
+	if(!sysctl_rdbyname("hw.machine", infobuf, &size))
+		write(fdout, infobuf, size-1);
+	write_const(fdout, "\n");
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -484,6 +523,10 @@ int usertest_main(int argc, char **argv) {
 
 	int tty1 = open("/dev/tty1", O_RDWR);
 
+	write_const(tty1, "Welcome!\n");
+	test_print_sysinfo(tty1);
+
+
 	//test_sharedlib();
 
 	//test_sbrk(fd);
@@ -494,6 +537,9 @@ int usertest_main(int argc, char **argv) {
 	pid = fork();
 	if(pid) {
 		int tty2 = open("/dev/tty2", O_RDWR);
+
+		write_const(tty2, "Welcome!\n");
+		test_print_sysinfo(tty2);
 
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");

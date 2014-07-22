@@ -30,6 +30,11 @@
 #define KERN_OSTYPE			0
 // node		: processes info
 #define KERN_PROC			1
+// string	: kernel release number, in the format "M.mm" (M is the major
+// 			  version number, mm is the minor version)
+#define KERN_OSRELEASE		2
+// string	: kernel build date and time, in a human readable form
+#define KERN_OSBUILDDATE	3
 
 // Third level for KERN_PROC
 // proc_uinfo[]	: array of all running processes in the system

@@ -76,4 +76,7 @@
 // extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
 #define SYSCALL_NANOSLEEP	22
 
+// extern int sysctl_mibname(const char *strname, int *name, int *name_len);
+#define SYSCALL_SYSCTL_MIBNAME	23
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

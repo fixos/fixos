@@ -32,7 +32,8 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_sbrk,
 	&sys_sysctl_read,
 	&sys_sysctl_write,
-	&sys_nanosleep
+	&sys_nanosleep,
+	&sys_sysctl_mibname
 };
 
 

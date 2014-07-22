@@ -58,4 +58,6 @@ extern int sysctl_write(const int *name, size_t name_len,
 
 extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
 
+extern int sysctl_mibname(const char *strname, int *name, int *name_len);
+
 #endif //_SYSCALLS_SYSCALLS_H

@@ -70,6 +70,13 @@ void ctl_init();
 
 
 /**
+ * Helper for sysctl access function on simple data types (follow sysctl behavior
+ * if either oldbuf is NULL or *oldlen is less than datalen).
+ */
+int ctl_access_read_helper(void *oldbuf, size_t *oldlen, const void *data,
+		size_t datalen);
+
+/**
  * Read a system data specified by the name array (with name_len levels).
  * If the specified buffer is either NULL or its size is two short to fit
  * the whole result, the call fail with a negative return value and len is
@@ -79,9 +86,22 @@ void ctl_init();
  */
 int sys_sysctl_read(const int *name, size_t name_len, void *buf, size_t *len);
 
+
 /**
  * TODO
  */
 int sys_sysctl_write(const int *name, size_t name_len, const void *buf, size_t *len);
+
+
+/**
+ * Convert a given sysctl string name into a MIB integer representation.
+ * Separator is expected to be '.', like "kern.osrelease".
+ * If strname may be converted to MIB, it will be stored in name array,
+ * which should be at least of name_len integers.
+ * Negative value is returned if name cannot be converted, or if name_len
+ * is not large enough.
+ * In success case, name_len is set to the actual name length.
+ */
+int sys_sysctl_mibname(const char *strname, int *name, int *name_len);
 
 #endif //_SYS_SYSCTL_H
