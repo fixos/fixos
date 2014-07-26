@@ -27,6 +27,15 @@ typedef char			int8;
 typedef uint32 pid_t;
 
 
+// devices identifier and macros for major/minor decomposition
+typedef uint32 dev_t;
+#define major(x)			((x) >> 16)
+#define minor(x)			((x) & 0xFFFF)
+#define makedev(maj, min)	( ((maj) << 16) | ((min) & 0xFFFF))
+
+typedef uint32 ino_t;
+typedef uint32 mode_t;
+
 // time representation
 typedef uint32 clock_t;
 typedef uint32 time_t;

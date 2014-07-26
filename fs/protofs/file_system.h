@@ -31,4 +31,8 @@ inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node);
 inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_flags,
 		uint16 mode_flags, uint32 special);
 
+int protofs_istat(inode_t *inode, struct stat *buf);
+
+int protofs_open(inode_t *inode, struct file *filep);
+
 #endif //_FS_PROTOFS_FILE_SYSTEM_H

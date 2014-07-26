@@ -2,6 +2,8 @@
 #include <utils/log.h>
 #include <utils/pool_alloc.h>
 #include <device/device_registering.h>
+#include "fs_instance.h"
+#include "file_system.h"
 #include "file_operations.h"
 
 
@@ -33,22 +35,11 @@ struct file *vfs_open(inode_t *inode, int flags) {
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
 
 		// if file is a special node, this is the time to call specific open()
-		if(inode->type_flags & INODE_TYPE_DEV) {
-			const struct device *dev;
-			
-			dev = dev_device_from_major(inode->typespec.dev.major);
-			if(dev == NULL) {
-				printk("vfs: open invalid device inode (major %d)\n",
-						inode->typespec.dev.major);
+		if(inode->fs_op != NULL && inode->fs_op->fs->iop.open != NULL) {
+			if (inode->fs_op->fs->iop.open(inode, filep) == 0) {
+				// file is correctly openned
+				done = 1;
 			}
-			else {
-				if(dev->open(inode->typespec.dev.minor, filep) == 0)
-					done = 1;
-			}
-		}
-		else if((inode->open(inode, filep)) == 0) {
-			// file is correctly openned
-			done = 1;
 		}
 
 		if(!done) {
@@ -61,6 +52,26 @@ struct file *vfs_open(inode_t *inode, int flags) {
 	return filep;
 }
 
+
+int vfs_open_dev(inode_t *inode, struct file *filep) {
+	if(inode->type_flags & INODE_TYPE_DEV) {
+		const struct device *dev;
+
+		dev = dev_device_from_major(major(inode->typespec.dev));
+		if(dev == NULL) {
+			printk("vfs: open invalid device inode (major %d)\n",
+					major(inode->typespec.dev));
+		}
+		else {
+			if(dev->open(minor(inode->typespec.dev), filep) == 0) {
+				filep->inode = inode;
+				return 0;
+			}
+		}
+	}
+
+	return -1;
+}
 
 void vfs_close(struct file *filep) {
 	// release the file and free it
@@ -112,3 +123,16 @@ int vfs_ioctl(struct file *filep, int cmd, void *data) {
 	}
 }
 
+
+int vfs_fstat(struct file *filep, struct stat *buf) {
+	// FIXME if filep is a pipe, inode is expected to be NULL (for now, stat
+	// do not work at all on pipes)
+	if(filep->inode != NULL && filep->inode->fs_op != NULL
+			&& filep->inode->fs_op->fs->iop.istat != NULL)
+	{
+		return filep->inode->fs_op->fs->iop.istat(filep->inode, buf);
+	}
+	else {
+		return -1;
+	}
+}

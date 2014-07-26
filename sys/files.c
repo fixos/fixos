@@ -121,3 +121,47 @@ int sys_pipe2(int pipefd[2], int flags) {
 	return -1;
 
 }
+
+
+int sys_lseek(int fd, off_t offset, int whence) {
+	process_t *proc;
+
+	proc = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+		return vfs_lseek(proc->files[fd], offset, whence);	
+	}
+	else {
+		printk("sys_lseek: invalid fd\n");
+	}
+
+	return -1;
+}
+
+
+int sys_fstat(int fd, struct stat *buf) {
+	process_t *proc;
+
+	proc = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+		return vfs_fstat(proc->files[fd], buf);	
+	}
+	else {
+		printk("sys_fstat: invalid fd\n");
+	}
+
+	return -1;
+}
+
+
+int sys_stat(const char *path, struct stat *buf) {
+	inode_t *target = vfs_resolve(path);
+
+	if(target != NULL) {
+		if(target->fs_op != NULL && target->fs_op->fs->iop.istat != NULL) {
+			return target->fs_op->fs->iop.istat(target, buf);
+		}
+		vfs_release_inode(target);
+	}
+	return -1;
+}
+

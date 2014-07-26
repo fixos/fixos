@@ -14,6 +14,7 @@
 
 // Architecture configuration
 #define CONFIG_ARCH				sh3
+#define CONFIG_PROC_MODEL		7705_Casio
 #define CONFIG_ENDIAN_BIG		y	
 //#define CONFIG_ENDIAN_LITTLE	y	
 #define CONFIG_PLATFORM			fx9860

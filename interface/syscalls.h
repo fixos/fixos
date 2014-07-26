@@ -79,4 +79,13 @@
 // extern int sysctl_mibname(const char *strname, int *name, int *name_len);
 #define SYSCALL_SYSCTL_MIBNAME	23
 
+// extern int lseek(int fd, off_t offset, int whence);
+#define SYSCALL_LSEEK		24
+
+// extern int fstat(int fd, struct stat *buf);
+#define SYSCALL_FSTAT		25
+
+// extern int stat(const char *path, struct stat *buf);
+#define SYSCALL_STAT		26
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

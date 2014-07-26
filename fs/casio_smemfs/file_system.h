@@ -28,4 +28,6 @@ inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 node);
 
 int smemfs_open (inode_t *inode, struct file *filep);
 
+int smemfs_istat(inode_t *inode, struct stat *buf);
+
 #endif //_FS_SMEMFS_FILE_SYSTEM_H

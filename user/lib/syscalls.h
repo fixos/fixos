@@ -10,6 +10,7 @@
 #include <types.h>
 #include <syscalls.h>
 #include <signal.h>
+#include <stat.h>
 
 
 extern int open(const char *file, int mode);
@@ -59,5 +60,10 @@ extern int sysctl_write(const int *name, size_t name_len,
 extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
 
 extern int sysctl_mibname(const char *strname, int *name, int *name_len);
+
+extern int fstat(int fd, struct stat *buf);
+
+extern int stat(const char *path, struct stat *buf);
+
 
 #endif //_SYSCALLS_SYSCALLS_H

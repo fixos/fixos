@@ -37,14 +37,6 @@ struct _inode {
 
 	struct _fs_instance *fs_op;
 
-	/**
-	 * Try to open the object designed by inode.
-	 * filep is the struct allocated to store opened file informations, and
-	 * is allocated and partialy set by the caller.
-	 * Returns 0 if success, negative value else (so filep will be free'd).
-	 */
-	int (*open) (struct _inode *inode, struct file *filep);
-
 	// corresponding internal number and parent number in the FS instance
 	uint32 node;
 	uint32 parent;
@@ -57,10 +49,7 @@ struct _inode {
 	// type-specific informations :
 	union {
 		// for TYPE_DEV
-		struct {
-			uint16 major;
-			uint16 minor;
-		} dev;
+		dev_t dev;
 		// root of a mounted point (TYPE_MOUNTPOINT)
 		struct _inode *mnt_root;
 		// mounted point of a fs root (TYPE_ROOT)

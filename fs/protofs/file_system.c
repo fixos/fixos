@@ -4,6 +4,8 @@
 #include <utils/strutils.h>
 #include <fs/vfs.h>
 #include "primitives.h"
+#include "file.h"
+#include <fs/vfs_file.h>
 
 
 const struct _file_system protofs_file_system = {
@@ -14,7 +16,11 @@ const struct _file_system protofs_file_system = {
 	.next_sibling = protofs_next_sibling,
 	.find_sub_node = protofs_find_sub_node,
 	.get_inode = protofs_get_inode,
-	.create_node = protofs_create_node
+	.create_node = protofs_create_node,
+	.iop = {
+		.open = protofs_open,
+		.istat = protofs_istat
+	}
 };
 
 // 1 if SMEM FS instance is already mounted
@@ -190,8 +196,7 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 		node->mode = mode_flags;
 		
 		if(type_flags & INODE_TYPE_DEV) {
-			node->special.dev.major = special >> 16;
-			node->special.dev.minor = special & 0xFFFF;
+			node->special.dev = special;
 		}
 
 		return vfs_get_inode(parent->fs_op, PROTOFS_NODE_NB(node));
@@ -205,8 +210,6 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret) {
 
 	ret->fs_op = inst;
-	// no way to open a protofs file directly
-	ret->open = NULL;
 
 	if(node == NULL) {
 		ret->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
@@ -219,8 +222,7 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 	else {
 		ret->type_flags = node->type_flags & (~PROTOFS_TYPE_EMPTY);
 		if(node->type_flags & INODE_TYPE_DEV) {
-			ret->typespec.dev.major = node->special.dev.major;
-			ret->typespec.dev.minor = node->special.dev.minor;
+			ret->typespec.dev = node->special.dev;
 		}
 		else
 			ret->abstract = NULL;
@@ -234,4 +236,33 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 	}
 
 	return ret;
+}
+
+
+int protofs_istat(inode_t *inode, struct stat *buf) {
+	buf->st_rdev = makedev(0, 0);
+	if(inode->type_flags & INODE_TYPE_PARENT)
+		buf->st_mode = S_IFDIR;
+	else if(inode->type_flags & INODE_TYPE_DEV) {
+		buf->st_mode = S_IFCHR;
+		buf->st_rdev = inode->typespec.dev;
+	}
+	else {
+		buf->st_mode = S_IFREG;
+	}
+
+	buf->st_mode |= S_IRWXU;
+	buf->st_dev = makedev(0, 0);
+	buf->st_ino = (uint32)inode->node;
+	buf->st_size = 0;
+	return 0;
+}
+
+
+int protofs_open(inode_t *inode, struct file *filep) {
+	if(inode->type_flags & INODE_TYPE_DEV) {
+		return vfs_open_dev(inode, filep);
+	}
+	// TODO open directory
+	return -1;
 }

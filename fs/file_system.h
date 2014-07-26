@@ -7,7 +7,32 @@
 
 #include "fs_instance.h"
 #include <utils/types.h>
+#include <interface/stat.h>
 
+
+/**
+ * Filesystem-specific operations on inode(s).
+ */
+struct inode_operations {
+	// TODO place here first_child() and other inode-related methods
+
+	// get information about a file (as an inode)
+	int (*istat) (inode_t *inode, struct stat *buf);
+
+
+	/**
+	 * Try to open the object designed by inode.
+	 * filep is the struct allocated to store opened file informations, and
+	 * is allocated and partialy set by the caller.
+	 * Returns 0 if success, negative value else (so filep will be free'd).
+	 */
+	int (*open) (struct _inode *inode, struct file *filep);
+};
+
+
+/**
+ * Operations on the filesystem itself.
+ */
 struct _file_system {
 	// name of the fs type, 0 terminated string
 	char name[8];
@@ -47,6 +72,8 @@ struct _file_system {
 	// in the given file system instance
 	// return NULL if the node doesn't exist
 	inode_t * (*get_inode) (fs_instance_t *inst, uint32 node);
+
+	struct inode_operations iop;
 };
 
 typedef struct _file_system file_system_t;

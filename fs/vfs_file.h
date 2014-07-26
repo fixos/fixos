@@ -11,6 +11,7 @@
 #include <utils/types.h>
 #include "inode.h"
 #include "file.h"
+#include <interface/stat.h>
 
 // for pool allocation
 #include <utils/pool_alloc.h>
@@ -46,6 +47,12 @@ extern inline void vfs_file_free(struct file *filep) {
  */
 struct file *vfs_open(inode_t *inode, int flags);
 
+/**
+ * Generic function for device openning, designed to be called by filesystem specific
+ * implementations.
+ */
+int vfs_open_dev(inode_t *inode, struct file *filep);
+
 
 /**
  * Close an openned file (or simply release it in some case).
@@ -75,5 +82,12 @@ off_t vfs_lseek(struct file *filep, off_t offset, int whence);
  * I/O control.
  */
 int vfs_ioctl(struct file *filep, int cmd, void *data);
+
+
+/**
+ * Stat openned file.
+ */
+int vfs_fstat(struct file *filep, struct stat *buf);
+
 
 #endif //_FS_VFS_FILE_H

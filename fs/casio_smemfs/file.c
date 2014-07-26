@@ -116,4 +116,3 @@ off_t smemfs_lseek (struct file *filep, off_t offset, int whence) {
 
 	return filep->pos;
 }
-

@@ -20,10 +20,7 @@ struct _protofs_node {
 	uint16 mode;
 
 	union {
-		struct {
-			uint16 major;
-			uint16 minor;
-		} dev;
+		dev_t dev;
 	} special;
 };
 

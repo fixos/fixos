@@ -44,15 +44,38 @@ static void write_int_hex(int fd, unsigned int val) {
 	int i = 0;
 	char c;
 	char buf[8];
+	static const char hex_char[] = "0123456789ABCDEF"; 
 
 	while((val & (0xF << ((7-cpt)*4) )) == 0 && cpt<8)
 			cpt++;
 	while(cpt<8) {
 		c = (val & (0xF << ((7-cpt)*4) )) >> ((7-cpt)*4);
-		if(c < 10)
-			buf[i] = c + '0';
-		else
-			buf[i] = c - 10 + 'A';
+		buf[i] = hex_char[(int)c];
+		i++;
+		cpt++;
+	}
+
+	// avoid the empty case if val is 0
+	if(i==0) {
+		buf[0] = '0';
+		i=1;
+	}
+
+	write(fd, buf, i);
+}
+
+
+static void write_int_oct(int fd, unsigned int val) {
+	int cpt = 0;
+	int i = 0;
+	char c;
+	char buf[11];
+
+	while((val & (0x7 << ((10-cpt)*3) )) == 0 && cpt<11)
+			cpt++;
+	while(cpt<11) {
+		c = (val >> ((10-cpt)*3)) & 0x7;
+		buf[i] = c + '0';
 		i++;
 		cpt++;
 	}
@@ -507,6 +530,61 @@ static void test_print_sysinfo(int fdout) {
 	write_const(fdout, "\n");
 }
 
+static void test_print_stat(int fdout, const char *name, struct stat *s) {
+	int size;
+	
+	for(size=0; name[size]!='\0'; size++);
+
+	// like ls -l mode/type display (3*3 chars for mode and 1 char for type)
+	char mode[10];
+	switch(s->st_mode & S_IFMT) {
+		case S_IFDIR:
+			mode[0] = 'd'; break;
+		case S_IFCHR:
+			mode[0] = 'c'; break;
+		case S_IFREG:
+			mode[0] = '-'; break;
+		default:
+			mode[0] = '?';
+	}
+	mode[1] = s->st_mode & S_IRUSR ? 'r' : '-';
+	mode[2] = s->st_mode & S_IWUSR ? 'w' : '-';
+	mode[3] = s->st_mode & S_IXUSR ? 'x' : '-';
+	mode[4] = '-';
+	mode[5] = '-';
+	mode[6] = '-';
+	mode[7] = '-';
+	mode[8] = '-';
+	mode[9] = '-';
+
+	write(fdout, mode, 10);
+
+	write_const(fdout, " (");
+	if((s->st_mode & S_IFMT) == S_IFCHR) {
+		write_int_dec(fdout, major(s->st_rdev));
+		write_const(fdout, ", ");
+		write_int_dec(fdout, minor(s->st_rdev));
+	}
+	else {
+		write_int_dec(fdout, s->st_size);
+	}
+	write_const(fdout, ") ");
+	write(fdout, name, size);
+	write_const(fdout, "\n");
+}
+
+
+static void test_stat(int fdout) {
+	struct stat s;
+
+	if(stat("/mnt/smem/test.elf", &s) == 0) {
+		test_print_stat(fdout, "/mnt/smem/test.elf", &s);
+	}
+	if(fstat(fdout, &s) == 0) {
+		test_print_stat(fdout, "{fdout}", &s);
+	}
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -540,6 +618,7 @@ int usertest_main(int argc, char **argv) {
 
 		write_const(tty2, "Welcome!\n");
 		test_print_sysinfo(tty2);
+		test_stat(fd);
 
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");

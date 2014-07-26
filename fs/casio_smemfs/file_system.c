@@ -33,6 +33,11 @@ const struct _file_system smemfs_file_system = {
 	.find_sub_node = smemfs_find_sub_node,
 	.get_inode = smemfs_get_inode,
 	.create_node = NULL,
+
+	.iop = {
+		.open = smemfs_open,
+		.istat = smemfs_istat
+	}
 };
 
 // 1 if SMEM FS instance is already mounted
@@ -154,7 +159,6 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 
 
 	ret->fs_op = inst;
-	ret->open = &smemfs_open;
 	ret->abstract = (void*)header; // more data ?
 
 	if(header == NULL)
@@ -202,5 +206,24 @@ int smemfs_open (inode_t *inode, struct file *filep) {
 		filep->op = & smemfs_file_operations;
 		return 0;
 	}
+}
+
+
+int smemfs_istat(inode_t *inode, struct stat *buf) {
+	struct smemfs_file_preheader *header;
+
+	header = (struct smemfs_file_preheader*) inode->abstract;
+	buf->st_dev = makedev(0, 0);
+	buf->st_rdev = makedev(0, 0);
+	
+	if(header->type == SMEMFS_FILE_DIR)
+		buf->st_mode = S_IFDIR;
+	else
+		buf->st_mode = S_IFREG;
+	// SMEM filesystem is readonly for now
+	buf->st_mode |= S_IRUSR | S_IXUSR;
+
+	buf->st_size = smemfs_prim_get_file_size(header);
+	return 0;
 }
 
