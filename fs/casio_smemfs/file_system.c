@@ -3,6 +3,7 @@
 #include "file.h"
 
 #include <fs/vfs.h>
+#include <interface/errno.h>
 
 #include <utils/log.h>
 
@@ -193,19 +194,13 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 
 
 int smemfs_open (inode_t *inode, struct file *filep) {
-	// if node is not a directory or ROOT node
-	// TODO maybe a directory must be openned to use readdir-like function
-	
-	if((inode->type_flags & INODE_TYPE_PARENT) || (inode->type_flags & INODE_TYPE_ROOT)) {
-		//printk("smemfs_open: bad flags (%p)\n", (void*)inode->type_flags);
-		return -1;	
-	}
-	else {
-		//printk("smemfs_open: file %p opened.\n", filep);
-		filep->private_data = NULL;
-		filep->op = & smemfs_file_operations;
-		return 0;
-	}
+	if(inode->flags & O_WRONLY)
+		return -EROFS;
+
+	// nothing to do? (inode already filled)
+	filep->private_data = NULL;
+	filep->op = & smemfs_file_operations;
+	return 0;
 }
 
 

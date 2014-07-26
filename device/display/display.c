@@ -7,6 +7,7 @@
 #include "display.h"
 
 #include <interface/display.h>
+#include <interface/errno.h>
 
 #include <sys/process.h>
 
@@ -50,7 +51,7 @@ int display_open(uint16 minor, struct file *filep) {
 		return 0;
 	}
 
-	return -1;
+	return -ENXIO;
 }
 
 
@@ -75,7 +76,7 @@ static int _ioctl_info(struct display_info *infos) {
 
 		return 0;
 	}
-	return -1;
+	return -EINVAL;
 }
 
 static int _ioctl_mapvram(void **virt_vram) {
@@ -96,7 +97,7 @@ static int _ioctl_mapvram(void **virt_vram) {
 		return 0;
 
 	}
-	return -1;
+	return -EINVAL;
 }
 
 
@@ -120,7 +121,7 @@ int display_ioctl(struct file *filep, int cmd, void *data) {
 			_activated = 0;
 		}
 		else {
-			retval = -1;
+			retval = -EINVAL;
 		}
 		break;
 
@@ -135,7 +136,7 @@ int display_ioctl(struct file *filep, int cmd, void *data) {
 			disp_mono_copy_to_dd((void*)0x18000000);
 		}
 		else {
-			retval = -1;
+			retval = -EINVAL;
 		}
 		break;
 
@@ -144,7 +145,7 @@ int display_ioctl(struct file *filep, int cmd, void *data) {
 		break;
 
 	default:
-		retval = -1;
+		retval = -EINVAL;
 	}
 
 	return retval;

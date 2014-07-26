@@ -2,6 +2,7 @@
 #include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
 #include <interface/fcntl.h>
+#include <interface/errno.h>
 
 
 const struct device fxkeyboard_device = {
@@ -52,7 +53,7 @@ int fxkdb_open(uint16 minor, struct file *filep) {
 		return 0;
 	}
 
-	return -1;
+	return -ENXIO;
 }
 
 
@@ -62,7 +63,7 @@ int fxkdb_release(struct file *filep) {
 }
 
 
-size_t fxkdb_read(struct file *filep, void *dest, size_t len) {
+ssize_t fxkdb_read(struct file *filep, void *dest, size_t len) {
 	// only allow a size multiple of fxkey_event size
 	if(len % sizeof(struct fxkey_event) == 0) {
 		// TODO atomic fifo access
@@ -82,8 +83,10 @@ size_t fxkdb_read(struct file *filep, void *dest, size_t len) {
 			}
 		} while(curlen < len && !nonblock);
 		
+		if(nonblock && curlen==0)
+			return -EAGAIN;
 		return curlen;
 	}
-	return -1;
+	return -EINVAL;
 }
 

@@ -2,6 +2,7 @@
 #include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
 #include <sys/waitqueue.h>
+#include <interface/errno.h>
 #include "text_display.h"
 
 #include <device/terminal/fx9860/text_display.h>
@@ -188,11 +189,11 @@ int vt_open(uint16 minor, struct file *filep) {
 		return 0;
 	}
 
-	return -1;
+	return -ENXIO;
 }
 
 
-size_t vt_write(struct file *filep, void *source, size_t len) {
+ssize_t vt_write(struct file *filep, void *source, size_t len) {
 	int term;
 	
 	term = (int)(filep->private_data);
@@ -205,11 +206,11 @@ size_t vt_write(struct file *filep, void *source, size_t len) {
 
 		return len;
 	}
-	return -1;
+	return -EINVAL;
 }
 
 
-size_t vt_read(struct file *filep, void *dest, size_t len) {
+ssize_t vt_read(struct file *filep, void *dest, size_t len) {
 	int term;
 	
 	term = (int)(filep->private_data);
@@ -232,7 +233,7 @@ size_t vt_read(struct file *filep, void *dest, size_t len) {
 		return curlen;
 	}
 
-	return -1;
+	return -EINVAL;
 }
 
 
@@ -243,5 +244,5 @@ int vt_release(struct file *filep) {
 
 
 int vt_ioctl(struct file *filep, int cmd, void *data) {
-	return -1;
+	return -EINVAL;
 }

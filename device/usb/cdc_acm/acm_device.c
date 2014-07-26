@@ -2,6 +2,7 @@
 #include "cdc_acm.h"
 #include <fs/file_operations.h>
 #include <utils/strutils.h>
+#include <interface/errno.h>
 
 
 const struct device _acm_usb_device = {
@@ -32,7 +33,7 @@ int acm_usb_open(uint16 minor, struct file *filep) {
 		return 0;
 	}
 
-	return -1;
+	return -ENXIO;
 }
 
 
@@ -43,26 +44,26 @@ int acm_usb_release(struct file *filep) {
 
 
 
-size_t acm_usb_write(struct file *filep, void *source, size_t len) {
+ssize_t acm_usb_write(struct file *filep, void *source, size_t len) {
 	if(cdc_acm_is_ready()) {
 		return cdc_acm_send(source, len);
 	}
 	
-	return 0; //-1; -> ssize_t!
+	return -EIO;
 }
 
 
 
-size_t acm_usb_read(struct file *filep, void *dest, size_t len) {
+ssize_t acm_usb_read(struct file *filep, void *dest, size_t len) {
 	if(cdc_acm_is_ready()) {
 		return cdc_acm_receive(dest, len);
 	}
 	
-	return 0; //-1; -> ssize_t!
+	return -EIO;
 }
 
 
 
 int acm_usb_ioctl(struct file *filep, int cmd, void *data) {
-	return -1;
+	return -EINVAL;
 }

@@ -2,6 +2,7 @@
 #include <utils/log.h>
 #include <utils/pool_alloc.h>
 #include <device/device_registering.h>
+#include <interface/errno.h>
 #include "fs_instance.h"
 #include "file_system.h"
 #include "file_operations.h"
@@ -20,11 +21,17 @@ void vfs_file_init() {
 struct file *vfs_open(inode_t *inode, int flags) {
 	struct file *filep;
 
+	// check permission and basic conditions
+	if(!(flags & O_RDWR) || ((flags & O_WRONLY)
+				&& inode->type_flags & INODE_TYPE_PARENT))
+	{
+		// retyurn -EINVAL;
+		return NULL;
+	}
+
 	// allocate a struct file, fill it as much as possible, and call
 	// the inode-specific open()
-
 	filep = vfs_file_alloc();
-	//printk("vfs_open: allocate file %p\n", filep);
 	if(filep != NULL) {
 		int done = 0;
 
@@ -34,10 +41,11 @@ struct file *vfs_open(inode_t *inode, int flags) {
 
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
 
-		// if file is a special node, this is the time to call specific open()
+		// call inode/filesystem specific open()
 		if(inode->fs_op != NULL && inode->fs_op->fs->iop.open != NULL) {
 			if (inode->fs_op->fs->iop.open(inode, filep) == 0) {
 				// file is correctly openned
+				// FIXME inode-specific open() return value is lost!
 				done = 1;
 			}
 		}
@@ -61,16 +69,18 @@ int vfs_open_dev(inode_t *inode, struct file *filep) {
 		if(dev == NULL) {
 			printk("vfs: open invalid device inode (major %d)\n",
 					major(inode->typespec.dev));
+			return -ENXIO;
 		}
 		else {
-			if(dev->open(minor(inode->typespec.dev), filep) == 0) {
+			int ret;
+			ret = dev->open(minor(inode->typespec.dev), filep);
+			if(ret == 0) {
 				filep->inode = inode;
-				return 0;
 			}
+			return ret;
 		}
 	}
-
-	return -1;
+	return -ENOENT;
 }
 
 void vfs_close(struct file *filep) {
@@ -83,24 +93,22 @@ void vfs_close(struct file *filep) {
 }
 
 
-size_t vfs_read(struct file *filep, void *dest, size_t nb) {
+ssize_t vfs_read(struct file *filep, void *dest, size_t nb) {
 	if(filep->op->read != NULL) {
 		return filep->op->read(filep, dest, nb);
 	}
 	else {
-		// TODO return -1 (and change return type to a signed type -> off_t)
-		return 0; // no character read
+		return -EINVAL;
 	}
 }
 
 
-size_t vfs_write(struct file *filep, const void *source, size_t nb) {
+ssize_t vfs_write(struct file *filep, const void *source, size_t nb) {
 	if(filep->op->write != NULL) {
 		return filep->op->write(filep, (void*)source, nb);
 	}
 	else {
-		// TODO return -1 (and change return type to a signed type -> off_t)
-		return 0; // no character writen
+		return -EINVAL;
 	}
 }
 

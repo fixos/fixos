@@ -28,7 +28,7 @@ int fxkdb_open(uint16 minor, struct file *filep);
 
 int fxkdb_release(struct file *filep);
 
-size_t fxkdb_read(struct file *filep, void *dest, size_t len);
+ssize_t fxkdb_read(struct file *filep, void *dest, size_t len);
 
 
 #endif //_DEVICE_KEYBOARD_FX9860_KEYBOARD_DEVICE

@@ -6,6 +6,7 @@
 #include "primitives.h"
 #include "file.h"
 #include <fs/vfs_file.h>
+#include <interface/errno.h>
 
 
 const struct _file_system protofs_file_system = {
@@ -263,6 +264,9 @@ int protofs_open(inode_t *inode, struct file *filep) {
 	if(inode->type_flags & INODE_TYPE_DEV) {
 		return vfs_open_dev(inode, filep);
 	}
-	// TODO open directory
-	return -1;
+	// directory
+	if(inode->type_flags & INODE_TYPE_PARENT) {
+		return 0;
+	}
+	return -EINVAL;
 }

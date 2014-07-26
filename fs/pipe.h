@@ -17,9 +17,9 @@ extern struct file_operations pipe_file_ops;
  */
 int pipe_create(struct file *files[2]);
 
-size_t pipe_read(struct file *filep, void *dest, size_t len);
+ssize_t pipe_read(struct file *filep, void *dest, size_t len);
 
-size_t pipe_write(struct file *filep, void *source, size_t len);
+ssize_t pipe_write(struct file *filep, void *source, size_t len);
 
 int pipe_release(struct file *filep);
 

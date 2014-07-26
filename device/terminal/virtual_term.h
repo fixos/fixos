@@ -38,9 +38,9 @@ int vt_open(uint16 minor, struct file *filep);
 
 int vt_release(struct file *filep);
 
-size_t vt_write(struct file *filep, void *source, size_t len);
+ssize_t vt_write(struct file *filep, void *source, size_t len);
 
-size_t vt_read(struct file *filep, void *dest, size_t len);
+ssize_t vt_read(struct file *filep, void *dest, size_t len);
 
 int vt_ioctl(struct file *filep, int cmd, void *data);
 

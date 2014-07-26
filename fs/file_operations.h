@@ -25,12 +25,12 @@ struct file_operations {
 	/**
 	 * Read data from file.
 	 */
-	size_t (*read) (struct file *filep, void *dest, size_t len);
+	ssize_t (*read) (struct file *filep, void *dest, size_t len);
 
 	/**
 	 * Write data from file.
 	 */
-	size_t (*write) (struct file *filep, void *source, size_t len);
+	ssize_t (*write) (struct file *filep, void *source, size_t len);
 
 	/**
 	 * Seek position.

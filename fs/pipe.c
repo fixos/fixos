@@ -76,7 +76,7 @@ int pipe_create(struct file *files[2]) {
 
 
 
-size_t pipe_read(struct file *filep, void *dest, size_t len) {
+ssize_t pipe_read(struct file *filep, void *dest, size_t len) {
 	volatile struct cyclic_fifo *fifo;
 
 	// check for data in FIFO, and wait until enought data are present
@@ -93,7 +93,7 @@ size_t pipe_read(struct file *filep, void *dest, size_t len) {
 
 
 
-size_t pipe_write(struct file *filep, void *source, size_t len) {
+ssize_t pipe_write(struct file *filep, void *source, size_t len) {
 	volatile struct cyclic_fifo *fifo;
 
 	fifo = &((struct pipe_page *)filep->private_data)->fifo;

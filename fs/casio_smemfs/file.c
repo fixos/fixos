@@ -2,6 +2,7 @@
 #include <utils/log.h>
 #include <utils/strutils.h>
 #include <fs/inode.h>
+#include <interface/errno.h>
 #include "smemfs_primitives_ng.h"
 
 
@@ -22,8 +23,15 @@ int smemfs_release (struct file *filep) {
 
 
 
-size_t smemfs_read (struct file *filep, void *dest, size_t len) {
-	if(len == 0) { // FIXME || !(filep->flags & O_RDONLY)) {
+ssize_t smemfs_read (struct file *filep, void *dest, size_t len) {
+	if(!(filep->flags & O_RDONLY)) {
+		return -EBADF;
+	}
+	if(filep->inode->type_flags & INODE_TYPE_PARENT) {
+		return -EISDIR;
+	}
+
+	if(len == 0) {
 		return 0;
 	}
 	else {

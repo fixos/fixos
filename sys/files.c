@@ -5,6 +5,7 @@
 #include <fs/vfs_file.h>
 #include <fs/vfs.h>
 #include <fs/pipe.h>
+#include <interface/errno.h>
 
 
 
@@ -55,9 +56,8 @@ ssize_t sys_read(int fd, char *dest, int nb) {
 	}
 	else {
 		printk("sys_read: invalid fd\n");
+		return -EBADF;
 	}	
-
-	return -1;
 }
 
 

@@ -14,7 +14,7 @@ extern const struct file_operations smemfs_file_operations;
 
 int smemfs_release (struct file *filep);
 
-size_t smemfs_read (struct file *filep, void *dest, size_t len);
+ssize_t smemfs_read (struct file *filep, void *dest, size_t len);
 
 off_t smemfs_lseek (struct file *filep, off_t offset, int whence);
 

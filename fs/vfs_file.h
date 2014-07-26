@@ -63,13 +63,13 @@ void vfs_close(struct file *filep);
 /**
  * Read data from openned file.
  */
-size_t vfs_read(struct file *filep, void *dest, size_t nb);
+ssize_t vfs_read(struct file *filep, void *dest, size_t nb);
 
 
 /**
  * Write data to openned file.
  */
-size_t vfs_write(struct file *filep, const void *source, size_t nb);
+ssize_t vfs_write(struct file *filep, const void *source, size_t nb);
 
 
 /**
