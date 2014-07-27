@@ -4,7 +4,6 @@
 #include <utils/strutils.h>
 #include <fs/vfs.h>
 #include "primitives.h"
-#include "file.h"
 #include <fs/vfs_file.h>
 #include <interface/errno.h>
 

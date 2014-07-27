@@ -11,6 +11,7 @@
 #include <syscalls.h>
 #include <signal.h>
 #include <stat.h>
+#include <dirent.h>
 
 
 extern int open(const char *file, int mode);
@@ -65,5 +66,6 @@ extern int fstat(int fd, struct stat *buf);
 
 extern int stat(const char *path, struct stat *buf);
 
+extern int getdents(int fd, struct fixos_dirent *buf, size_t len);
 
 #endif //_SYSCALLS_SYSCALLS_H

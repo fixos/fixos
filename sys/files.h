@@ -8,6 +8,7 @@
 
 #include <utils/types.h>
 #include <interface/stat.h>
+#include <interface/dirent.h>
 
 // FIXME add a "mode" argument
 int sys_open(const char *name, int flags);
@@ -27,5 +28,7 @@ int sys_lseek(int fd, off_t offset, int whence);
 int sys_fstat(int fd, struct stat *buf);
 
 int sys_stat(const char *path, struct stat *buf);
+
+int sys_getdents(int fd, struct fixos_dirent *buf, size_t len);
 
 #endif //_SYS_FILES_H

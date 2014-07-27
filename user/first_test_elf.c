@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sysctl.h>
 #include <process.h>
+#include <dirent.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
@@ -585,6 +586,46 @@ static void test_stat(int fdout) {
 	}
 }
 
+
+static char dirent_buf[512];
+
+static void test_dirent(int fdout, const char *path) {
+	struct fixos_dirent *dirent;
+	int len;
+	int dirfd;
+
+	dirfd = open(path, O_RDONLY);
+
+	dirent = (struct fixos_dirent *)dirent_buf;
+	len = getdents(dirfd, dirent, 512);
+
+	write_const(fdout, "Directory entries in '");
+	int i;
+	for(i=0; path[i]!='\0'; i++);
+	write(fdout, path, i);
+	write_const(fdout, "' :\n");
+
+	if(len>0) {
+		int pos;
+
+		// first 512 bytes of entries in current directory
+		pos = 0;
+		while(pos<len) {
+			for(i=0; dirent->d_name[i]!='\0'; i++);
+			write(fdout, dirent->d_name, i);
+			write_const(fdout, " (@0x");
+			write_int_hex(fdout, dirent->d_ino);
+			write_const(fdout, ")\n");
+			pos += dirent->d_off;
+			dirent = (struct fixos_dirent *)((void*)dirent + dirent->d_off);
+		}	
+	}
+	write_const(fdout, "[total lenght = ");
+	write_int_dec(fdout, len);
+	write_const(fdout, "]\n");
+}
+
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -619,6 +660,8 @@ int usertest_main(int argc, char **argv) {
 		write_const(tty2, "Welcome!\n");
 		test_print_sysinfo(tty2);
 		test_stat(fd);
+		//test_dirent(fd, "/");
+		test_dirent(fd, "/mnt/smem");
 
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");

@@ -88,4 +88,7 @@
 // extern int stat(const char *path, struct stat *buf);
 #define SYSCALL_STAT		26
 
+// extern int getdents(int fd, struct fixos_dirent *buf, size_t len);
+#define SYSCALL_GETDENTS	27
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

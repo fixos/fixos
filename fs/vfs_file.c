@@ -6,6 +6,7 @@
 #include "fs_instance.h"
 #include "file_system.h"
 #include "file_operations.h"
+#include "vfs_directory.h"
 
 
 // pool allocation for file struct
@@ -41,8 +42,13 @@ struct file *vfs_open(inode_t *inode, int flags) {
 
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
 
+		// if inode is a directory, use directory-specific operations
+		if(inode->type_flags & INODE_TYPE_PARENT) {
+			if(vfs_dir_open(inode, filep) == 0)
+				done = 1;
+		}
 		// call inode/filesystem specific open()
-		if(inode->fs_op != NULL && inode->fs_op->fs->iop.open != NULL) {
+		else if(inode->fs_op != NULL && inode->fs_op->fs->iop.open != NULL) {
 			if (inode->fs_op->fs->iop.open(inode, filep) == 0) {
 				// file is correctly openned
 				// FIXME inode-specific open() return value is lost!

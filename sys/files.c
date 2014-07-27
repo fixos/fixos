@@ -6,6 +6,7 @@
 #include <fs/vfs.h>
 #include <fs/pipe.h>
 #include <interface/errno.h>
+#include <fs/vfs_directory.h>
 
 
 
@@ -73,7 +74,7 @@ ssize_t sys_write(int fd, const char *source, int nb){
 		printk("sys_write: invalid fd (%d)\n", fd);
 	}	
 
-	return -1;
+	return -EBADF;
 }
 
 int sys_ioctl(int fd, int request, void *arg) {
@@ -165,3 +166,17 @@ int sys_stat(const char *path, struct stat *buf) {
 	return -1;
 }
 
+
+
+int sys_getdents(int fd, struct fixos_dirent *buf, size_t len) {
+	process_t *proc;
+
+	proc = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+		return vfs_dir_getdents(proc->files[fd], buf, len);
+	}
+	else {
+		printk("sys_getdents: invalid fd\n");
+		return -EBADF;
+	}	
+}
