@@ -68,4 +68,6 @@ extern int stat(const char *path, struct stat *buf);
 
 extern int getdents(int fd, struct fixos_dirent *buf, size_t len);
 
+extern int close(int fd);
+
 #endif //_SYSCALLS_SYSCALLS_H

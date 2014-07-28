@@ -39,6 +39,7 @@ struct file *vfs_open(inode_t *inode, int flags) {
 		filep->flags = flags;
 		filep->inode = inode;
 		filep->pos = 0;
+		filep->count = 1;
 
 		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
 
@@ -89,13 +90,19 @@ int vfs_open_dev(inode_t *inode, struct file *filep) {
 	return -ENOENT;
 }
 
-void vfs_close(struct file *filep) {
+int vfs_close(struct file *filep) {
+	int ret = 0;
+
 	// release the file and free it
 	if(filep->op->release != NULL) {
-		filep->op->release(filep);
+		ret = filep->op->release(filep);
 	}
 
-	vfs_file_free(filep);
+	filep->count--;
+	if(filep->count <= 0)
+		vfs_file_free(filep);
+
+	return ret;
 }
 
 

@@ -91,4 +91,6 @@
 // extern int getdents(int fd, struct fixos_dirent *buf, size_t len);
 #define SYSCALL_GETDENTS	27
 
+// extern int close(int fd);
+#define SYSCALL_CLOSE		28
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

@@ -7,6 +7,7 @@
 #include "scheduler.h"
 #include <utils/log.h>
 #include <utils/bitfield.h>
+#include <interface/fcntl.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>
@@ -97,8 +98,10 @@ process_t *process_alloc() {
 		if(proc != NULL) {
 			int i;
 
-			for(i=0; i<PROCESS_MAX_FILE; i++)
+			for(i=0; i<PROCESS_MAX_FILE; i++) {
 				proc->files[i] = NULL;
+				proc->fdflags[i] = 0;
+			}
 			proc->pid = process_get_pid();
 			proc->ppid = 0;
 			proc->state = PROCESS_STATE_CREATE;
@@ -221,8 +224,15 @@ void process_contextjmp(process_t *proc) {
 void process_terminate(process_t *proc, int status) {
 	struct page_dir *curdir;
 	struct page_dir *nextdir;
+	int i;
 
-	// TODO close files?
+	// close openned files
+	for(i=0; i<PROCESS_MAX_FILE; i++) {
+		if(proc->files[i] != NULL) {
+			vfs_close(proc->files[i]);
+			proc->files[i] = NULL;
+		}
+	}
 	
 	// remove all virtual pages from the TLB (invalidate them)
 	// TODO do not invalidate ALL entries, select only this ASID
@@ -279,8 +289,11 @@ pid_t sys_fork() {
 
 	newproc->ppid = cur->pid;
 	for(i=0; i<PROCESS_MAX_FILE; i++) {
-		// TODO real COPY of each opened file!
+		// for each valid file descriptor, increment usage counter
 		newproc->files[i] = cur->files[i];
+		newproc->fdflags[i] = cur->fdflags[i];
+		if(newproc->files[i] != NULL)
+			newproc->files[i]->count++;
 	}
 
 	// copy each memory page with same virtual addresses
@@ -434,7 +447,10 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		}
 
 		// close/free all ressources not 'shared' through exec
-		// TODO files with CLOSE_ON_EXEC
+		for(i=0; i<PROCESS_MAX_FILE; i++) {
+			if(cur->files[i] != NULL && (cur->fdflags[i] & FD_CLOEXEC))
+					vfs_close(cur->files[i]);
+		}
 		
 		// signal handler are reseted to SIG_DFL, except in case of SIG_IGN
 		for(i=0; i<SIGNAL_INDEX_MAX; i++) {

@@ -183,8 +183,11 @@ void tlbmiss_handler()
 		if(flags & TLB_VALID) {
 			// load the TLB entry!
 			mmu_tlb_fillload(ppn, flags);
-			printk("vm: [pid %d] page tr #(%p)->@(%p)\n", curpr->pid, (void*)(ppn << PM_PAGE_ORDER),
+			/*
+			printk("vm: [pid %d] page tr #(%p)->@(%p)\n", curpr->pid,
+					(void*)(ppn << PM_PAGE_ORDER),
 					(void*)(vpn << PM_PAGE_ORDER));
+			*/
 		}
 		else {
 			page = NULL; // temp stuff to have an error

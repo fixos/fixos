@@ -57,7 +57,7 @@ int vfs_open_dev(inode_t *inode, struct file *filep);
 /**
  * Close an openned file (or simply release it in some case).
  */
-void vfs_close(struct file *filep);
+int vfs_close(struct file *filep);
 
 
 /**

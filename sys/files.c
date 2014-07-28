@@ -14,7 +14,7 @@ int sys_open(const char *name, int flags) {
 	process_t *proc;
 	int fd;
 
-	printk("Received sys_open :\n   ('%s', %d)\n", name, flags);
+	//printk("Received sys_open :\n   ('%s', %d)\n", name, flags);
 	proc = process_get_current();
 
 	for(fd=0; fd<PROCESS_MAX_FILE && proc->files[fd] != NULL; fd++);
@@ -25,9 +25,18 @@ int sys_open(const char *name, int flags) {
 		inode = vfs_resolve(name);
 		if(inode != NULL) {
 			
+			// O_CLOEXEC flag should not be seen by vfs level
+			if(flags & O_CLOEXEC) {
+				flags &= ~O_CLOEXEC;
+				proc->fdflags[fd] = FD_CLOEXEC;
+			}
+			else {
+				proc->fdflags[fd] = 0;
+			}
+
 			proc->files[fd] = vfs_open(inode, flags);
 			if(proc->files[fd] != NULL) {
-				printk("sys_open: new fd = %d\n", fd);
+				//printk("sys_open: new fd = %d\n", fd);
 
 				// done
 				return fd;
@@ -179,4 +188,22 @@ int sys_getdents(int fd, struct fixos_dirent *buf, size_t len) {
 		printk("sys_getdents: invalid fd\n");
 		return -EBADF;
 	}	
+}
+
+
+int sys_close(int fd) {
+	process_t *proc;
+	int ret;
+
+	proc = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
+		ret = vfs_close(proc->files[fd]);
+		proc->files[fd] = NULL;
+	}
+	else {
+		printk("sys_close: invalid fd\n");
+		ret = -EBADF;
+	}
+
+	return ret;
 }

@@ -31,4 +31,6 @@ int sys_stat(const char *path, struct stat *buf);
 
 int sys_getdents(int fd, struct fixos_dirent *buf, size_t len);
 
+int sys_close(int fd);
+
 #endif //_SYS_FILES_H

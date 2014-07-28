@@ -20,6 +20,9 @@ struct file {
 	// used because inode may be NULL, not op!)
 	const struct file_operations *op;
 
+	// number of references for this file description (shared across fork...)
+	int count;
+
 	// Pointer to a data structure depending of the FS of the file (may be NULL)
 	void *private_data; 
 };

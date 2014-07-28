@@ -75,6 +75,8 @@ struct _process_info {
 
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];
+	// corresponding file descriptor flags (currently only FD_CLOEXEC is used)
+	char fdflags[PROCESS_MAX_FILE];
 	
 	// signal related stuff
 	sigset_t sig_blocked;

@@ -11,4 +11,9 @@
 
 #define O_NONBLOCK	(1<<2)
 
+#define O_CLOEXEC	(1<<10)
+
+
+#define FD_CLOEXEC	(1<<0)
+
 #endif //_FIXOS_INTERFACE_FCNTL_H
