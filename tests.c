@@ -221,6 +221,11 @@ void test_process() {
 		printk("loading test.elf\n");
 		elfloader_load(elf_file, proc1);
 
+		// set working directory for test proc (root)
+		inode_t *root;
+		root = vfs_resolve("/");
+		proc1->cwd = root;
+
 		//DBG_WAIT;
 
 		sched_add_task(proc1);

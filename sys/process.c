@@ -8,6 +8,7 @@
 #include <utils/log.h>
 #include <utils/bitfield.h>
 #include <interface/fcntl.h>
+#include <interface/errno.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>
@@ -102,6 +103,8 @@ process_t *process_alloc() {
 				proc->files[i] = NULL;
 				proc->fdflags[i] = 0;
 			}
+			proc->cwd = NULL;
+
 			proc->pid = process_get_pid();
 			proc->ppid = 0;
 			proc->state = PROCESS_STATE_CREATE;
@@ -233,6 +236,10 @@ void process_terminate(process_t *proc, int status) {
 			proc->files[i] = NULL;
 		}
 	}
+
+	if(proc->cwd != NULL)
+		vfs_release_inode(proc->cwd);
+	proc->cwd = NULL;
 	
 	// remove all virtual pages from the TLB (invalidate them)
 	// TODO do not invalidate ALL entries, select only this ASID
@@ -295,6 +302,10 @@ pid_t sys_fork() {
 		if(newproc->files[i] != NULL)
 			newproc->files[i]->count++;
 	}
+
+	if(cur->cwd != NULL)
+		cur->cwd->count++;
+	newproc->cwd = cur->cwd;
 
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
@@ -637,6 +648,53 @@ void process_release_pid(pid_t pid) {
 		bitfield_clear(_pid_used, pid);
 }
 
+
+int sys_chdir(const char *path) {
+	process_t *cur;
+	inode_t *inode;
+
+	cur = process_get_current();
+	inode = vfs_resolve(path);
+	if(inode != NULL) {
+		// error if it is not a directory
+		if(inode->type_flags & INODE_TYPE_PARENT) {
+			if(cur->cwd != NULL)
+				vfs_release_inode(cur->cwd);
+			cur->cwd = inode;
+			return 0;
+		}
+		return -ENOTDIR;
+	}
+	return -ENOENT;
+}
+
+
+int sys_fchdir(int fd) {
+	process_t *cur;
+	inode_t *inode;
+
+	cur = process_get_current();
+	if(fd>=0 && fd<PROCESS_MAX_FILE && cur->files[fd] != NULL) {
+		inode = cur->files[fd]->inode;
+	}
+	else {
+		printk("sys_fchdir: invalid fd\n");
+		return -EBADF;
+	}
+
+	if(inode != NULL) {
+		// error if it is not a directory
+		if(inode->type_flags & INODE_TYPE_PARENT) {
+			if(cur->cwd != NULL)
+				vfs_release_inode(cur->cwd);
+			inode->count++;
+			cur->cwd = inode;
+			return 0;
+		}
+		return -ENOTDIR;
+	}
+	return -ENOENT;
+}
 
 /**
  * Process-related sysctls

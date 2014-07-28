@@ -3,6 +3,7 @@
 
 #include <utils/strutils.h>
 #include <fs/vfs_cache.h>
+#include <sys/process.h>
 
 #include <utils/log.h>
 
@@ -212,17 +213,28 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 
 inode_t *vfs_resolve(const char *path)
 {
-	// okey, to do that we need to split the path, and to
-	// check eache directory until the file is reached
-	if(_root_fs != NULL && path[0] == '/') {
+	// ok, to do that we need to split the path, and to check each directory
+	// until the file is reached
+	if(_root_fs != NULL) {
 		char tmpname[INODE_MAX_NAME];
 		int ppos;
 		int namepos;
 
 		inode_t *ret = NULL;
-		inode_t *current = _root_fs->fs->get_root_node(_root_fs);
+		inode_t *current;
+		process_t *cur = process_get_current();
 
-		ppos = 1; // we know path start with '/'
+		ppos = 0;
+		if(path[0] == '/' || cur->cwd == NULL) {
+			// if the path is absolute or if current process have no working dir
+			current = _root_fs->fs->get_root_node(_root_fs);
+			if(path[0] == '/')
+				ppos = 1;
+		}
+		else {
+			// the path is relative, first inode is current working directory
+			current = cur->cwd;
+		}
 
 		do {
 			inode_t *swap = NULL;

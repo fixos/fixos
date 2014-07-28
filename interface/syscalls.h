@@ -93,4 +93,11 @@
 
 // extern int close(int fd);
 #define SYSCALL_CLOSE		28
+
+// extern int chdir(const char *path);
+#define SYSCALL_CHDIR		29
+
+// extern int fchdir(int fd);
+#define SYSCALL_FCHDIR		30
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

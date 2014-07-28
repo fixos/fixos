@@ -664,13 +664,13 @@ int usertest_main(int argc, char **argv) {
 
 		write_const(tty2, "Welcome!\n");
 		test_print_sysinfo(tty2);
-		test_stat(fd);
-
-		test_dirent(fd, "/");
-		test_dirent(fd, "/mnt/smem");
 
 		write_const(tty1, "I'm writing on tty1.\n");
 		write_const(tty2, "I'm writing on tty2.\n");
+
+		chdir("/mnt/smem");
+		test_dirent(tty2, ".");
+		test_dirent(tty2, "bf");
 
 	//	wait(NULL);
 
@@ -684,8 +684,12 @@ int usertest_main(int argc, char **argv) {
 		//write_const(fd, "Child is dying...\n");
 		//exit(1);
 
-		test_sysctl_proc(fd);
+		test_stat(fd);
 
+		test_dirent(fd, "/");
+		test_dirent(fd, "/mnt/smem");
+
+		test_sysctl_proc(fd);
 		//test_copy_files(tty1, fd_serial, 1);
 	}
 

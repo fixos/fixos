@@ -10,6 +10,7 @@
 #include <interface/process.h>
 #include <sys/memory.h>
 #include <utils/list.h>
+#include <fs/inode.h>
 
 // TODO remove this include (now context is saved as a pointer to arch-spec context)
 #include <arch/sh/process.h>
@@ -77,6 +78,9 @@ struct _process_info {
 	struct file *files[PROCESS_MAX_FILE];
 	// corresponding file descriptor flags (currently only FD_CLOEXEC is used)
 	char fdflags[PROCESS_MAX_FILE];
+
+	// current working directory
+	inode_t *cwd;
 	
 	// signal related stuff
 	sigset_t sig_blocked;
@@ -226,5 +230,13 @@ void *sys_sbrk(int incr);
  * execve syscall implementation...
  */
 int sys_execve(const char *filename, char *const argv[], char *const envp[]);
+
+/**
+ * chdir()/fchdir() syscalls, change the current working directory of the calling
+ * process
+ */
+int sys_chdir(const char *path);
+
+int sys_fchdir(int fd);
 
 #endif //_SYS_PROCESS_H

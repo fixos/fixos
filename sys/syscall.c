@@ -38,7 +38,9 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_fstat,
 	&sys_stat,
 	&sys_getdents,
-	&sys_close
+	&sys_close,
+	&sys_chdir,
+	&sys_fchdir
 };
 
 

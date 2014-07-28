@@ -70,4 +70,8 @@ extern int getdents(int fd, struct fixos_dirent *buf, size_t len);
 
 extern int close(int fd);
 
+extern int chdir(const char *path);
+
+extern int fchdir(int fd);
+
 #endif //_SYSCALLS_SYSCALLS_H
