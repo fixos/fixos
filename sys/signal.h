@@ -28,6 +28,11 @@ struct _process_info;
  */
 void signal_raise(struct _process_info *proc, int sig);
 
+/**
+ * Raise a signal for a group of processes.
+ */
+void signal_pgid_raise(pid_t pgid, int sig);
+
 
 /**
  * Check for pending signals for the current process, and if any, deliver the

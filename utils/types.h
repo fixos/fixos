@@ -28,6 +28,11 @@ typedef uint8 asid_t;
 	( (type *) ((void*)(element) - offsetof(type, field)) )
 
 
+// special control characters (^A, ^B,... ^[)
+#define ASCII_CTRL(c) \
+	((c) - '@')
+#define ASCII_UNCTRL(c) \
+	((c) + '@')
 
 // temporary location
 // TODO move them to a more consistant place

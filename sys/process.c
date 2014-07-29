@@ -110,6 +110,7 @@ process_t *process_alloc() {
 			proc->ppid = 0;
 			proc->state = PROCESS_STATE_CREATE;
 			proc->asid = ASID_INVALID;
+			proc->ctty = NULL;
 
 			proc->dir_list = NULL;
 
@@ -236,6 +237,8 @@ void process_terminate(process_t *proc, int status) {
 	// FIXME orphan process group...
 	// proc->gid...
 	
+	// FIXME controlling terminal is process was session leader
+	
 	// remove all virtual pages from the TLB (invalidate them)
 	// TODO do not invalidate ALL entries, select only this ASID
 	// in addition, free each allocated physical pages
@@ -302,6 +305,8 @@ pid_t sys_fork() {
 	if(cur->cwd != NULL)
 		cur->cwd->count++;
 	newproc->cwd = cur->cwd;
+
+	newproc->ctty = cur->ctty;
 
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!

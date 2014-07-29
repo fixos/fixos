@@ -54,7 +54,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_F6: return KEY_; break;
 
 			case K_SHIFT: return KEY_; break;
-			case K_OPTN: return KEY_; break;
+			case K_OPTN: return ASCII_CTRL('Z'); break;
 			case K_VARS: return KEY_; break;
 			case K_MENU: return KEY_; break;
 			case K_LEFT: return KEY_; break;
@@ -63,7 +63,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_ALPHA: return KEY_; break;
 			case K_SQR: return KEY_; break;
 			case K_EXPO: return KEY_; break;
-			case K_EXIT: return KEY_; break;
+			case K_EXIT: return ASCII_CTRL('C'); break;
 			case K_DOWN: return KEY_; break;
 			case K_RIGHT: return KEY_; break;
 
@@ -117,7 +117,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_F6: return KEY_; break;
 
 			case K_SHIFT: return KEY_; break;
-			case K_OPTN: return KEY_; break;
+			case K_OPTN: return ASCII_CTRL('Z'); break;
 			case K_VARS: return KEY_; break;
 			case K_MENU: return KEY_; break;
 			case K_LEFT: return KEY_; break;
@@ -126,7 +126,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_ALPHA: return KEY_; break;
 			case K_SQR: return KEY_; break;
 			case K_EXPO: return KEY_; break;
-			case K_EXIT: return KEY_; break;
+			case K_EXIT: return ASCII_CTRL('C'); break;
 			case K_DOWN: return KEY_; break;
 			case K_RIGHT: return KEY_; break;
 
@@ -180,16 +180,16 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_F6: return KEY_; break;
 
 			case K_SHIFT: return KEY_; break;
-			case K_OPTN: return KEY_; break;
-			case K_VARS: return KEY_; break;
-			case K_MENU: return KEY_; break;
+			case K_OPTN: return ASCII_CTRL('Z'); break;
+			case K_VARS: return ASCII_CTRL('A'); break;
+			case K_MENU: return ASCII_CTRL('['); break;
 			case K_LEFT: return KEY_; break;
 			case K_UP: return KEY_; break;
 
 			case K_ALPHA: return KEY_; break;
 			case K_SQR: return KEY_; break;
 			case K_EXPO: return '^'; break;
-			case K_EXIT: return KEY_; break;
+			case K_EXIT: return ASCII_CTRL('C'); break;
 			case K_DOWN: return KEY_; break;
 			case K_RIGHT: return KEY_; break;
 

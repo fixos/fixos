@@ -3,14 +3,21 @@
 #include <fs/file_operations.h>
 #include <sys/waitqueue.h>
 #include <interface/errno.h>
+#include <sys/tty.h>
+#include <sys/process.h>
 #include "text_display.h"
 
 #include <device/terminal/fx9860/text_display.h>
+
+#include <utils/log.h>
 
 
 #define VT_INPUT_BUFFER		256
 #define VT_LINE_BUFFER		128
 
+// define character that must be written as "^<char>" escaped form, like ^C
+#define IS_ESC_CTRL(c) \
+	((c)>=0 && (c)<0x20 && (c)!='\n')
 
 struct vt_instance {
 	struct tdisp_data disp;
@@ -25,6 +32,8 @@ struct vt_instance {
 	int line_pos;
 
 	struct wait_queue wqueue;
+
+	struct tty tty;
 };
 
 
@@ -68,6 +77,10 @@ void vt_init() {
 		_vts[i].posy = 0;
 
 		INIT_WAIT_QUEUE(& _vts[i].wqueue);
+
+		_vts[i].tty.controler = 0;
+		_vts[i].tty.fpgid = 0;
+		_vts[i].tty.private = NULL;
 	}
 }
 
@@ -113,6 +126,94 @@ static void vt_term_print(struct vt_instance *term, void *source, size_t len) {
 
 
 
+// remove the previous echoed character from the display
+static void vt_unwind_echo_char(struct vt_instance *term) {
+	_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+
+	term->posx--;
+	if(term->posx < 0) {
+		term->posx = _tdisp->cwidth - 1;
+		term->posy--;
+	}
+
+	// print cursor at current position
+	_tdisp->print_char(& term->disp, term->posx, term->posy,
+			VT_CURSOR_CHAR);
+
+	_tdisp->flush(& term->disp);
+}
+
+
+// add the given character to line buffer and echo it if needed
+static void vt_add_character(struct vt_instance *term, char c) {
+	term->line_buf[term->line_pos] = c;
+	term->line_pos++;
+
+	// basic echo, need to be improved (do not copy_to_dd() each time...)
+	if(IS_ESC_CTRL(c)) {
+		char esc[2] = {'^', ASCII_UNCTRL(c)};
+		vt_term_print(term, esc, 2);
+	}
+	else {
+		vt_term_print(term, &c, 1);
+	}
+	_tdisp->flush(& term->disp);
+}
+
+
+// do special action for character < 0x20 (special ASCII chars)
+static void vt_do_special(struct vt_instance *term, char spe) {
+	/*
+	char str[3] = {'^', ' ', '\0'};
+	str[1] = ASCII_UNCTRL(spe);
+	printk("tty: received %s, pgid=%d\n", str, term->tty.fpgid);
+	*/
+	char spestr[2] = {'^', ASCII_UNCTRL(spe)};
+
+	switch(spe) {
+		case ASCII_CTRL('C'):
+			// kill group
+			if(term->tty.fpgid != 0)
+				signal_pgid_raise(term->tty.fpgid, SIGINT);
+			vt_term_print(term, spestr, 2);
+			_tdisp->flush(& term->disp);
+			break;
+
+		case ASCII_CTRL('Z'):
+			// stop foreground
+			if(term->tty.fpgid != 0)
+				signal_pgid_raise(term->tty.fpgid, SIGSTOP);
+			vt_term_print(term, spestr, 2);
+			_tdisp->flush(& term->disp);
+			break;
+
+		case '\n':
+			vt_add_character(term, '\n');
+			cfifo_push(& term->fifo, term->line_buf, term->line_pos);
+			term->line_pos = 0;
+			wqueue_wakeup(& term->wqueue);
+			break;
+
+		case ASCII_CTRL('H'):
+			// backspace, remove last buffered char and echo space instead
+			if(term->line_pos > 0)  {
+				char removed = term->line_buf[term->line_pos-1];
+
+				// removed 2 characters if it was displayed as "^<char>"
+				if(IS_ESC_CTRL(removed))
+					vt_unwind_echo_char(term);
+
+				vt_unwind_echo_char(term);
+				term->line_pos--;
+			}
+			break;
+
+		default:
+			vt_add_character(term, spe);
+	}
+}
+
+
 // callback function called when a key is stroke
 void vt_key_stroke(int code) {
 
@@ -122,46 +223,14 @@ void vt_key_stroke(int code) {
 
 		term = & _vts[_vt_current];
 
-		if(code == '\x08') {
-			// backspace, remove last buffered char and echo space instead
-			if(term->line_pos > 0)  {
-				term->line_pos--;
-
-				_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
-
-				term->posx--;
-				if(term->posx < 0) {
-					term->posx = _tdisp->cwidth - 1;
-					term->posy--;
-				}
-
-				// print cursor at current position
-				_tdisp->print_char(& term->disp, term->posx, term->posy,
-						VT_CURSOR_CHAR);
-
-				_tdisp->flush(& term->disp);
+		// check the line buffer, and add the char to it if possible
+		if(term->line_pos < VT_LINE_BUFFER || code == 0x08) {
+			if(code < 0x20) {
+				// special character (should be improved)
+				vt_do_special(term, (char)code);	
 			}
-		}
-		else {
-			// check the line buffer, and add the char to it if possible
-			if(term->line_pos < VT_LINE_BUFFER) {
-				if(code < 0x80) {
-					char ccode = (char)code;
-
-					term->line_buf[term->line_pos] = ccode;
-					term->line_pos++;
-
-					// basic echo, need to be improved (do not copy_to_dd() each time...)
-					vt_term_print(term, &ccode, 1);
-					_tdisp->flush(& term->disp);
-
-					// copy and flush the line buffer if end of line is reached
-					if(code == '\n') {
-						cfifo_push(& term->fifo, term->line_buf, term->line_pos);
-						term->line_pos = 0;
-						wqueue_wakeup(& term->wqueue);
-					}
-				}
+			else if(code < 0x80) {
+				vt_add_character(term, (char)code);
 			}
 		}
 	}
@@ -242,7 +311,105 @@ int vt_release(struct file *filep) {
 }
 
 
+static int vt_ioctl_getwinsize(struct vt_instance *vt, struct winsize *size) {
+	if(size == NULL)
+		return -EINVAL;
+	size->ws_col = _tdisp->cwidth;
+	size->ws_row = _tdisp->cheight;
+	return 0;
+}
 
-int vt_ioctl(struct file *filep, int cmd, void *data) {
+
+static int vt_ioctl_setwinsize(struct vt_instance *vt, 
+		const struct winsize *size)
+{
+	(void)vt;
+	(void)size;
 	return -EINVAL;
 }
+
+
+static int vt_ioctl_setctty(struct vt_instance *vt, int arg) {
+	(void)arg;
+	if(_proc_current->ctty != NULL)
+		return -EINVAL;
+
+	_proc_current->ctty = & vt->tty;
+	if(vt->tty.controler == 0)
+		vt->tty.controler = _proc_current->pid;
+	return 0;
+}
+
+
+static int vt_ioctl_noctty(struct vt_instance *vt) {
+	if(_proc_current->ctty != & vt->tty)
+		return -EINVAL;
+
+	if(_proc_current->pid == vt->tty.controler) {
+		// FIXME session leader give up the terminal!
+		vt->tty.controler = 0;
+		vt->tty.fpgid = 0;
+	}
+	_proc_current->ctty = NULL;
+	return 0;
+}
+
+
+static int vt_ioctl_setpgrp(struct vt_instance *vt, const pid_t *pid) {
+	if(pid == NULL)
+		return -EINVAL;
+
+	vt->tty.fpgid = *pid;
+	return 0;
+}
+
+
+static int vt_ioctl_getpgrp(struct vt_instance *vt, pid_t *pid) {
+	if(pid == NULL)
+		return -EINVAL;
+
+	*pid = vt->tty.fpgid;
+	return 0;
+}
+
+
+static int vt_ioctl_getsid(struct vt_instance *vt, pid_t *sid) {
+	if(sid == NULL)
+		return -EINVAL;
+
+	*sid = vt->tty.controler;
+	return 0;
+}
+
+int vt_ioctl(struct file *filep, int cmd, void *data) {
+	int term;
+
+	term = (int)(filep->private_data);
+	if(term >= 0 && term <VT_MAX_TERMINALS) {
+		switch(cmd) {
+			case TIOCGWINSZ:
+				return vt_ioctl_getwinsize(&_vts[term], data);
+				break;
+			case TIOCSWINSZ:
+				return vt_ioctl_setwinsize(&_vts[term], data);
+				break;
+			case TIOCSCTTY:
+				return vt_ioctl_setctty(&_vts[term], (int)data);
+				break;
+			case TIOCNOTTY:
+				return vt_ioctl_noctty(&_vts[term]);
+				break;
+			case TIOCGPGRP:
+				return vt_ioctl_getpgrp(&_vts[term], data);
+				break;
+			case TIOCSPGRP:
+				return vt_ioctl_setpgrp(&_vts[term], data);
+				break;
+			case TIOCGSID:
+				return vt_ioctl_getsid(&_vts[term], data);
+				break;
+		}
+	}
+	return -EINVAL;
+}
+

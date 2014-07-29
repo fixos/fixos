@@ -180,6 +180,9 @@ void sched_stop_proc(process_t *proc, int sig) {
 	// for now, just change the process state
 	(void)sig;
 	proc->state = PROCESS_STATE_STOPPED;
+
+	if(proc == _proc_current)
+		_need_reschedule = 1;
 }
 
 

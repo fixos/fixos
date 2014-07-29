@@ -9,6 +9,8 @@
 #include <sysctl.h>
 #include <process.h>
 #include <dirent.h>
+#include <tty.h>
+#include <ioctl.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)
@@ -631,6 +633,18 @@ static void test_dirent(int fdout, const char *path) {
 }
 
 
+static void test_tty_master(int fdout, int fdtty) {
+	// create a new group and take control of given tty
+	setpgid(0,0);
+	
+	ioctl(fdtty, TIOCSCTTY, (void*)0);
+	
+	pid_t pid;
+	pid = getpgid(0);
+	ioctl(fdtty, TIOCSPGRP, &pid);
+}
+
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -683,6 +697,7 @@ int usertest_main(int argc, char **argv) {
 
 		//write_const(fd, "Child is dying...\n");
 		//exit(1);
+		test_tty_master(tty1, tty1);
 
 		test_stat(fd);
 

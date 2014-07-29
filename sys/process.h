@@ -57,6 +57,7 @@ struct elf_shared_lib {
 #define PROC_LOAD_SAMPLES	4
 #define PROC_LOAD_SAMPMAX	64
 
+struct tty;
 
 struct _process_info {
 	// address on the kernel stack of the process, or NULL if running out of any
@@ -112,6 +113,9 @@ struct _process_info {
 
 	// linked list used to represent every processes
 	struct list_head list;
+
+	// controlling terminal if any
+	struct tty *ctty;
 };
 
 typedef struct _process_info process_t;
@@ -125,7 +129,7 @@ extern process_t *_proc_current;
 // iterate for each process in _process_list
 #define for_each_process(cur) \
 	for(cur = container_of(&_process_list, process_t, list); \
-	   	(cur = container_of(& cur->list.next, process_t, list)) \
+	   	(cur = container_of(cur->list.next, process_t, list)) \
 			!= container_of(& _process_list, process_t, list) ; )
 
 // Init process manager

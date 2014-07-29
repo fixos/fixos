@@ -164,6 +164,16 @@ void signal_raise(struct _process_info *proc, int sig) {
 }
 
 
+void signal_pgid_raise(pid_t pgid, int sig) {
+	process_t *dest;
+
+	for_each_process(dest) {
+		//printk("pgid_raise: pid %d, pgid %d\n", dest->pid, dest->pgid);
+		if (dest->pgid == pgid)
+			signal_raise(dest, sig);
+	}
+}
+
 
 void signal_deliver_pending() {
 	sigset_t todeliver;
@@ -243,10 +253,7 @@ int sys_kill(pid_t pid, int sig) {
 		else {
 			// process group
 			pid = pid==0 ? _proc_current->pgid : -pid;
-			for_each_process(dest) {
-				if (dest->pgid == pid)
-					signal_raise(dest, sig);
-			}
+			signal_pgid_raise(pid, sig);
 		}
 	}
 	else {
