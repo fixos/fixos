@@ -21,9 +21,6 @@
 // ASID for 'not valid ASID'
 #define ASID_INVALID	0xFE
 
-// tmp TODO real implementation of virtual memory
-struct _virtual_mem;
-
 
 // process status
 #define PROCESS_STATE_RUNNING			2
@@ -69,6 +66,7 @@ struct _process_info {
 	void *kernel_stack;
 
 	pid_t pid;
+	pid_t pgid;
 	asid_t asid;
 
 	// virtual memory managing data :
@@ -122,6 +120,14 @@ typedef struct _process_info process_t;
 // list of all processes
 extern struct list_head _process_list;
 
+extern process_t *_proc_current;
+
+// iterate for each process in _process_list
+#define for_each_process(cur) \
+	for(cur = container_of(&_process_list, process_t, list); \
+	   	(cur = container_of(& cur->list.next, process_t, list)) \
+			!= container_of(& _process_list, process_t, list) ; )
+
 // Init process manager
 void process_init();
 
@@ -134,6 +140,7 @@ process_t *process_from_asid(asid_t asid);
  * Get the process from its PID (NULL if corresponding process doesn't exist)
  */
 process_t *process_from_pid(pid_t pid);
+
 
 /**
  * Get the next free PID, and mark it as "used".
@@ -179,7 +186,9 @@ void process_release_asid(process_t *proc);
 /**
  * Return the running process at the time this function is called.
  */
-process_t *process_get_current();
+extern inline process_t *process_get_current() {
+	return _proc_current;
+}
 
 
 /**
@@ -203,6 +212,11 @@ void process_contextjmp(process_t *proc);
  */
 void process_terminate(process_t *proc, int status);
 
+/**
+ * Check if a given process is a descendant of process with given pid (child of
+ * this process, or child of a descendant of this process).
+ */
+int process_is_descendant(process_t *proc, pid_t other);
 
 /**
  * fork() syscall implementation, duplicate any memory area, create a kernel stack
@@ -238,5 +252,10 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]);
 int sys_chdir(const char *path);
 
 int sys_fchdir(int fd);
+
+
+int sys_setpgid(pid_t pid, pid_t pgid);
+
+pid_t sys_getpgid(pid_t pid);
 
 #endif //_SYS_PROCESS_H

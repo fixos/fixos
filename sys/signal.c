@@ -4,6 +4,7 @@
 #include "signal.h"
 
 #include <utils/log.h>
+#include <interface/errno.h>
 
 
 #define _SIGUNDEF 		0xFF
@@ -229,17 +230,27 @@ int sys_kill(pid_t pid, int sig) {
 	if(sig>=0 && sig<SIGNAL_MAX && _trans_number2index[sig] != _SIGUNDEF) {
 		process_t *dest;
 
-		dest = process_from_pid(pid);
-		printk("signal: kill(%d(@%p), %d)\n", pid, dest, sig);
-		if(dest != NULL) {
-			signal_raise(dest, sig);
+		printk("signal: kill(%d, %d)\n", pid, sig);
+
+		// depending pid value, this can be a gid or a pid
+		if(pid > 0) {
+			dest = process_from_pid(pid);
+			if(dest != NULL)
+				signal_raise(dest, sig);
+			else
+				return -EPERM;
 		}
 		else {
-			return -1;
+			// process group
+			pid = pid==0 ? _proc_current->pgid : -pid;
+			for_each_process(dest) {
+				if (dest->pgid == pid)
+					signal_raise(dest, sig);
+			}
 		}
 	}
 	else {
-		return -1;
+		return -EINVAL;
 	}
 
 	return 0;

@@ -40,7 +40,9 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_getdents,
 	&sys_close,
 	&sys_chdir,
-	&sys_fchdir
+	&sys_fchdir,
+	&sys_setpgid,
+	&sys_getpgid
 };
 
 

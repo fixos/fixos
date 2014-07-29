@@ -106,6 +106,7 @@ process_t *process_alloc() {
 			proc->cwd = NULL;
 
 			proc->pid = process_get_pid();
+			proc->pgid = 1; // group of init?
 			proc->ppid = 0;
 			proc->state = PROCESS_STATE_CREATE;
 			proc->asid = ASID_INVALID;
@@ -173,7 +174,6 @@ int process_set_asid(process_t *proc)
 
 
 void process_release_asid(process_t *proc) {
-	
 	// no more virtual memory usage, we can release its ASID
 	if(proc->asid != ASID_INVALID) {
 		_asid_proc_array[proc->asid] = NULL;
@@ -183,15 +183,7 @@ void process_release_asid(process_t *proc) {
 }
 
 
-
-process_t *process_get_current() {
-	//return process_from_asid(mmu_getasid());
-	return _proc_current;
-}
-
-
 void process_contextjmp(process_t *proc) {
-	
 	int dummy;
 	interrupt_atomic_save(&dummy);
 
@@ -240,6 +232,9 @@ void process_terminate(process_t *proc, int status) {
 	if(proc->cwd != NULL)
 		vfs_release_inode(proc->cwd);
 	proc->cwd = NULL;
+
+	// FIXME orphan process group...
+	// proc->gid...
 	
 	// remove all virtual pages from the TLB (invalidate them)
 	// TODO do not invalidate ALL entries, select only this ASID
@@ -294,6 +289,7 @@ pid_t sys_fork() {
 	// alloc a new process, and copy everything
 	newproc = process_alloc();
 
+	newproc->pgid = cur->pgid;
 	newproc->ppid = cur->pid;
 	for(i=0; i<PROCESS_MAX_FILE; i++) {
 		// for each valid file descriptor, increment usage counter
@@ -695,6 +691,64 @@ int sys_fchdir(int fd) {
 	}
 	return -ENOENT;
 }
+
+
+
+int sys_setpgid(pid_t pid, pid_t pgid) {
+	if(pgid >= 0) { 
+		process_t *dest;
+
+		// set pid to real values
+		pid = pid==0 ? _proc_current->pid : pid;
+		pgid = pgid==0 ? pid : pgid;
+		
+		dest = pid == _proc_current->pid ? _proc_current : process_from_pid(pid);
+
+		// check if pid is the process itself, or a descendant of it
+		if(dest == _proc_current || process_is_descendant(dest, _proc_current->pid))
+		{
+			dest->pgid = pgid;
+			// FIXME other condition needed
+			return 0;
+		}
+		return -ESRCH;
+	}
+	return -EINVAL;
+}
+
+
+pid_t sys_getpgid(pid_t pid) {
+	if(pid >= 0) {
+		process_t *cur;
+		if(pid == 0)
+			cur = process_get_current();
+		else
+			cur = process_from_pid(pid);
+
+		if(cur != NULL) {
+			return cur->pgid;
+		}
+	}
+	return -ESRCH;
+}
+
+
+int process_is_descendant(process_t *proc, pid_t other) {
+	process_t *cur;
+
+	for(cur=proc; cur!=NULL && cur->ppid != other && cur->pid != 1;
+		cur = process_from_pid(cur->ppid));
+	
+	if(cur != NULL) {
+		if(cur->ppid == other)
+			return 1;
+	}
+	else {
+		printk("proc: bad process hierarchy\n");
+	}
+	return 0;
+}
+
 
 /**
  * Process-related sysctls

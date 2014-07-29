@@ -100,4 +100,10 @@
 // extern int fchdir(int fd);
 #define SYSCALL_FCHDIR		30
 
+// extern int setpgid(pid_t pid, pid_t pgid);
+#define SYSCALL_SETPGID		31
+
+// extern pid_t getpgid(pid_t pid);
+#define SYSCALL_GETPGID		32
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

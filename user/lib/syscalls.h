@@ -74,4 +74,8 @@ extern int chdir(const char *path);
 
 extern int fchdir(int fd);
 
+extern int setpgid(pid_t pid, pid_t pgid);
+
+extern pid_t getpgid(pid_t pid);
+
 #endif //_SYSCALLS_SYSCALLS_H

@@ -21,6 +21,9 @@
 #define ENAMETOOLONG	13
 #define EROFS			14
 #define ENOENT			15
+#define ESRCH			16
+#define EACCES			17
+#define EPERM			18
 
 
 #endif //_FIXOS_INTERFACE_ERRNO_H

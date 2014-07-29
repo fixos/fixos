@@ -24,7 +24,7 @@ typedef unsigned char	uint8;
 typedef char			int8;
 
 // Process IDendifier
-typedef uint32 pid_t;
+typedef int32 pid_t;
 
 
 // devices identifier and macros for major/minor decomposition
