@@ -3,8 +3,12 @@
 #include <arch/sh/interrupt.h>
 #include <utils/strutils.h>
 #include <utils/cyclic_fifo.h>
+#include <arch/sh/kdelay.h>
 
 #include <utils/log.h>
+
+// uncomment to enable verbose debug mode for USB module
+//#define DEBUG_USB
 
 /**
  * This file contains the implementation of usb_device_protocol.h interface
@@ -237,15 +241,18 @@ void usb_sh3_interrupt_handler() {
 	
 	// if it's a VBUS interrupt
 	if(USB.IER1.BIT.VBUS == 1 && USB.IFR1.BIT.VBUS == 1) {
+#ifdef DEBUG_USB
 		printk("# VBUS interrupt (%s)\n", USB.IFR1.BIT.VBUSMN ? "plugged" : "unplugged");
+#endif
 		USB.IFR1.BIT.VBUS = 0;
 		jobdone = 1;
 	}
 	
 	// if it's a BRST (Bus ReSeT)
 	if(USB.IER0.BIT.BRST == 1 && USB.IFR0.BIT.BRST == 1) {
+#ifdef DEBUG_USB
 		printk("# USB Bus Reset handled!\n");
-
+#endif
 		USB.IFR0.BIT.BRST = 0;
 
 		// clear every FIFO :
@@ -267,8 +274,10 @@ void usb_sh3_interrupt_handler() {
 		// set Setup EP0 is read
 		USB.TRG.BIT.EP0sRDFN = 1;
 
+#ifdef DEBUG_USB
 		printk("# SETUPTS: (%d,%d,%d,%d,%d)\n", setup.bm_request_type.BYTE, setup.b_request,
 				USB_WORD_FROM(setup.w_index), USB_WORD_FROM(setup.w_value), USB_WORD_FROM(setup.w_length));
+#endif
 
 		if(_usb_setup_callback != NULL) {
 			if(_usb_setup_callback(&setup) != 0) {
@@ -285,7 +294,10 @@ void usb_sh3_interrupt_handler() {
 
 	if(USB.IER0.BIT.EP0iTR == 1 && USB.IFR0.BIT.EP0iTR == 1) {
 		// TODO async send
-		printk("# EP0 INreq");/* (remain %d/%d B)\n", _usb_ep0i_length - _usb_ep0i_pos, _usb_ep0i_length);
+#ifdef DEBUG_USB
+		printk("# EP0 INreq");
+#endif
+		/* (remain %d/%d B)\n", _usb_ep0i_length - _usb_ep0i_pos, _usb_ep0i_length);
 
 		
 		if(_usb_ep0i_pos <  _usb_ep0i_length) {
@@ -303,14 +315,18 @@ void usb_sh3_interrupt_handler() {
 	}
 
 	if(USB.IER0.BIT.EP0iTS == 1 && USB.IFR0.BIT.EP0iTS == 1) {
-		printk("# EndPoint0 transmited.\n");
+#ifdef DEBUG_USB
+		printk("# EP0 In transmited.\n");
+#endif
 
 		USB.IFR0.BIT.EP0iTS = 0;
 		jobdone = 1;
 	}
 
 	if(USB.IER0.BIT.EP0oTS == 1 && USB.IFR0.BIT.EP0oTS == 1) {
+#ifdef DEBUG_USB
 		printk("# EP0 Out received\n");
+#endif
 		// TODO other than 0-length data receceived!
 
 		USB.TRG.BIT.EP0oRDFN = 1;
@@ -348,7 +364,9 @@ void usb_sh3_interrupt_handler() {
 
 	if(USB.IER1.BIT.EP3TR == 1 && USB.IFR1.BIT.EP3TR == 1) {
 		// nothing to do for now
+#ifdef DEBUG_USB
 		printk("*");
+#endif
 
 		USB.IFR1.BIT.EP3TR = 0;
 		jobdone = 1;
@@ -356,14 +374,18 @@ void usb_sh3_interrupt_handler() {
 
 	if(USB.IER1.BIT.EP3TS == 1 && USB.IFR1.BIT.EP3TS == 1) {
 		// nothing to do for now
+#ifdef DEBUG_USB
 		printk("+");
+#endif
 
 		USB.IFR1.BIT.EP3TS = 0;
 		jobdone = 1;
 	}
 
 	if(USB.IER0.BIT.EP2TR == 1 && USB.IFR0.BIT.EP2TR == 1) {
+#ifdef DEBUG_USB
 		printk("# EP2 Transmit Request\n");
+#endif
 
 	//	USB.TRG.BIT.EP2PKTE = 1;
 		printk("### EP2 stalled!\n");
@@ -394,6 +416,7 @@ int usb_send_sync_ep0(const char *data, int max_size)
 	int i;
 
 
+	error = 0;
 	for(nb_written=0, error=0; nb_written<max_size && !error; ) {
 		// copy at most 8 bytes each time
 		for(i=0; i+nb_written < max_size && i<8; i++)
@@ -405,7 +428,12 @@ int usb_send_sync_ep0(const char *data, int max_size)
 		USB.TRG.BIT.EP0iPKTE = 1;
 		nb_written += i;
 
+#ifdef DEBUG_USB
 		printk("=");
+#endif
+		// FIXME why this delay is needed?
+		kdelay(1);
+
 		// wait before an other packet
 		while(USB.IFR0.BIT.EP0iTS == 0 && (error = (USB.IFR0.BIT.BRST == 0 || USB.IFR1.BIT.VBUSMN == 1)) == 0);
 		USB.IFR0.BIT.EP0iTS = 0;
@@ -425,7 +453,9 @@ int usb_send_sync_ep0(const char *data, int max_size)
 		USB.IFR0.BIT.EP0iTR = 0;
 	}
 
+#ifdef DEBUG_USB
 	printk("SyncWrite %d/%d [%d]\n", nb_written, max_size, error);
+#endif
 	return error ? -1 : nb_written;
 }
 
