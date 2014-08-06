@@ -6,6 +6,7 @@
 #include <utils/log.h>
 #include <utils/strutils.h>
 #include <sys/cmdline.h>
+#include <sys/tty.h>
 
 
 #define CONSOLE_USB_MAJOR		3
@@ -53,21 +54,31 @@ KERNEL_BOOT_ARG(console, parse_console);
 void console_make_active() {
 	const struct device *console_dev;
 
-	console_dev = dev_device_from_major((uint16)(_console_node >> 16));
+	console_dev = dev_device_from_major(major(_console_node));
 	if(console_dev != NULL) {
+		struct tty *tty;
+
 		_console_file.flags = 0;
 		_console_file.inode = NULL;
-		if(console_dev->open((uint16)(_console_node & 0xFFFF), &_console_file) == 0) {
+		// FIXME use only the tty interface, not the file one!
+		tty = console_dev->get_tty(minor(_console_node));
+		if(console_dev->open(minor(_console_node), &_console_file) == 0) {
+			if(tty != NULL && !tty_is_ready(tty)) {
+				// wait until the TTY is ready
+				printk("[console tty not ready...]\n");
+				while(!tty_is_ready(tty));
+				printk("[ready!]\n");
+			}
 			// set printk() callback func
 			set_kernel_print_file(&_console_file);
 			printk("Now using console device for printk()!\n");
 		}
 		else {
-			printk("console: unable to open minor %d!\n", _console_node & 0xFFFF);
+			printk("console: unable to open minor %d!\n", minor(_console_node));
 		}
 	}
 	else {
-		printk("console: unable to find device %d!\n", _console_node >> 16);
+		printk("console: unable to find device %d!\n", major(_console_node));
 	}
 }
 

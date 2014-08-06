@@ -3,12 +3,16 @@
 #include <fs/file_operations.h>
 #include <utils/strutils.h>
 #include <interface/errno.h>
+#include <sys/tty.h>
 
+
+static struct tty *acm_get_tty(uint16 minor);
 
 const struct device _acm_usb_device = {
 	.name = "usb-acm",
 	.init = acm_usb_init,
-	.open = acm_usb_open
+	.open = acm_usb_open,
+	.get_tty = acm_get_tty
 };
 
 
@@ -19,6 +23,24 @@ static const struct file_operations _fop_acm_usb = {
 	.ioctl = acm_usb_ioctl
 };
 
+
+static int acm_tty_is_ready(struct tty *tty);
+
+static int acm_tty_write(struct tty *tty, const char *data, size_t len);
+
+static const struct tty_ops _acm_tty_ops = {
+	.ioctl_setwinsize = NULL,
+	.ioctl_getwinsize = NULL,
+	.is_ready = &acm_tty_is_ready,
+	.tty_write = &acm_tty_write
+};
+
+static struct tty _acm_tty = {
+	.ops = &_acm_tty_ops,
+	.private = NULL,
+	.controler = 0,
+	.fpgid = 0
+};
 
 
 
@@ -36,6 +58,13 @@ int acm_usb_open(uint16 minor, struct file *filep) {
 	return -ENXIO;
 }
 
+
+static struct tty *acm_get_tty(uint16 minor) {
+	if(minor == ACM_DEVICE_MINOR) {
+		return &_acm_tty;
+	}
+	return NULL;
+}
 
 
 int acm_usb_release(struct file *filep) {
@@ -65,5 +94,28 @@ ssize_t acm_usb_read(struct file *filep, void *dest, size_t len) {
 
 
 int acm_usb_ioctl(struct file *filep, int cmd, void *data) {
-	return -EINVAL;
+	int ret;
+	ret = tty_ioctl(&_acm_tty, cmd, data);
+	if(ret == -EFAULT) {
+		// device-level ioctl command, if any
+		return -EINVAL;
+	}
+	else {
+		return ret;
+	}
+}
+
+
+
+static int acm_tty_is_ready(struct tty *tty) {
+	(void)tty;
+	return cdc_acm_is_ready();
+}
+
+static int acm_tty_write(struct tty *tty, const char *data, size_t len) {
+	(void)tty;
+	if(cdc_acm_is_ready()) {
+		return cdc_acm_send(data, len);
+	}
+	return -EIO;
 }
