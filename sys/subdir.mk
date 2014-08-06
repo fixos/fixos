@@ -11,7 +11,8 @@ C_SRC_L:= \
 	memory.c \
 	kdebug.c \
 	sysctl.c \
-	waitqueue.c
+	waitqueue.c \
+	tty.c
 
 
 CURDIR:=sys

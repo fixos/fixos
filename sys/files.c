@@ -42,7 +42,7 @@ int sys_open(const char *name, int flags) {
 				return fd;
 			}
 			else {
-				printk("sys_open: unable to open\n");
+				printk("sys_open: unable to open ('%s', f=0x%x)\n", name, flags);
 			}
 		}
 		else {

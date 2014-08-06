@@ -40,10 +40,13 @@ struct vt_instance {
 static struct vt_instance _vts[VT_MAX_TERMINALS];
 static int _vt_current;
 
+static struct tty *vt_get_tty(uint16 minor);
+
 const struct device virtual_term_device = {
 	.name = "v-term",
 	.init = &vt_init,
-	.open = &vt_open
+	.open = &vt_open,
+	.get_tty = &vt_get_tty
 };
 
 
@@ -56,6 +59,25 @@ static const struct file_operations _vt_fop = {
 
 
 static const struct text_display *_tdisp = &fx9860_text_display;
+
+
+static int vt_ioctl_getwinsize(struct tty *tty, struct winsize *size);
+
+static int vt_ioctl_setwinsize(struct tty *tty, const struct winsize *size);
+
+static int vt_tty_is_ready(struct tty *tty) {
+	(void)tty;
+	return 1;
+}
+
+static int vt_tty_write(struct tty *tty, const char *data, size_t len);
+
+static const struct tty_ops _vt_tty_ops = {
+	.ioctl_setwinsize = &vt_ioctl_setwinsize,
+	.ioctl_getwinsize = &vt_ioctl_getwinsize,
+	.is_ready = &vt_tty_is_ready,
+	.tty_write = &vt_tty_write
+};
 
 
 void vt_init() {
@@ -80,17 +102,18 @@ void vt_init() {
 
 		_vts[i].tty.controler = 0;
 		_vts[i].tty.fpgid = 0;
-		_vts[i].tty.private = NULL;
+		_vts[i].tty.private = & _vts[i];
+		_vts[i].tty.ops = &_vt_tty_ops;
 	}
 }
 
 
 // function used to print characters
-static void vt_term_print(struct vt_instance *term, void *source, size_t len) {
+static void vt_term_print(struct vt_instance *term, const void *source, size_t len) {
 	//TODO future extensions to support more VT100-like escape codes
 	
 	int i;
-	unsigned char *str = source;
+	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
 		if(str[i] == '\n') {
@@ -262,18 +285,36 @@ int vt_open(uint16 minor, struct file *filep) {
 }
 
 
+static struct tty *vt_get_tty(uint16 minor) {
+	if(minor < VT_MAX_TERMINALS) {
+		return &_vts[minor].tty;
+	}
+	return NULL;
+}
+
+
+static ssize_t vt_prim_write(struct vt_instance *term, const void *source, size_t len) {
+	vt_term_print(term, source, len);
+
+	// screen should be flushed only if it's the current active
+	if(term == &_vts[_vt_current])
+		_tdisp->flush(&term->disp);
+
+	return len;
+}
+
+
+static int vt_tty_write(struct tty *tty, const char *data, size_t len) {
+	return vt_prim_write(tty->private, data, len);
+}
+
+
 ssize_t vt_write(struct file *filep, void *source, size_t len) {
 	int term;
 	
 	term = (int)(filep->private_data);
 	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		vt_term_print(& _vts[term], source, len);
-		
-		// screen should be flushed only if it's the current active
-		if(term == _vt_current)
-			_tdisp->flush(& _vts[term].disp);
-
-		return len;
+		return vt_prim_write(&_vts[term], source, len);
 	}
 	return -EINVAL;
 }
@@ -311,7 +352,8 @@ int vt_release(struct file *filep) {
 }
 
 
-static int vt_ioctl_getwinsize(struct vt_instance *vt, struct winsize *size) {
+static int vt_ioctl_getwinsize(struct tty *tty, struct winsize *size) {
+	(void)tty;
 	if(size == NULL)
 		return -EINVAL;
 	size->ws_col = _tdisp->cwidth;
@@ -320,94 +362,25 @@ static int vt_ioctl_getwinsize(struct vt_instance *vt, struct winsize *size) {
 }
 
 
-static int vt_ioctl_setwinsize(struct vt_instance *vt, 
-		const struct winsize *size)
-{
-	(void)vt;
+static int vt_ioctl_setwinsize(struct tty *tty, const struct winsize *size) {
+	(void)tty;
 	(void)size;
 	return -EINVAL;
 }
 
-
-static int vt_ioctl_setctty(struct vt_instance *vt, int arg) {
-	(void)arg;
-	if(_proc_current->ctty != NULL)
-		return -EINVAL;
-
-	_proc_current->ctty = & vt->tty;
-	if(vt->tty.controler == 0)
-		vt->tty.controler = _proc_current->pid;
-	return 0;
-}
-
-
-static int vt_ioctl_noctty(struct vt_instance *vt) {
-	if(_proc_current->ctty != & vt->tty)
-		return -EINVAL;
-
-	if(_proc_current->pid == vt->tty.controler) {
-		// FIXME session leader give up the terminal!
-		vt->tty.controler = 0;
-		vt->tty.fpgid = 0;
-	}
-	_proc_current->ctty = NULL;
-	return 0;
-}
-
-
-static int vt_ioctl_setpgrp(struct vt_instance *vt, const pid_t *pid) {
-	if(pid == NULL)
-		return -EINVAL;
-
-	vt->tty.fpgid = *pid;
-	return 0;
-}
-
-
-static int vt_ioctl_getpgrp(struct vt_instance *vt, pid_t *pid) {
-	if(pid == NULL)
-		return -EINVAL;
-
-	*pid = vt->tty.fpgid;
-	return 0;
-}
-
-
-static int vt_ioctl_getsid(struct vt_instance *vt, pid_t *sid) {
-	if(sid == NULL)
-		return -EINVAL;
-
-	*sid = vt->tty.controler;
-	return 0;
-}
 
 int vt_ioctl(struct file *filep, int cmd, void *data) {
 	int term;
 
 	term = (int)(filep->private_data);
 	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		switch(cmd) {
-			case TIOCGWINSZ:
-				return vt_ioctl_getwinsize(&_vts[term], data);
-				break;
-			case TIOCSWINSZ:
-				return vt_ioctl_setwinsize(&_vts[term], data);
-				break;
-			case TIOCSCTTY:
-				return vt_ioctl_setctty(&_vts[term], (int)data);
-				break;
-			case TIOCNOTTY:
-				return vt_ioctl_noctty(&_vts[term]);
-				break;
-			case TIOCGPGRP:
-				return vt_ioctl_getpgrp(&_vts[term], data);
-				break;
-			case TIOCSPGRP:
-				return vt_ioctl_setpgrp(&_vts[term], data);
-				break;
-			case TIOCGSID:
-				return vt_ioctl_getsid(&_vts[term], data);
-				break;
+		int ret;
+		ret = tty_ioctl(&_vts[term].tty, cmd, data);
+		if(ret == -EFAULT) {
+			// device-level ioctl command, if any
+		}
+		else {
+			return ret;
 		}
 	}
 	return -EINVAL;

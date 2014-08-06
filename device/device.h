@@ -12,9 +12,17 @@
 #define DEVICE_MAX_NAME 12
 
 struct file_operations;
+struct tty;
 
 struct device {
 	char name[DEVICE_MAX_NAME];
+
+	/**
+	 * Only used by TTY devices (other shoud set this field to NULL)
+	 * (this design is not perfect, but for now it's a good way to handle
+	 * tty used for kernel console)
+	 */
+	struct tty * (*get_tty)(uint16 minor);
 
 	/**
 	 * Initialize device.
