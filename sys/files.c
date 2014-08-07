@@ -207,3 +207,44 @@ int sys_close(int fd) {
 
 	return ret;
 }
+
+
+int sys_dup(int oldfd) {
+	int fd;
+
+	for(fd=0; fd<PROCESS_MAX_FILE && _proc_current->files[fd] != NULL; fd++);
+	if(fd >= PROCESS_MAX_FILE)
+		return -EMFILE;
+
+	if(oldfd < 0 || oldfd >= PROCESS_MAX_FILE)
+		return -EBADF;
+
+	// duplicate fds and clear FD_CLOEXEC flag in new descriptor
+	_proc_current->fdflags[fd] = 0;
+	_proc_current->files[fd] = _proc_current->files[oldfd];
+
+	return fd;
+}
+
+
+int sys_dup2(int oldfd, int newfd) {
+	if(oldfd < 0 || oldfd >= PROCESS_MAX_FILE || newfd < 0
+			|| newfd >= PROCESS_MAX_FILE)
+	{
+		return -EBADF;
+	}
+
+	if(_proc_current->files[oldfd] == NULL)
+		return -EBADF;
+
+	if(oldfd != newfd) {
+		// close newfd file if needed, then duplicate
+		if(_proc_current->files[newfd] != NULL)
+			vfs_close(_proc_current->files[newfd]);
+
+		_proc_current->fdflags[newfd] = 0;
+		_proc_current->files[newfd] = _proc_current->files[oldfd];
+	}
+
+	return newfd;
+}

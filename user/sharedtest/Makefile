@@ -8,7 +8,7 @@ export NM
 
 # path for shared library helper scripts
 SHARED3_PATH:=$(shell pwd)/tools
-PATH+=:$(SHARED3_PATH)
+PATH:=$(PATH):$(SHARED3_PATH)
 
 
 INCLUDE_PATH:=-I.. -I../../interface

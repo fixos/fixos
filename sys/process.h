@@ -36,7 +36,7 @@
 
 
 // maximum files opened at a time by a process
-#define PROCESS_MAX_FILE		5
+#define PROCESS_MAX_FILE		12
 
 struct file;
 

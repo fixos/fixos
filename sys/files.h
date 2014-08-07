@@ -33,4 +33,8 @@ int sys_getdents(int fd, struct fixos_dirent *buf, size_t len);
 
 int sys_close(int fd);
 
+int sys_dup(int oldfd);
+
+int sys_dup2(int oldfd, int newfd);
+
 #endif //_SYS_FILES_H

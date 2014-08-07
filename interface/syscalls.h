@@ -106,4 +106,10 @@
 // extern pid_t getpgid(pid_t pid);
 #define SYSCALL_GETPGID		32
 
+//extern int dup(int oldfd);
+#define SYSCALL_DUP			33
+
+//extern int dup2(int oldfd, int newfd);
+#define SYSCALL_DUP2		34
+
 #endif //_FIXOS_INTERFACE_SYSCALLS_H

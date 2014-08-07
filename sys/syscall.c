@@ -42,7 +42,9 @@ void* const _syscall_funcs[SYSCALL_NUMBER] = {
 	&sys_chdir,
 	&sys_fchdir,
 	&sys_setpgid,
-	&sys_getpgid
+	&sys_getpgid,
+	&sys_dup,
+	&sys_dup2
 };
 
 

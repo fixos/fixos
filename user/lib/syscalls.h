@@ -78,4 +78,8 @@ extern int setpgid(pid_t pid, pid_t pgid);
 
 extern pid_t getpgid(pid_t pid);
 
+extern int dup(int oldfd);
+
+extern int dup2(int oldfd, int newfd);
+
 #endif //_SYSCALLS_SYSCALLS_H
