@@ -31,6 +31,7 @@
 #include "device/keyboard/fx9860/keyboard.h"
 
 #include "arch/sh/freq.h"
+#include "sys/cmdline.h"
 
 
 void test_sdcard() {
@@ -203,6 +204,8 @@ void test_process() {
 
 volatile int magic_lock = 0;
 
+const char *_init_name = "/mnt/smem/test.elf";
+
 void test_process() {
 	// test for user process load and run
 	inode_t *elf_inode;
@@ -211,14 +214,15 @@ void test_process() {
 	// for context switch (tmp)
 	//test_keyboard_int();
 
-	elf_inode = vfs_resolve("/mnt/smem/test.elf");
+	elf_inode = vfs_resolve(_init_name);
 	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode, O_RDONLY)) == NULL ) {
-		printk("Not found /mnt/smem/test.elf\n");
+		printk("Not found '%s'\nKernel running, but no init!\n", _init_name);
+		while(1);
 	}
 	else {
 		process_t *proc1;
 		proc1 = process_alloc();
-		printk("loading test.elf\n");
+		printk("loading init program\n");
 		elfloader_load(elf_file, proc1);
 
 		// set working directory for test proc (root)
@@ -242,6 +246,20 @@ void test_process() {
 		//DBG_WAIT;
 	}
 }
+
+
+// code needed to set init program at boot time with kernel arguments
+
+static int parse_init(const char *val) {
+	if(val != NULL) {
+		printk("init : '%s'\n", val);
+		_init_name = val;
+	}
+	return 0;
+}
+
+KERNEL_BOOT_ARG(init, parse_init);
+
 
 
 void test_vfs() {
