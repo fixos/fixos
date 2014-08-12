@@ -312,14 +312,22 @@ static int cdc_acm_setup_other(const struct usb_setup *setup) {
 
 	switch(setup->b_request) {
 	case CDC_REQ_SET_LINE_CODING:
-		// consider this request is a good way to know if the ACM is now configured
-		_cdc_acm_configured = 1;
+		// set line coding structure
+		// FIXME maybe an implementation problem, but Linux doesn't seem to
+		// send anything after this request?!
+		//usb_receive(USB_EP_ADDR_EP0OUT, (char*)&_line_coding, 7, 0);
+		usb_send(USB_EP_ADDR_EP0IN, NULL, 0);
+		break;
 
+	case CDC_REQ_GET_LINE_CODING:
 		// return line coding structure
 		usb_send(USB_EP_ADDR_EP0IN, (char*)&_line_coding, 7);
 		break;
 
 	case CDC_REQ_SET_CONTROL_LINE_STATE:
+		// consider this request is a good way to know if the ACM is now configured
+		_cdc_acm_configured = 1;
+
 		// TODO ?
 		// send a 0-length response
 		usb_send(USB_EP_ADDR_EP0IN, NULL, 0);

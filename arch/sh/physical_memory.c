@@ -169,3 +169,10 @@ void* mem_pm_get_free_page(int flags) {
 void mem_pm_release_page(void *page) {
 	pm_free_page(PM_PHYSICAL_PAGE(page));
 }
+
+
+/* TODO
+void mem_pm_fill_stats(struct mem_stats *stats) {
+	
+}
+*/

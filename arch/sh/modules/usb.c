@@ -265,8 +265,10 @@ void usb_sh3_interrupt_handler() {
 		struct usb_setup setup;
 		int i;
 
-		// clear SETUPTS flag
+		// clear SETUPTS flag and EP0 i/o FIFOs
 		USB.IFR0.BIT.SETUPTS = 0;
+		USB.FCLR.BIT.EP0iCLR = 1;
+		USB.FCLR.BIT.EP0oCLR = 1;
 
 		for(i=0; i<8; i++)
 			((char*) &setup)[i] = USB.EPDR0s;
@@ -295,7 +297,7 @@ void usb_sh3_interrupt_handler() {
 	if(USB.IER0.BIT.EP0iTR == 1 && USB.IFR0.BIT.EP0iTR == 1) {
 		// TODO async send
 #ifdef DEBUG_USB
-		printk("# EP0 INreq");
+		printk("# EP0 INreq\n");
 #endif
 		/* (remain %d/%d B)\n", _usb_ep0i_length - _usb_ep0i_pos, _usb_ep0i_length);
 
@@ -324,13 +326,27 @@ void usb_sh3_interrupt_handler() {
 	}
 
 	if(USB.IER0.BIT.EP0oTS == 1 && USB.IFR0.BIT.EP0oTS == 1) {
+		int nbreceived = USB.EPSZ0o;
 #ifdef DEBUG_USB
-		printk("# EP0 Out received\n");
+		printk("# EP0 Out received (%dB)\n", nbreceived);
 #endif
 		// TODO other than 0-length data receceived!
 
-		USB.TRG.BIT.EP0oRDFN = 1;
 		USB.IFR0.BIT.EP0oTS = 0;
+
+		// try to copy received data to ep1 buffer
+		if(nbreceived > 0 && _usb_fifo_ep0o.size + nbreceived <= _usb_fifo_ep0o.max_size) {
+			int i;
+
+			// copy in cyclic FIFO need some additionnal things :
+			int bufpos = (_usb_fifo_ep0o.top + _usb_fifo_ep0o.size) % _usb_fifo_ep0o.max_size;
+			for(i=0; i<nbreceived; i++, bufpos = bufpos >= _usb_fifo_ep0o.max_size - 1 ? 0 : bufpos+1 ) {
+				_usb_fifo_ep0o.buffer[bufpos] = USB.EPDR0o;
+			}
+			_usb_fifo_ep0o.size += nbreceived;
+		}
+
+		USB.TRG.BIT.EP0oRDFN = 1;
 		jobdone = 1;
 	}
 

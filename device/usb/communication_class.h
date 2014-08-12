@@ -28,6 +28,7 @@
 
 // CDC Class-specific Request types :
 #define CDC_REQ_SET_LINE_CODING			0x20
+#define CDC_REQ_GET_LINE_CODING			0x21
 #define CDC_REQ_SET_CONTROL_LINE_STATE	0x22
 #define CDC_REQ_SEND_BREAK				0x23
 
