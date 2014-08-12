@@ -7,8 +7,8 @@
  */
 
 #include <utils/types.h>
-#include <interface/stat.h>
-#include <interface/dirent.h>
+#include <interface/fixos/stat.h>
+#include <interface/fixos/dirent.h>
 
 // FIXME add a "mode" argument
 int sys_open(const char *name, int flags);

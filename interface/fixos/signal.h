@@ -5,7 +5,7 @@
  * Signal related definitions needed by user space programs.
  */
 
-#include "sigset.h"
+#include <fixos/sigset.h>
 
 
 /**

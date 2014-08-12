@@ -3,7 +3,7 @@
 
 #include <device/device.h>
 #include <fs/file.h>
-#include <interface/fxkeyboard.h>
+#include <interface/fixos/fxkeyboard.h>
 
 
 // minor device ID for the direct keyboard access

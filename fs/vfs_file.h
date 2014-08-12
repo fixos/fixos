@@ -11,7 +11,7 @@
 #include <utils/types.h>
 #include "inode.h"
 #include "file.h"
-#include <interface/stat.h>
+#include <interface/fixos/stat.h>
 
 // for pool allocation
 #include <utils/pool_alloc.h>

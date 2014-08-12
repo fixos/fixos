@@ -7,9 +7,9 @@
  */
 
 #include <utils/types.h>
-#include <interface/tty.h>
+#include <interface/fixos/tty.h>
 #include <sys/process.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 
 struct tty_ops;
 

@@ -5,7 +5,7 @@
 ! it will be executed.
 !
 
-#include <interface/syscalls.h>
+#include <interface/fixos/syscalls.h>
 
 	.section ".text"
 	

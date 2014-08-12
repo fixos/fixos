@@ -8,7 +8,7 @@
  * directly by filesystem-specific file_operations).
  */
 
-#include <interface/dirent.h>
+#include <interface/fixos/dirent.h>
 #include <utils/types.h>
 #include <fs/inode.h>
 #include <fs/file.h>

@@ -7,7 +7,7 @@
 
 #include "fs_instance.h"
 #include <utils/types.h>
-#include <interface/stat.h>
+#include <interface/fixos/stat.h>
 
 
 /**

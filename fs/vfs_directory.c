@@ -1,6 +1,6 @@
 #include "vfs_directory.h"
 #include <fs/file_operations.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include <fs/vfs.h>
 #include <utils/strutils.h>
 

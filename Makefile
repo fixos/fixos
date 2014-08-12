@@ -1,6 +1,6 @@
 include global.mk
 
-INCLUDE_PATH:=-I.
+INCLUDE_PATH:=-I. -Iinterface
 CFLAGS:=$(INCLUDE_PATH) -include config.h $(CFLAGS)
 #FIXME need -nostdinc
 

@@ -18,3 +18,19 @@ a given macro or type is shared with user space or not.
 The design of FiXos user space headers may change in the future if some issues
 are noticed, but until this (possible) moment, this directory is the good way!
 
+
+Note : a new issue occured when trying to use interface headers when porting
+an ISO C / POSIX library. Types and macros defined by FiXos headers are
+conflicting with userspace definitions, and are not suitable for direct usage
+(because the userspace library may need to only declare a subset of them
+ in some places to be conform with a given standard).
+On Linux/Glibc, the -partial- solution was to redifined almost every macro
+and type with hardcoded values in Glibc...
+I think a better solution may be to use a namespace for every variable and
+macro that should be used by POSIX.1, like "__kernel_" for types and lower
+case macros, and "__KERNEL_" for upper case macros. Eventualy, the kernel
+should have an additional definition without this namespace in internal kernel
+headers.
+Of course, all definition that are not expected to collide to POSIX or ISO C
+may be defined without namespace (e.g. specific ioctls values and types).
+

@@ -4,7 +4,7 @@
 #include "signal.h"
 
 #include <utils/log.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 
 
 #define _SIGUNDEF 		0xFF

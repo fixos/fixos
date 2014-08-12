@@ -1,6 +1,6 @@
 #include "sysctl.h"
 #include <utils/strutils.h>
-#include <interface/version.h>
+#include <interface/fixos/version.h>
 #include <utils/log.h>
 
 // defined by linker script

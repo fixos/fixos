@@ -7,7 +7,7 @@
 
 #include <utils/types.h>
 #include <sys/signal.h>
-#include <interface/process.h>
+#include <interface/fixos/process.h>
 #include <sys/memory.h>
 #include <utils/list.h>
 #include <fs/inode.h>

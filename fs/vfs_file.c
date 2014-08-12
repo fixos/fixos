@@ -2,7 +2,7 @@
 #include <utils/log.h>
 #include <utils/pool_alloc.h>
 #include <device/device_registering.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include "fs_instance.h"
 #include "file_system.h"
 #include "file_operations.h"

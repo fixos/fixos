@@ -5,7 +5,7 @@
 #include <fs/vfs_file.h>
 #include <fs/vfs.h>
 #include <fs/pipe.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include <fs/vfs_directory.h>
 
 

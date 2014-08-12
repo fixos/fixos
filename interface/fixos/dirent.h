@@ -7,7 +7,7 @@
  * name length (so be kind and avoid dereferencing if possible).
  */
 
-#include "types.h"
+#include <fixos/types.h>
 
 
 #define DIRENT_MAX_NAME	255

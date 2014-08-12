@@ -3,7 +3,7 @@
 #include "file.h"
 
 #include <fs/vfs.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 
 #include <utils/log.h>
 

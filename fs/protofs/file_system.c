@@ -5,7 +5,7 @@
 #include <fs/vfs.h>
 #include "primitives.h"
 #include <fs/vfs_file.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 
 
 const struct _file_system protofs_file_system = {

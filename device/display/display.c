@@ -6,8 +6,8 @@
 #include "generic_mono.h"
 #include "display.h"
 
-#include <interface/display.h>
-#include <interface/errno.h>
+#include <interface/fixos/display.h>
+#include <interface/fixos/errno.h>
 
 #include <sys/process.h>
 

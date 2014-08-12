@@ -2,7 +2,7 @@
 #include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
 #include <sys/waitqueue.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include <sys/tty.h>
 #include <sys/process.h>
 #include "text_display.h"

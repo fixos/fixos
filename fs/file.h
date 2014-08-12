@@ -5,7 +5,7 @@
 #include "inode.h"
 
 // for flags
-#include <interface/fcntl.h>
+#include <interface/fixos/fcntl.h>
 
 struct file_operations;
 

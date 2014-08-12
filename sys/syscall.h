@@ -7,7 +7,7 @@
  * On SH3, FiXos uses assembly instruction "trapa #<syscall ID>".
  */
 
-#include <interface/syscalls.h>
+#include <interface/fixos/syscalls.h>
 
 
 

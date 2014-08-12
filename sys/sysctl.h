@@ -17,7 +17,7 @@
  * with the appropriate struct.
  */
 
-#include <interface/sysctl.h>
+#include <interface/fixos/sysctl.h>
 #include <utils/types.h>
 
 // any raw data

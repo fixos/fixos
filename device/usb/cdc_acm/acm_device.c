@@ -2,7 +2,7 @@
 #include "cdc_acm.h"
 #include <fs/file_operations.h>
 #include <utils/strutils.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include <sys/tty.h>
 
 

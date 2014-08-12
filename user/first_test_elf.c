@@ -3,14 +3,14 @@
  */
 
 #include "lib/syscalls.h"
-#include <display.h>
-#include <fxkeyboard.h>
-#include <fcntl.h>
-#include <sysctl.h>
-#include <process.h>
-#include <dirent.h>
-#include <tty.h>
-#include <ioctl.h>
+#include <fixos/display.h>
+#include <fixos/fxkeyboard.h>
+#include <fixos/fcntl.h>
+#include <fixos/sysctl.h>
+#include <fixos/process.h>
+#include <fixos/dirent.h>
+#include <fixos/tty.h>
+#include <fixos/ioctl.h>
 #include "sharedtest/test.h"
 
 #define write_const(fd, msg) write((fd), (msg), sizeof(msg)-1)

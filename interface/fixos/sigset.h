@@ -5,7 +5,7 @@
  * sigset_t type definition and some inline functions to play with it.
  */
 
-#include "types.h"
+#include <fixos/types.h>
 
 
 typedef uint32 sigset_t;

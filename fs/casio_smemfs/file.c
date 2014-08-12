@@ -2,7 +2,7 @@
 #include <utils/log.h>
 #include <utils/strutils.h>
 #include <fs/inode.h>
-#include <interface/errno.h>
+#include <interface/fixos/errno.h>
 #include "smemfs_primitives_ng.h"
 
 

@@ -1,7 +1,7 @@
 #ifndef _FIXOS_INTERFACE_STAT_H
 #define _FIXOS_INTERFACE_STAT_H
 
-#include "types.h"
+#include <fixos/types.h>
 
 struct stat {
 	dev_t st_dev;

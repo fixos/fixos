@@ -7,8 +7,8 @@
 #include "scheduler.h"
 #include <utils/log.h>
 #include <utils/bitfield.h>
-#include <interface/fcntl.h>
-#include <interface/errno.h>
+#include <interface/fixos/fcntl.h>
+#include <interface/fixos/errno.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>

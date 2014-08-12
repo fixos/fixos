@@ -36,7 +36,7 @@
 // Add debug information in binary, with ability to find corresponding text
 // symbol name from any text address.
 // Allow to see function names in call trace
-#define CONFIG_DEBUG_SYMBOL_NAMES	y
+//#define CONFIG_DEBUG_SYMBOL_NAMES	y
 
 
 // Add kernel-part support for ELF shared libraries

@@ -3,7 +3,7 @@
 
 #include <fs/file_operations.h>
 #include <fs/file.h>
-#include <interface/stat.h>
+#include <interface/fixos/stat.h>
 
 /**
  * Implementation of file operations for the Casio SMEM FS.

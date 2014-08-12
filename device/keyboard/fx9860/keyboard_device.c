@@ -1,8 +1,8 @@
 #include "keyboard_device.h"
 #include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
-#include <interface/fcntl.h>
-#include <interface/errno.h>
+#include <interface/fixos/fcntl.h>
+#include <interface/fixos/errno.h>
 
 
 const struct device fxkeyboard_device = {

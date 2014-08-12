@@ -6,8 +6,8 @@
  * to a real screen with low overhead.
  */
 
-#include "types.h"
-#include "ioctl.h"
+#include <fixos/types.h>
+#include <fixos/ioctl.h>
 
 
 enum display_format {

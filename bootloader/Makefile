@@ -1,7 +1,7 @@
 include ../global.mk
 
 
-INCLUDE_PATH:=-I..
+INCLUDE_PATH:=-I.. -I../interface
 CFLAGS:=$(INCLUDE_PATH) $(CFLAGS)
 
 LDSCRIPT:=bootloader.ld

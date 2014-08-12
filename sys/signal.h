@@ -9,7 +9,7 @@
  * each process struct).
  */
 
-#include <interface/signal.h>
+#include <interface/fixos/signal.h>
 #include <utils/types.h>
 
 

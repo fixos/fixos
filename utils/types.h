@@ -7,7 +7,7 @@
   * that SuperH 32bit, it's really cleaner.
   */
 
-#include <interface/types.h>
+#include <interface/fixos/types.h>
 
 // Address Space IDentifier
 typedef uint8 asid_t;

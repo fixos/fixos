@@ -5,7 +5,7 @@
  * Data structure and ioctls related to TTY control.
  */
 
-#include "ioctl.h"
+#include <fixos/ioctl.h>
 
 
 struct winsize {
