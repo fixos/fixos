@@ -35,10 +35,10 @@ sharedlib:
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.s
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 
 .PHONY: clean distclean re all sharedlib

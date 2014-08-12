@@ -44,7 +44,9 @@ SECTIONS
 		*(.data.*);
 
 		/* bss section included to avoid missaligned segment */
-		*(.bss) *(COMMON);
+		*(.bss);
+		*(.bss.*)
+		*(COMMON);
 	} : data
 }
 

@@ -2,6 +2,7 @@ include global.mk
 
 INCLUDE_PATH:=-I.
 CFLAGS:=$(INCLUDE_PATH) -include config.h $(CFLAGS)
+#FIXME need -nostdinc
 
 LDSCRIPT:=fixos.ld
 LDFLAGS:=-T"$(LDSCRIPT)" $(LDFLAGS)
@@ -75,10 +76,10 @@ $(KERNELNAME): $(KERNELNAME).debug
 	$(CC) $(CFLAGS) -M -MF"$(<:.c=.d)" -MP -MT"$@" -MT"$(<:.c=.d)" "$<"
 
 %.o: %.s
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 
 # Userland stuff sub-makefile

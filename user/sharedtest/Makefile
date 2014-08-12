@@ -10,6 +10,8 @@ export NM
 SHARED3_PATH:=$(shell pwd)/tools
 PATH:=$(PATH):$(SHARED3_PATH)
 
+MK_STUBS:=$(SHARED3_PATH)/make_shared_stubs.sh
+STRIP_UNSHARED:=$(SHARED3_PATH)/strip_unshared.sh
 
 INCLUDE_PATH:=-I.. -I../../interface
 CFLAGS:=-fvisibility=hidden -fpic $(INCLUDE_PATH) $(CFLAGS)
@@ -41,7 +43,7 @@ $(LIB_NOSTRIP): $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(LIB): $(LIB_NOSTRIP)
-	strip_unshared.sh $< $@ 
+	$(STRIP_UNSHARED) $< $@ 
 #	$(OBJCOPY) -S $@ $<
 
 # not really clean, but easier than an include containing dynamicaly created
@@ -54,17 +56,17 @@ $(LIBSTUB): $(LIB) stubs
 
 stubs: $(LIB)
 	rm -rf stubs/
-	make_shared_stubs.sh $< $< stubs
+	$(MK_STUBS) $< $< stubs
 	
 
 %-pic.o: %.c
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.s
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 %.o: %.S
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -x assembler-with-cpp -c $(CFLAGS) -o $@ $<
 
 
 
