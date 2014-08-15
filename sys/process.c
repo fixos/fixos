@@ -1,5 +1,4 @@
 #include "process.h"
-#include <arch/sh/mmu.h>
 #include <sys/memory.h>
 #include <sys/interrupt.h>
 #include <utils/strutils.h>
@@ -19,6 +18,7 @@
 #include <sys/cpu_load.h>
 
 #include <arch/generic/process.h>
+#include <arch/generic/memory.h>
 
 // temp stuff
 #include <device/keyboard/fx9860/keymatrix.h>
@@ -26,10 +26,6 @@
 
 // pool allocation data
 static struct pool_alloc _proc_pool = POOL_INIT(process_t);
-
-// array of process ptr for corresponding ASIDs
-// that allow ASID -> PID translation in O(1)
-static process_t * _asid_proc_array[MAX_ASID];
 
 // contain the pid used for the next process creation
 static pid_t _pid_next;
@@ -46,7 +42,6 @@ static int _process_number = 0;
 // virtual task for idle
 process_t _proc_idle_task = {
 	.pid = 0,
-	.asid = 0xFF,
 	.dir_list = NULL,
 	.state = PROCESS_STATE_RUNNING,
 	.acnt = NULL,
@@ -72,13 +67,6 @@ process_t *_proc_current = &_proc_idle_task;
 
 void process_init()
 {
-	int i;
-
-	// init ASID -> process table
-	for(i=0; i<MAX_ASID; i++) {
-		_asid_proc_array[i] = NULL;
-	}
-
 	// clear pid usage bitfield, and set pid 0 as used (idle task)
 	bitfield_all_clear(_pid_used, CONFIG_PID_MAX);
 	bitfield_set(_pid_used, 0);
@@ -87,16 +75,6 @@ void process_init()
 	printk("process: proc/page=%d\n", _proc_pool.perpage);
 }
 
-
-
-process_t *process_from_asid(asid_t asid)
-{
-	if(asid == 0xFF)
-		return &_proc_idle_task;
-	else if(asid < MAX_ASID)
-		return _asid_proc_array[asid];
-	return NULL;
-}
 
 
 // FIXME this is a temporary hack to have a pid -> process working, need to
@@ -128,9 +106,9 @@ process_t *process_alloc() {
 			proc->pgid = 1; // group of init?
 			proc->ppid = 0;
 			proc->state = PROCESS_STATE_CREATE;
-			proc->asid = ASID_INVALID;
 			proc->ctty = NULL;
 
+			arch_adrsp_init(& proc->addr_space);
 			proc->dir_list = NULL;
 
 			sigemptyset(& proc->sig_blocked);
@@ -171,59 +149,16 @@ void process_free(process_t *proc) {
 }
 
 
-int process_set_asid(process_t *proc)
-{
-	// stupid-but-functionnal algorithm, again
-	int i;
-	int found = 0;
-
-	for(i=0; i<MAX_ASID && !found; i++)
-		found = (_asid_proc_array[i] == NULL);
-
-	if(found) {
-		_asid_proc_array[i-1] = proc;
-		proc->asid = i-1;
-		return 0;
-	}
-	else {
-		// TODO if all ASID are currently used, erase one of them (complex because
-		// of VM freeing and other things...)
-		return -1;
-	}
-}
-
-
-void process_release_asid(process_t *proc) {
-	// no more virtual memory usage, we can release its ASID
-	if(proc->asid != ASID_INVALID) {
-		_asid_proc_array[proc->asid] = NULL;
-		proc->asid = ASID_INVALID;
-	}
-
-}
-
-
 void process_contextjmp(process_t *proc) {
 	int dummy;
 	interrupt_atomic_save(&dummy);
 
-	// if ASID is not valid (first contextjmp, or process was remove from 'active'
-	// process, we need to set it's ASID before to run it
-	if(proc->asid == ASID_INVALID)
-		process_set_asid(proc);
-
 	_proc_current = proc;
+	
+	// use the corresponding address space, and set it if needed
+	arch_adrsp_switch_to(& proc->addr_space);
 
-	// just before context jump, set MMU current ASID to process' ASID
-	mmu_setasid(proc->asid);
-	//printk("asid=%d [%d], pid=%d\n", proc->asid, mmu_getasid(), proc->pid);
-
-	/*printk("r15=%p, r0=%p\npc=%p, sr=%p\n", (void*)(proc->acnt.reg[15]),
-			(void*)(proc->acnt.reg[0]), (void*)(proc->acnt.pc),
-			(void*)(proc->acnt.sr));
-*/
-
-// the scheduler must check for state
+	// the scheduler must check for state
 	proc->state = PROCESS_STATE_RUNNING;
 
 	// if the process to "restore" was in user mode, check for pending signals
@@ -258,10 +193,8 @@ void process_terminate(process_t *proc, int status) {
 	
 	// FIXME controlling terminal is process was session leader
 	
-	// remove all virtual pages from the TLB (invalidate them)
-	// TODO do not invalidate ALL entries, select only this ASID
-	// in addition, free each allocated physical pages
-	mmu_tlbflush();
+	// release the used address space, and free each allocated physical pages
+	arch_adrsp_release(& proc->addr_space);
 	for(curdir = proc->dir_list; curdir != NULL; curdir = nextdir) {
 		nextdir = curdir->next;
 		mem_release_dir(curdir);
@@ -489,10 +422,8 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 				cur->sig_array[i].sa_handler = SIG_DFL;
 		}
 
-		// remove all virtual pages from the TLB (invalidate them)
-		// TODO do not invalidate ALL entries, select only this ASID
-		// in addition, free each allocated physical pages
-		mmu_tlbflush();
+		// use a new address space to avoid to use old TLB records
+		arch_adrsp_release(& cur->addr_space);
 
 		struct page_dir *curdir;
 		struct page_dir *nextdir;

@@ -13,12 +13,7 @@
 #include <fs/inode.h>
 
 #include <arch/process.h>
-
-// maximum ASID number at one time
-#define MAX_ASID	32
-
-// ASID for 'not valid ASID'
-#define ASID_INVALID	0xFE
+#include <arch/memory.h>
 
 
 // process status
@@ -67,9 +62,9 @@ struct _process_info {
 
 	pid_t pid;
 	pid_t pgid;
-	asid_t asid;
 
 	// virtual memory managing data :
+	struct addr_space addr_space;
 	struct page_dir *dir_list;
 
 	// files opened by process, index is file descriptor
@@ -143,11 +138,6 @@ extern process_t _proc_idle_task;
 void process_init();
 
 /**
- * Get the process informations from its ASID (NULL if not found)
- */
-process_t *process_from_asid(asid_t asid);
-
-/**
  * Get the process from its PID (NULL if corresponding process doesn't exist)
  */
 process_t *process_from_pid(pid_t pid);
@@ -167,8 +157,8 @@ void process_release_pid(pid_t pid);
 /**
  * Alloc a new process in the process list, returns NULL if an error occurs.
  * In success case, the returned process_t is not fully initialized (pid is an
- * auto-incremented value, asid is an invalid ASID, vm table is zeroed (but *not*
- * freed), and the status is set to PROCESS_STATE_CREATE)
+ * auto-incremented value, vm table is zeroed (but *not* freed), and the status
+ * is set to PROCESS_STATE_CREATE)
  */
 process_t *process_alloc();
 
@@ -181,17 +171,11 @@ void process_free(process_t *proc);
 
 
 /**
- * Get a unused ASID and set it to the asid field of given proc.
- * Return a negative value if error occurs.
- */
-int process_set_asid(process_t *proc);
-
-/**
  * Release the ASID of current process if not already ASID_INVALID.
  * This can be used if the process has terminated, or if we now it will
  * not have to be executed during a long time.
  */
-void process_release_asid(process_t *proc);
+//void process_release_asid(process_t *proc);
 
 
 /**

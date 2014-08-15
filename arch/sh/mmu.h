@@ -28,6 +28,10 @@
 #define TLB_CACHEABLE	(1<<3)
 
 
+// value used to represent an invalid ASID in SuperH arch
+#define ASID_INVALID	0xFE
+
+
 // flush the TLB (set V bit of each entry to 0)
 extern inline void mmu_tlbflush() {
 	MMU.MMUCR.BIT.TF = 1;
@@ -39,11 +43,15 @@ void mmu_init();
 
 
 // set the current ASID (dangerous if virtual memory is used consecutivly!)
-void mmu_setasid(unsigned char asid);
+extern inline void mmu_setasid(unsigned char asid) {
+	MMU.PTEH.BIT.ASID = asid;
+}
 
 
 // get the current ASID
-unsigned char mmu_getasid();
+extern inline unsigned char mmu_getasid() {
+	return MMU.PTEH.BIT.ASID;
+}
 
 // fill and load a TLB entry in PTEL without change informations in PTEH
 // (after a TLB miss, PTEH should be valid if the page is allowed)

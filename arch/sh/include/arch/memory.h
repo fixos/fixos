@@ -7,6 +7,10 @@
  * may be non constants on some plateforms?)
  */
 
+// address space data (for now only ASID)
+struct addr_space {
+	unsigned char asid;
+};
 
 // log2(PM_PAGE_BYTES)
 #define PM_PAGE_ORDER 10

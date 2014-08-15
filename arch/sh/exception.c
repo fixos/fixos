@@ -148,8 +148,8 @@ void tlbmiss_handler()
 	uint32 vpn;
 	process_t *curpr;
 	
-	// find the process which cause the miss :
-	curpr = process_from_asid(mmu_getasid());
+	// the process which cause the TLB miss should be the current one
+	curpr = _proc_current;
 
 	// find the corresponding page, if exists
 	vpn = MMU.PTEH.BIT.VPN; 

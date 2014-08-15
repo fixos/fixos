@@ -9,9 +9,6 @@
 
 #include <interface/fixos/types.h>
 
-// Address Space IDentifier
-typedef uint8 asid_t;
-
 /**
  * offsetof() compute the byte offset between the beginning of a structure
  * and the given field.

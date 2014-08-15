@@ -90,4 +90,5 @@ void arch_init_idle(struct _process_info *proc) {
 	proc->kernel_stack = &end_stack;
 	sigemptyset(& proc->sig_pending);
 	sigfillset(& proc->sig_blocked);
+	proc->addr_space.asid = 0xFF;
 }

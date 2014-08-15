@@ -232,9 +232,6 @@ pid_t sys_wait(int *status) {
 					// next page, not on the real allocated page
 					arch_pm_release_page(_tasks[i]->kernel_stack-1);
 
-					// release ASID
-					process_release_asid(_tasks[i]);
-
 					process_free(_tasks[i]);
 					_tasks[i] = NULL;
 				}

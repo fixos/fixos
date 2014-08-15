@@ -5,6 +5,10 @@
  * Misc physical and virtual memory abstractions.
  */
 
+/**
+ * Should export many memory-related macros, and the "struct addr_space" data structure
+ * for implementing address spaces.
+ */
 #include <arch/memory.h>
 
 
@@ -29,5 +33,34 @@ void* arch_pm_get_free_page(int flags);
  * page *must* be exacly the same as the value returned by arch_pm_get_free_page()
  */
 void arch_pm_release_page(void *page);
+
+
+/**
+ * Virtual memory management functions.
+ * We assume there is a concept of "Address Space" for a machine with MMU.
+ * Address Space is totaly abstracted to allow any kind of hardware implementation.
+ * For a sh3/4, the hardware support an Address Space IDentifier (ASID) to speed
+ * up MMU context switch, but if this is not supported in hardware, the "minimalist"
+ * way to implements this is a software identifier, with full TLB flush each time
+ * the address space should change (to avoid inferences with old TLB entries).
+ */
+
+/**
+ * Initialize a new address space.
+ */
+int arch_adrsp_init(struct addr_space *adrsp);
+
+
+/**
+ * Switch from the current address space to the given one.
+ * If needed, adrsp may change to have a "clean" address space identifier.
+ */
+int arch_adrsp_switch_to(struct addr_space *adrsp);
+
+
+/**
+ * Release an address space (no more usage of the represented address space).
+ */
+int arch_adrsp_release(struct addr_space *adrsp);
 
 #endif //_ARCH_GENERIC_MEMORY_H
