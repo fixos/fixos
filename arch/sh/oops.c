@@ -1,7 +1,7 @@
 #include <utils/log.h>
 #include <sys/process.h>
 #include <sys/memory.h>
-#include "process.h"
+#include <arch/generic/process.h>
 #include "mmu.h"
 
 #include <sys/kdebug.h>

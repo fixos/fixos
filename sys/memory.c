@@ -86,7 +86,7 @@ int mem_copy_page(union pm_page *orig, struct page_dir **dir_list, void *addr) {
 
 		page.private.flags = orig->private.flags;
 
-		dest = mem_pm_get_free_page(page.private.flags & MEM_PAGE_CACHED ?
+		dest = arch_pm_get_free_page(page.private.flags & MEM_PAGE_CACHED ?
 				MEM_PM_CACHED : MEM_PM_UNCACHED);
 
 		if(dest != NULL) {
@@ -118,7 +118,7 @@ void mem_release_page(union pm_page *page) {
 			&& (page->private.flags & MEM_PAGE_VALID) )
 	{
 		// maybe a flag that avoid a page content to be free'd is a good idea?
-		mem_pm_release_page(PM_PHYSICAL_ADDR(page->private.ppn));
+		arch_pm_release_page(PM_PHYSICAL_ADDR(page->private.ppn));
 		page->private.flags &= ~MEM_PAGE_VALID;
 	}
 	else {

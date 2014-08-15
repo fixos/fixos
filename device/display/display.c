@@ -2,6 +2,7 @@
 #include <fs/file.h>
 #include <device/device.h>
 #include <sys/memory.h>
+#include <arch/generic/memory.h>
 #include <utils/strutils.h>
 #include "generic_mono.h"
 #include "display.h"
@@ -36,7 +37,7 @@ void display_init() {
 	// initialize VRAM and other things
 	// TODO should not assume screen VRAM size is 1024 bytes
 	
-	_display_vram = mem_pm_get_free_page(MEM_PM_CACHED);
+	_display_vram = arch_pm_get_free_page(MEM_PM_CACHED);
 
 	memset(_display_vram, 0, 1024);
 }

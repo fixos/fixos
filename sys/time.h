@@ -2,15 +2,12 @@
 #define _SYS_TIME_H
 
 #include <utils/types.h>
+#include <arch/time.h>
 
 /**
  * Real time informations, using arch-dependant functions if RTC is present.
  * All time_t used here are representing seconds elapsed from Epoch.
  */
-
-
-// TODO arch/config dependant definition
-#define TICK_HZ		256
 
 
 // used to compute a time in ticks, in a less config-dependant way
@@ -57,15 +54,6 @@ extern inline void time_add_hr(const struct hr_time *t1,
 		res->sec++;
 	}
 }
-
-/**
- * Try to read real time information from an external real time clock
- * if present, and fill the given struct with the current time.
- * Returns 0 in success case, negative value else (no RTC or error)
- */
-int time_get_hw(struct hr_time *t);
-
-int time_set_hw(const struct hr_time *t);
 
 
 /**

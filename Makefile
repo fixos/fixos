@@ -1,6 +1,9 @@
 include global.mk
 
-INCLUDE_PATH:=-I. -Iinterface
+-include config.mk
+
+ARCH_INCLUDE:=arch/$(CONFIG_ARCH_FAMILY)/include
+INCLUDE_PATH:=-I. -Iinterface -I$(ARCH_INCLUDE)
 CFLAGS:=$(INCLUDE_PATH) -include config.h $(CFLAGS)
 #FIXME need -nostdinc
 
@@ -14,8 +17,6 @@ KERNELNAME=fixos
 
 all: config.mk $(KERNELNAME) user bootloader
 
-
--include config.mk
 
 # include each subdirectory makefile part (avoid the first Makefile parse)
 ifeq ($(__CONFIG__),y)

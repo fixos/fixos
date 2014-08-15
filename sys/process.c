@@ -18,6 +18,8 @@
 #include <sys/sysctl.h>
 #include <sys/cpu_load.h>
 
+#include <arch/generic/process.h>
+
 // temp stuff
 #include <device/keyboard/fx9860/keymatrix.h>
 #include <device/keyboard/fx9860/matrix_codes.h>
@@ -40,6 +42,23 @@ struct list_head _process_list = LIST_HEAD_INIT(_process_list);
 // number of processes in the system (not counting idle process)
 static int _process_number = 0;
 
+
+// virtual task for idle
+process_t _proc_idle_task = {
+	.pid = 0,
+	.asid = 0xFF,
+	.dir_list = NULL,
+	.state = PROCESS_STATE_RUNNING,
+	.acnt = NULL,
+	.kernel_stack = NULL,
+
+	.uticks = 0,
+	.kticks = 0,
+
+	.list = LIST_HEAD_INIT(_proc_idle_task.list),
+};
+
+
 /**
  * this variable must be maintained by the scheduler as the
  * current running process at *ANY* time
@@ -47,7 +66,7 @@ static int _process_number = 0;
  * obscure implementation details, but its simpler than using NULL.
  * A good idea should be to make all that clean and use NULL at initialization?
  */
-process_t *_proc_current = &_arch_idle_task;
+process_t *_proc_current = &_proc_idle_task;
 
 
 
@@ -73,7 +92,7 @@ void process_init()
 process_t *process_from_asid(asid_t asid)
 {
 	if(asid == 0xFF)
-		return &_arch_idle_task;
+		return &_proc_idle_task;
 	else if(asid < MAX_ASID)
 		return _asid_proc_array[asid];
 	return NULL;
@@ -86,7 +105,7 @@ process_t *process_from_pid(pid_t pid)
 {
 	// should not return anything for PID 0 ?
 	if(pid == 0)
-		return &_arch_idle_task;
+		return &_proc_idle_task;
 	else return sched_find_pid(pid);
 }
 
@@ -334,7 +353,7 @@ pid_t sys_fork() {
 	void *kstack;
 	void *cur_stack;
 
-	kstack = mem_pm_get_free_page(MEM_PM_CACHED) + PM_PAGE_BYTES;
+	kstack = arch_pm_get_free_page(MEM_PM_CACHED) + PM_PAGE_BYTES;
 	newproc->kernel_stack = kstack;
 
 	// black magic : we know acnt is on the stack and acnt->previous is NULL
@@ -413,7 +432,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		cur = process_get_current();
 
 
-		args_page = mem_pm_get_free_page(MEM_PM_CACHED);
+		args_page = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(args_page == NULL) {
 			printk("execve: not enought memory\n");
 			// TODO abort
@@ -525,7 +544,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 					"mov %3, r4;"
 					"mov %4, r0;"
 					"jmp @r0;"
-					"nop;" : : "r"(cur->kernel_stack - sizeof(*(cur->acnt))), "r"(&mem_pm_release_page),
+					"nop;" : : "r"(cur->kernel_stack - sizeof(*(cur->acnt))), "r"(&arch_pm_release_page),
 							"r"(old_kstack-1), "r"(cur), "r"(&process_contextjmp)
 							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
 
@@ -572,7 +591,7 @@ void *sys_sbrk(int incr) {
 					void *pageaddr;
 
 					printk("sbrk: add page @%p\n", curvm);
-					pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
+					pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 					if(pageaddr == NULL) {
 						// FIXME clean before return
 						return (void*)-1;

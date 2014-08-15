@@ -2,8 +2,8 @@
 #include <utils/log.h>
 #include <utils/types.h>
 
-// this file implements mem_pm_xxx functions from sys/memory.h
-#include <sys/memory.h>
+// this file implements arch_pm_xxx functions from arch/generic/memory.h
+#include <arch/generic/memory.h>
 
 // symbols and const for computing number of pages...
 extern void * end_stack;
@@ -151,9 +151,9 @@ void pm_free_page(unsigned int ppn)
 
 
 
-// implementation of functions defined in sys/memory.h
+// implementation of functions defined in arch/generic/memory.h
 
-void* mem_pm_get_free_page(int flags) {
+void* arch_pm_get_free_page(int flags) {
 	unsigned int ppn;
 	void *ret = NULL;
 
@@ -166,7 +166,7 @@ void* mem_pm_get_free_page(int flags) {
 }
 
 
-void mem_pm_release_page(void *page) {
+void arch_pm_release_page(void *page) {
 	pm_free_page(PM_PHYSICAL_PAGE(page));
 }
 

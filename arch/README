@@ -1,0 +1,38 @@
+Machine-specific root directory, for now only Renesas SH3 family is really
+supported, so don't consider the given directory structure is definitive (in
+fact it's more an attempt to have easier ports in the future).
+
+Proposed solution is :
++ arch/                # root directory for all machine-specific low-level stuff
+|    + generic/        # headers designed to be included in generic parts
+|    |    + something.h
+|    |    + other.h
+|    + sh/             # directory for SuperH "Architecture Family" (SuperH family)
+|    |    + include/   # headers added to system header path for each compiled file
+|    |    |    + arch/
+|    |    |         + something.h
+|    |              + various-defs.h
+|    |    + sh3/       # SH3 specific stuff directory
+|    |    |     + specific.c
+|    |    + sh4/
+|    |    |     + specific.c
+|    |    + all_superh.c
+|    |    + private.h
+|    + x86/            # other architecture family....
+
+
+In the given example, if FiXos is compiled for SuperH, arch-specific includes
+will be found in "arch/sh/include/arch/" directory, and can be included in
+generic parts of the kernel using :
+#include <arch/file.h>
+
+The idea behind arch/generic directory is to provide the "generic machine
+interface", the functions used to perform low-level actions that have a meaning
+in all supported machines. These functions are designed to be implemented in
+machine-specific directories, but there prototypes should be used everywhere,
+and a working implementation is expected for the core of the kernel.
+As there are often types or macros that are machine-specific, there should
+be defined in the corresponding header file in arch/<ARCH_FAMILY>/include/arch/.
+If possible, these definitions are included in appropriate headers located in
+arch/generic/.
+

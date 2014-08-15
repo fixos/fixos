@@ -4,6 +4,7 @@
 #include <utils/log.h>
 #include <sys/stimer.h>
 
+#include <arch/generic/process.h>
 
 #define SCHED_MAX_TASKS		10
 
@@ -83,7 +84,7 @@ static void context_saved_next() {
 	}
 	else {
 		// idle process
-		process_contextjmp(&_arch_idle_task);
+		process_contextjmp(&_proc_idle_task);
 	}
 }
 
@@ -109,11 +110,11 @@ void sched_start() {
 	}*/
 
 	// this is a strange way to start processes, but its the simplest
-	arch_init_idle();
+	arch_init_idle(&_proc_idle_task);
 	_started = 1;
 	_cur_task = 0;
 	_need_reschedule = 1;
-	process_contextjmp(&_arch_idle_task);
+	process_contextjmp(&_proc_idle_task);
 }
 
 
@@ -229,7 +230,7 @@ pid_t sys_wait(int *status) {
 					// destroy the waiting process
 					// do not forget kernel_stack is set to the first byte of the
 					// next page, not on the real allocated page
-					mem_pm_release_page(_tasks[i]->kernel_stack-1);
+					arch_pm_release_page(_tasks[i]->kernel_stack-1);
 
 					// release ASID
 					process_release_asid(_tasks[i]);

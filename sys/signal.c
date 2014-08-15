@@ -1,6 +1,7 @@
 #include <sys/process.h>
 #include <sys/scheduler.h>
 #include <sys/interrupt.h>
+#include <arch/generic/process.h>
 #include "signal.h"
 
 #include <utils/log.h>

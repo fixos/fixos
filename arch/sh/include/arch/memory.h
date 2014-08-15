@@ -1,5 +1,5 @@
-#ifndef _ARCH_SH_MEMORY_DEF_H
-#define _ARCH_SH_MEMORY_DEF_H
+#ifndef _ARCH_SH_INCLUDE_MEMORY_H
+#define _ARCH_SH_INCLUDE_MEMORY_H
 
 /**
  * Architecture and plateform specific definitions about memory.
@@ -28,4 +28,5 @@
 
 
 
-#endif //_ARCH_SH_MEMORY_DEF_H
+
+#endif //_ARCH_SH_INCLUDE_MEMORY_H

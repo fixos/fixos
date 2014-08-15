@@ -13,6 +13,8 @@
 #define __CONFIG__				y
 
 // Architecture configuration
+// ARCH_FAMILY used to find the machine-specific directory into arch/
+#define CONFIG_ARCH_FAMILY		sh
 #define CONFIG_ARCH				sh3
 #define CONFIG_PROC_MODEL		7705_Casio
 #define CONFIG_ENDIAN_BIG		y	

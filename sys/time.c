@@ -2,6 +2,8 @@
 #include "process.h"
 #include <sys/scheduler.h>
 #include <sys/cpu_load.h>
+#include <arch/generic/time.h>
+#include <arch/generic/process.h>
 
 
 extern int stimer_do_tick();
@@ -30,15 +32,14 @@ const struct hr_time g_arch_tick_time = {
 
 
 
-extern void arch_time_init();
 
 void time_init() {
+	arch_time_init();
+
 	_monotonic_ticks = 0;
 	_monotonic_time.sec = 0;
 	_monotonic_time.nano = 0;
-	time_get_hw(&_init_epoch_time);
-
-	arch_time_init();
+	arch_time_get_hw(&_init_epoch_time);
 }
 
 

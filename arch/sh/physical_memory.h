@@ -5,7 +5,7 @@
  * Utilities for physical memory manipulation.
  */
 
-#include "memory_def.h"
+#include <arch/memory.h>
 
 
 /**

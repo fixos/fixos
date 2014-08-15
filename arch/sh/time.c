@@ -6,6 +6,7 @@
 #include <utils/types.h>
 #include <sys/time.h>
 #include <arch/sh/rtc.h>
+#include <arch/generic/time.h>
 
 
 // interrupt handler for RTC interrupt, update all the time subsystem

@@ -24,7 +24,7 @@ void fx9860_tdisp_init_disp(struct tdisp_data *disp) {
 	disp->back = 0; //TODO white
 	disp->front = 1; //TODO black
 	
-	disp->vram = mem_pm_get_free_page(MEM_PM_CACHED);
+	disp->vram = arch_pm_get_free_page(MEM_PM_CACHED);
 	memset(disp->vram, 0, 1024);
 }
 

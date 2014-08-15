@@ -1,38 +1,19 @@
+#include <arch/process.h>
+#include <arch/generic/process.h>
 #include <sys/process.h>
-#include "process.h"
 
 // debug
 #include <utils/log.h>
-#include <device/keyboard/fx9860/keymatrix.h>
-#include <device/keyboard/fx9860/matrix_codes.h>
 
 
 #define SR_MD_MASK		(1<<30)
 
-
-// virtual task for idle
-process_t _arch_idle_task = {
-	.pid = 0,
-	.asid = 0xFF,
-	.dir_list = NULL,
-	.state = PROCESS_STATE_RUNNING,
-	.acnt = NULL,
-	.kernel_stack = NULL,
-
-	.uticks = 0,
-	.kticks = 0,
-
-	.list = LIST_HEAD_INIT(_arch_idle_task.list),
-};
+// defined in arch/generic/process.h :
 
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt) {
 //	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
 
 	//printk("kstack = %p\n", cnt->kernel_stack);
-	
-/*	while(!hwkbd_real_keydown(K_EXE));
-	while(hwkbd_real_keydown(K_EXE));
-*/
 	
 	if(old_cnt != NULL)
 		*old_cnt = cnt->previous;
@@ -72,7 +53,6 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
 }
 
 
-// defined in sys/process.h :
 int arch_process_mode(process_t *proc) {
 	if(proc->acnt != NULL) {
 		// if MD is 1, process is in kernel mode
@@ -96,7 +76,7 @@ asm (
 
 extern char end_stack; // defined in linker script
 
-void arch_init_idle() {
+void arch_init_idle(struct _process_info *proc) {
 	static struct _context_info acnt_idle;
 	acnt_idle.previous = NULL;
 	acnt_idle.pr = (uint32)&arch_idle_func;
@@ -105,9 +85,9 @@ void arch_init_idle() {
 
 	// we should reuse the kernel init stack safely
 	acnt_idle.reg[15] = (uint32)&end_stack;
-	_arch_idle_task.acnt = &acnt_idle;
-	_arch_idle_task.dir_list = NULL;
-	_arch_idle_task.kernel_stack = &end_stack;
-	sigemptyset(& _arch_idle_task.sig_pending);
-	sigfillset(& _arch_idle_task.sig_blocked);
+	proc->acnt = &acnt_idle;
+	proc->dir_list = NULL;
+	proc->kernel_stack = &end_stack;
+	sigemptyset(& proc->sig_pending);
+	sigfillset(& proc->sig_blocked);
 }

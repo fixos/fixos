@@ -47,7 +47,7 @@ int elfloader_load(struct file *filep, process_t *dest) {
 		void *pageaddr;
 
 		// alloc physical page and set it as the VM process stack
-		vmstack = mem_pm_get_free_page(MEM_PM_CACHED);
+		vmstack = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(vmstack == NULL) {
 			printk("elfloader: no physical page\n");
 			return -1;
@@ -58,7 +58,7 @@ int elfloader_load(struct file *filep, process_t *dest) {
 				(void*)(ARCH_UNEWPROC_DEFAULT_STACK - PM_PAGE_BYTES));
 
 		// set kernel stack address, for now any physical memory
-		pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
+		pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(pageaddr == NULL) {
 			printk("elfloader: no physical page\n");
 			return -1;
@@ -210,7 +210,7 @@ int elfloader_load_segment(struct file *filep, void *offset,
 			void *pageaddr;
 
 
-			pageaddr = mem_pm_get_free_page(MEM_PM_CACHED);
+			pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 			if(pageaddr == NULL) {
 				printk("elfloader: no physical page\n");
 				// TODO really dirty way to exit, need to clean all done job!

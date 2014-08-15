@@ -13,7 +13,7 @@ struct pool_emptyobj {
 static struct pool_page * get_new_pool_page(const struct pool_alloc *pool) {
 	struct pool_page *ret;
 
-	ret = mem_pm_get_free_page(MEM_PM_CACHED);
+	ret = arch_pm_get_free_page(MEM_PM_CACHED);
 	if(ret != NULL) {
 		struct pool_emptyobj *cur;
 		struct pool_emptyobj *prev;

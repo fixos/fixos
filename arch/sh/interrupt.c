@@ -1,7 +1,7 @@
 #include "interrupt.h"
 #include "interrupt_codes.h"
 #include "7705_Casio.h"
-#include "process.h"
+#include <arch/generic/process.h>
 
 #include <utils/log.h>
 #include <utils/types.h>

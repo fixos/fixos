@@ -36,7 +36,7 @@ int pipe_create(struct file *files[2]) {
 	// get the two file struct
 	in = vfs_file_alloc();
 	out = vfs_file_alloc();
-	page = mem_pm_get_free_page(MEM_PM_CACHED);
+	page = arch_pm_get_free_page(MEM_PM_CACHED);
 	
 	if(in == NULL || out == NULL || page == NULL) {
 		if(in != NULL)
@@ -44,7 +44,7 @@ int pipe_create(struct file *files[2]) {
 		if(out != NULL)
 			vfs_file_free(out);
 		if(page != NULL)
-			mem_pm_release_page(page);
+			arch_pm_release_page(page);
 
 		return -1;
 	}
@@ -115,7 +115,7 @@ int pipe_release(struct file *filep) {
 	page = (struct pipe_page*)(filep->private_data);
 	page->count--;
 	if(page->count <= 0) {
-		mem_pm_release_page(page);
+		arch_pm_release_page(page);
 	}
 	return 0;
 }

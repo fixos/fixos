@@ -12,8 +12,7 @@
 #include <utils/list.h>
 #include <fs/inode.h>
 
-// TODO remove this include (now context is saved as a pointer to arch-spec context)
-#include <arch/sh/process.h>
+#include <arch/process.h>
 
 // maximum ASID number at one time
 #define MAX_ASID	32
@@ -126,6 +125,14 @@ extern struct list_head _process_list;
 
 extern process_t *_proc_current;
 
+/**
+ * Process used as "idle task", executed once scheduler is stared, when no other
+ * task should be done.
+ * As the scheduler is initialized after all the early init job, the stack
+ * used may be the kernel init stack.
+ */
+extern process_t _proc_idle_task;
+
 // iterate for each process in _process_list
 #define for_each_process(cur) \
 	for(cur = container_of(&_process_list, process_t, list); \
@@ -193,13 +200,6 @@ void process_release_asid(process_t *proc);
 extern inline process_t *process_get_current() {
 	return _proc_current;
 }
-
-
-/**
- * Return 1 if the "saved context" of the given process was executed in user
- * mode, 0 if it was in kernel mode (or negative value in error case).
- */
-int arch_process_mode(process_t *proc);
 
 
 /**

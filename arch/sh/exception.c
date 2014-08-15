@@ -4,7 +4,7 @@
 #include "interrupt_codes.h"
 #include "mmu.h"
 #include "interrupt.h"
-#include "process.h"
+#include <arch/generic/process.h>
 
 
 #include <sys/scheduler.h>

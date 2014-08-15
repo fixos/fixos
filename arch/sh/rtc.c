@@ -3,6 +3,8 @@
 #include <utils/types.h>
 #include <sys/time.h>
 
+#include <arch/generic/time.h>
+
 
 void rtc_init() {
 	RTC.RCR1.BYTE = 0x00;
@@ -30,9 +32,9 @@ void rtc_set_interrupt(interrupt_callback_t callback, int period) {
 
 
 
-// functions defined in sys/time.h
+// functions defined in arch/generic/time.h
 
-int time_get_hw(struct hr_time *t) {
+int arch_time_get_hw(struct hr_time *t) {
 	time_t ret;
 	int tmp;
 	int isleap;
@@ -72,6 +74,6 @@ int time_get_hw(struct hr_time *t) {
 	return 0;
 }
 
-int time_set_hw(const struct hr_time *t) {
+int arch_time_set_hw(const struct hr_time *t) {
 	return -1;
 }

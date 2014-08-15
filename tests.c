@@ -16,7 +16,7 @@
 #include "fs/vfs_file.h"
 
 #include "loader/elfloader/loader.h"
-#include "arch/sh/process.h"
+#include "arch/generic/process.h"
 
 #include "arch/sh/memory/eeprom.h"
 
