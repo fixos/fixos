@@ -11,6 +11,7 @@
 
 #include <interface/fixos/signal.h>
 #include <utils/types.h>
+#include <arch/generic/signal.h>
 
 
 // number of signals implemented
@@ -41,24 +42,6 @@ void signal_pgid_raise(pid_t pgid, int sig);
  * returns if a signal is delivered.
  */
 void signal_deliver_pending();
-
-
-/**
- * Save the user-mode context, and set the saved context to the signal handler
- * defined in action.
- * The user stack is used to save previous context, and a trampoline is set to
- * do appropriate cleanup after the end of the signal handler.
- */
-void arch_signal_prepare_sigcontext(struct _process_info *proc,
-		struct sigaction *action, int sig);
-
-
-/**
- * Restore the user-mode context saved by arch_signal_prepare_sigcontext(),
- * assuming the user stack is preserved...
- */
-void arch_signal_restore_sigcontext(struct _process_info *proc);
-
 
 
 /**

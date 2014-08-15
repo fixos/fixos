@@ -1,5 +1,6 @@
 #include <sys/process.h>
 #include <sys/signal.h>
+#include <arch/generic/signal.h>
 #include <arch/generic/process.h>
 
 #include "interrupt.h"
