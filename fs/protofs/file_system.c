@@ -8,7 +8,7 @@
 #include <interface/fixos/errno.h>
 
 
-const struct _file_system protofs_file_system = {
+const struct file_system protofs_file_system = {
 	.name = "protofs",
 	.mount = protofs_mount,
 	.get_root_node = protofs_get_root_node,
@@ -26,7 +26,7 @@ const struct _file_system protofs_file_system = {
 // 1 if SMEM FS instance is already mounted
 static unsigned char _protofs_mounted = 0;
 
-static fs_instance_t _protofs_inst = {
+static struct fs_instance _protofs_inst = {
 	.instd = NULL
 };
 
@@ -36,11 +36,11 @@ static protofs_node_t* _protofs_page = NULL;
 /**
  * Internal helper
  */
-inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret);
+struct inode *protofs_fill_inode(struct fs_instance *inst, protofs_node_t *node, struct inode *ret);
 
 
 
-fs_instance_t *protofs_mount (unsigned int flags)
+struct fs_instance *protofs_mount (unsigned int flags)
 {
 	// TODO atomic operations...
 	if(_protofs_mounted == 0) {
@@ -68,13 +68,13 @@ fs_instance_t *protofs_mount (unsigned int flags)
 
 
 
-inode_t * protofs_get_root_node (fs_instance_t *inst)
+struct inode * protofs_get_root_node (struct fs_instance *inst)
 {
 	return vfs_get_inode(inst, PROTOFS_ROOT_NODE);
 }
 
 
-inode_t * protofs_first_child(inode_t *target)
+struct inode * protofs_first_child(struct inode *target)
 {
 	if(target->type_flags & INODE_TYPE_PARENT) {
 		int i;
@@ -97,7 +97,7 @@ inode_t * protofs_first_child(inode_t *target)
 	return NULL;
 }
 
-inode_t * protofs_next_sibling(inode_t *target)
+struct inode * protofs_next_sibling(struct inode *target)
 {
 	if(target->node != PROTOFS_ROOT_NODE) {
 		int i;
@@ -122,7 +122,7 @@ inode_t * protofs_next_sibling(inode_t *target)
 }
 
 
-inode_t * protofs_find_sub_node (inode_t *target, const char *name)
+struct inode * protofs_find_sub_node (struct inode *target, const char *name)
 {
 	// the simplest algorithm : test all the page of nodes...
 	
@@ -149,7 +149,7 @@ inode_t * protofs_find_sub_node (inode_t *target, const char *name)
 }
 
 
-inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node)
+struct inode * protofs_get_inode (struct fs_instance *inst, uint32 node)
 {
 	protofs_node_t *nodeptr;
 
@@ -163,7 +163,7 @@ inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node)
 			return NULL;
 	}
 
-	inode_t *ret;
+	struct inode *ret;
 	ret = vfs_alloc_inode(inst, node);	
 	if(ret == NULL) {
 		printk("protofs: vfs inode alloc failed\n");
@@ -173,7 +173,7 @@ inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node)
 }
 
 
-inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_flags,
+struct inode * protofs_create_node (struct inode *parent, const char *name, uint16 type_flags,
 		uint16 mode_flags, uint32 special)
 {
 	int i;
@@ -207,7 +207,7 @@ inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_fl
 }
 
 
-inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *ret) {
+struct inode *protofs_fill_inode(struct fs_instance *inst, protofs_node_t *node, struct inode *ret) {
 
 	ret->fs_op = inst;
 
@@ -239,7 +239,7 @@ inode_t *protofs_fill_inode(fs_instance_t *inst, protofs_node_t *node, inode_t *
 }
 
 
-int protofs_istat(inode_t *inode, struct stat *buf) {
+int protofs_istat(struct inode *inode, struct stat *buf) {
 	buf->st_rdev = makedev(0, 0);
 	if(inode->type_flags & INODE_TYPE_PARENT)
 		buf->st_mode = S_IFDIR;
@@ -259,7 +259,7 @@ int protofs_istat(inode_t *inode, struct stat *buf) {
 }
 
 
-int protofs_open(inode_t *inode, struct file *filep) {
+int protofs_open(struct inode *inode, struct file *filep) {
 	if(inode->type_flags & INODE_TYPE_DEV) {
 		return vfs_open_dev(inode, filep);
 	}

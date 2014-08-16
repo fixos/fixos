@@ -86,7 +86,7 @@ static int _ioctl_mapvram(void **virt_vram) {
 		// to a process user-space area
 		// FIXME will work only in case of 1024 bytes buffer in a single page
 		union pm_page page;
-		process_t *cur;
+		struct process *cur;
 
 		cur = process_get_current();
 

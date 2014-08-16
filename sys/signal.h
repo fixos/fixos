@@ -20,14 +20,14 @@
 // sigset_t of pending signals
 #define signal_pending(proc)	((proc)->sig_pending & ~((proc)->sig_blocked))
 
-struct _process_info;
+struct process;
 
 /**
  * Add the given signal to pending signal set of proc, and try to wake it up
  * (involving possible switching from STATE_INTERRUPTIBLE to STATE_RUNNING
  * and ask rescheduling when possible if needed).
  */
-void signal_raise(struct _process_info *proc, int sig);
+void signal_raise(struct process *proc, int sig);
 
 /**
  * Raise a signal for a group of processes.

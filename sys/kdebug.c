@@ -3,7 +3,7 @@
 #include <sys/process.h>
 
 
-void kdebug_print_vmspace(process_t *proc) {
+void kdebug_print_vmspace(struct process *proc) {
 	struct page_dir *dir;
 
 	printk("Memory Map :\n");

@@ -70,7 +70,7 @@ static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 
 
 void kdebug_print_trace() {
-	process_t *proc;
+	struct process *proc;
 	void *stack;
 
 	proc = process_get_current();
@@ -82,7 +82,7 @@ void kdebug_print_trace() {
 
 
 void kdebug_oops(const char *errstr) {
-	process_t *proc;
+	struct process *proc;
 	struct _context_info *cont;
 	
 

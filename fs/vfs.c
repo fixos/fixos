@@ -8,16 +8,16 @@
 #include <utils/log.h>
 
 struct _fs_mount_point {
-	fs_instance_t *inst;
-	inode_t *mountpoint;
+	struct fs_instance *inst;
+	struct inode *mountpoint;
 };
 
 
-static fs_instance_t *_root_fs;
+static struct fs_instance *_root_fs;
 
 static struct _fs_mount_point _mounted_fs[VFS_MAX_MOUNT];
 
-static file_system_t const * vfs_fslist[VFS_MAX_FS];
+static struct file_system const * vfs_fslist[VFS_MAX_FS];
 
 
 void vfs_init()
@@ -34,11 +34,11 @@ void vfs_init()
 
 
 
-inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node)
+struct inode *vfs_alloc_inode(struct fs_instance *inst, uint32 node)
 {
 	// take the first free inode in the list, and remove it
-	inode_t *ret;
-	ret = (inode_t*) (vfs_cache_alloc(inst, node));
+	struct inode *ret;
+	ret = (struct inode*) (vfs_cache_alloc(inst, node));
 	if(ret != NULL)
 		ret->count = 0;
 	return ret;
@@ -46,7 +46,7 @@ inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node)
 
 
 
-void vfs_release_inode(inode_t *inode)
+void vfs_release_inode(struct inode *inode)
 {
 	//printk("vfs: --(%s, , 0x%x, %d)\n", inode->name, inode->node, inode->count);
 	if(inode->count > 0) {
@@ -64,11 +64,11 @@ void vfs_release_inode(inode_t *inode)
 }
 
 
-inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid)
+struct inode *vfs_get_inode(struct fs_instance *inst, uint32 nodeid)
 {
 	// ask to the vfs_cache in first...
-	inode_t *ret;
-	vfs_cache_entry_t *cached;
+	struct inode *ret;
+	struct vfs_cache_entry *cached;
 
 	cached = vfs_cache_find(inst, nodeid);
 	if(cached == NULL)
@@ -87,10 +87,10 @@ inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid)
 }
 
 
-inode_t *vfs_first_child(inode_t *target)
+struct inode *vfs_first_child(struct inode *target)
 {
 	if(target->type_flags & INODE_TYPE_PARENT) {
-		inode_t *real = target;
+		struct inode *real = target;
 		if(target->type_flags & INODE_TYPE_MOUNTPOINT) {
 			// replace with the real inode (root of the mounted FS)
 			real = target->typespec.mnt_root;
@@ -102,7 +102,7 @@ inode_t *vfs_first_child(inode_t *target)
 }
 
 
-inode_t *vfs_next_sibling(inode_t *target)
+struct inode *vfs_next_sibling(struct inode *target)
 {
 	if(!(target->type_flags & INODE_TYPE_ROOT)) {
 		return target->fs_op->fs->next_sibling(target);
@@ -112,7 +112,7 @@ inode_t *vfs_next_sibling(inode_t *target)
 
 
 
-void vfs_register_fs(const file_system_t *fs, int flags)
+void vfs_register_fs(const struct file_system *fs, int flags)
 {
 	int ok = 0;
 
@@ -138,7 +138,7 @@ void vfs_register_fs(const file_system_t *fs, int flags)
 
 int vfs_mount(const char *fsname, const char *path, int flags)
 {
-	const file_system_t *fs = NULL;
+	const struct file_system *fs = NULL;
 	int i;
 
 	for(i=0; i<VFS_MAX_FS && fs==NULL; i++)
@@ -161,7 +161,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 			_root_fs = fs->mount(0);
 			if(_root_fs != NULL) {
 				// root inode must never be removed from cache
-				inode_t *root_inode = _root_fs->fs->get_root_node(_root_fs);
+				struct inode *root_inode = _root_fs->fs->get_root_node(_root_fs);
 				if(root_inode != NULL) {
 					root_inode->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
 					root_inode->typespec.mnt_point = NULL; // no real mount point
@@ -180,14 +180,14 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 		if(i<VFS_MAX_MOUNT) {
 			mntp = &(_mounted_fs[i]);
 			// find the mount point inode
-			inode_t *mnt_inode = vfs_resolve(path);
+			struct inode *mnt_inode = vfs_resolve(path);
 			if(mnt_inode != NULL && (mnt_inode->type_flags & INODE_TYPE_PARENT)) {
 				
 				// add the mounted point/fs
 				mntp->inst = fs->mount(0);
 				if(mntp->inst != NULL) {
 					// root inode must never be removed from cache
-					inode_t *root_inode = mntp->inst->fs->get_root_node(mntp->inst);
+					struct inode *root_inode = mntp->inst->fs->get_root_node(mntp->inst);
 					if(root_inode != NULL) {
 						root_inode->typespec.mnt_point = mnt_inode;
 						root_inode->type_flags = INODE_TYPE_ROOT | INODE_TYPE_PARENT;
@@ -211,7 +211,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 }
 
 
-inode_t *vfs_resolve(const char *path)
+struct inode *vfs_resolve(const char *path)
 {
 	// ok, to do that we need to split the path, and to check each directory
 	// until the file is reached
@@ -220,9 +220,9 @@ inode_t *vfs_resolve(const char *path)
 		int ppos;
 		int namepos;
 
-		inode_t *ret = NULL;
-		inode_t *current;
-		process_t *cur = process_get_current();
+		struct inode *ret = NULL;
+		struct inode *current;
+		struct process *cur = process_get_current();
 
 		ppos = 0;
 		if(path[0] == '/' || cur->cwd == NULL) {
@@ -237,7 +237,7 @@ inode_t *vfs_resolve(const char *path)
 		}
 
 		do {
-			inode_t *swap = NULL;
+			struct inode *swap = NULL;
 			char c;
 			namepos = 0;
 
@@ -276,10 +276,10 @@ inode_t *vfs_resolve(const char *path)
 
 // TODO : how to give the name and other properties from real node
 // to mouted-on FS root???
-inode_t *vfs_walk_entry(inode_t *parent, const char *name)
+struct inode *vfs_walk_entry(struct inode *parent, const char *name)
 {
-	inode_t *ret = NULL;
-	inode_t *real = parent;
+	struct inode *ret = NULL;
+	struct inode *real = parent;
 
 	// current entry (".")
 	if(name[0] == '.' && name[1] == '\0') {
@@ -315,8 +315,8 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name)
 
 
 
-inode_t *vfs_resolve_mount(inode_t *inode) {
-	inode_t *ret = NULL;
+struct inode *vfs_resolve_mount(struct inode *inode) {
+	struct inode *ret = NULL;
 
 	// check if the entry is a mount point
 	if(inode->type_flags & INODE_TYPE_MOUNTPOINT) {

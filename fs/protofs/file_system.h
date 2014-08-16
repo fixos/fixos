@@ -12,27 +12,27 @@
  * In protofs, a node represent an offset in the internal node list.
  */
 
-extern const file_system_t protofs_file_system;
+extern const struct file_system protofs_file_system;
 
-fs_instance_t *protofs_mount (unsigned int flags);
+struct fs_instance *protofs_mount (unsigned int flags);
 
-inode_t * protofs_get_root_node (fs_instance_t *inst);
+struct inode * protofs_get_root_node (struct fs_instance *inst);
 
-inode_t * protofs_next_sibling(inode_t *target);
+struct inode * protofs_next_sibling(struct inode *target);
 
-inode_t * protofs_first_child(inode_t *target);
+struct inode * protofs_first_child(struct inode *target);
 
-int protofs_get_children_nb (inode_t *target);
+int protofs_get_children_nb (struct inode *target);
 
-inode_t * protofs_find_sub_node (inode_t *target, const char *name);
+struct inode * protofs_find_sub_node (struct inode *target, const char *name);
 
-inode_t * protofs_get_inode (fs_instance_t *inst, uint32 node);
+struct inode * protofs_get_inode (struct fs_instance *inst, uint32 node);
 
-inode_t * protofs_create_node (inode_t *parent, const char *name, uint16 type_flags,
+struct inode * protofs_create_node (struct inode *parent, const char *name, uint16 type_flags,
 		uint16 mode_flags, uint32 special);
 
-int protofs_istat(inode_t *inode, struct stat *buf);
+int protofs_istat(struct inode *inode, struct stat *buf);
 
-int protofs_open(inode_t *inode, struct file *filep);
+int protofs_open(struct inode *inode, struct file *filep);
 
 #endif //_FS_PROTOFS_FILE_SYSTEM_H

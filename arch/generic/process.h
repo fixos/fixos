@@ -7,7 +7,7 @@
 #include <arch/process.h>
 
 
-struct _process_info;
+struct process;
 
 
 // extern inline void arch_kernel_contextjmp(struct _context_info *cnt)
@@ -19,13 +19,13 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
  * Return 1 if the "saved context" of the given process was executed in user
  * mode, 0 if it was in kernel mode (or negative value in error case).
  */
-int arch_process_mode(struct _process_info *proc);
+int arch_process_mode(struct process *proc);
 
 
 /**
  * Initialize the idle task, should be called just before the scheduler start.
  */
-void arch_init_idle(struct _process_info *proc);
+void arch_init_idle(struct process *proc);
 
 
 /**
@@ -35,7 +35,7 @@ void arch_init_idle(struct _process_info *proc);
  * new values).
  * This function return only when the context is scheduled again.
  */
-void arch_sched_preempt_task(struct _process_info *cur_proc, void (*next)());
+void arch_sched_preempt_task(struct process *cur_proc, void (*next)());
 
 
 #endif //_ARCH_GENERIC_PROCESS_H

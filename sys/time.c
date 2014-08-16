@@ -62,7 +62,7 @@ void time_real_time(struct hr_time *t) {
 
 
 void time_do_tick() {
-	process_t *cur;
+	struct process *cur;
 
 	_monotonic_ticks++;
 	time_add_hr(&_monotonic_time, &g_arch_tick_time, &_monotonic_time);
@@ -105,7 +105,7 @@ int sys_gettimeofday(struct hr_time *tv, struct timezone *tz) {
 
 clock_t sys_times(struct tms *buf) {
 	if(buf != NULL) {
-		process_t *cur;
+		struct process *cur;
 
 		cur = process_get_current();
 		buf->tms_utime = cur->uticks;

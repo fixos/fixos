@@ -19,7 +19,7 @@ struct sigcontext {
 };
 
 
-void arch_signal_prepare_sigcontext(process_t *proc, struct sigaction *action,
+void arch_signal_prepare_sigcontext(struct process *proc, struct sigaction *action,
 		int sig) 
 {
 	// TODO securized user stack access...
@@ -73,7 +73,7 @@ void arch_signal_prepare_sigcontext(process_t *proc, struct sigaction *action,
 
 
 
-void arch_signal_restore_sigcontext(process_t *proc) {
+void arch_signal_restore_sigcontext(struct process *proc) {
 	struct sigcontext *scnt;
 
 	scnt = (void*)(proc->acnt->reg[15] + 4);

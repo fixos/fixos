@@ -9,7 +9,7 @@
  * Functions for reading/writing safely in a given process address space.
  */
 
-extern inline uint32 user_read_32(void *addr, process_t *proc) {
+extern inline uint32 user_read_32(void *addr, struct process *proc) {
 	union pm_page *page;
 
 	page = mem_find_page(proc->dir_list, addr);
@@ -32,7 +32,7 @@ extern inline uint32 user_read_32(void *addr, process_t *proc) {
 	return 0;
 }
 
-extern inline void user_write_32(void *addr, uint32 value, process_t *proc) {
+extern inline void user_write_32(void *addr, uint32 value, struct process *proc) {
 	union pm_page *page;
 
 	page = mem_find_page(proc->dir_list, addr);

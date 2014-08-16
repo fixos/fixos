@@ -5,22 +5,24 @@
  * Process scheduler, maintains the list of running tasks and allow to manage
  * current process/tasks.
  *
- * For now, task is a process_t, but maybe it will change later, if something
+ * For now, task is a struct process, but maybe it will change later, if something
  * like thread are implemented.
  */
 
-#include <sys/process.h>
 #include <sys/time.h>
 
-typedef process_t task_t;
 
+struct process;
 
+/**
+ * Initialize scheduler, to be ready to run the first process later.
+ */
 void sched_init();
 
 /**
  * Add the given task to scheduler.
  */
-void sched_add_task(task_t *task);
+void sched_add_task(struct process *task);
 
 /*
  * Function used by sys_fork() to save the context exactly as
@@ -30,11 +32,11 @@ void sched_add_task(task_t *task);
  * child process).
  * Returns 0 for parent process, 1 for child process (and negative value
  * in error case).
- * dest is the process_t used for the child process, and kstack the kernel
+ * dest is the struct process used for the child process, and kstack the kernel
  * stack used by the dest process (must be an exact copy of the parent's one,
  * and given pointer must be equivalent to the current parent stack position!)
  */
-//extern int arch_sched_preempt_fork(process_t *dest, void *kstack);
+//extern int arch_sched_preempt_fork(struct process *dest, void *kstack);
 
 
 /**
@@ -90,28 +92,28 @@ int sched_preempt_level();
  * In addition, scheduler will ask rescheduling if woken up process has a
  * higher priority than the current process.
  */
-void sched_wake_up(process_t *proc);
+void sched_wake_up(struct process *proc);
 
 
 /**
  * Remove the given process from running queue, and put it in "stopped" state.
  * The signal number may be used if parent wait for stopped process (waitpid()).
  */
-void sched_stop_proc(process_t *proc, int sig);
+void sched_stop_proc(struct process *proc, int sig);
 
 
 /**
  * Put a previously stopped process in running state and in the scheduler running
  * queue.
  */
-void sched_cont_proc(process_t *proc);
+void sched_cont_proc(struct process *proc);
 
 
 /**
  * FIXME Temporary feature, probably removed soon.
  * Find a process in current queues (waiting/running) from its ASID.
  */
-process_t *sched_find_pid(pid_t pid);
+struct process *sched_find_pid(pid_t pid);
 
 
 /**

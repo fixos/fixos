@@ -12,14 +12,12 @@
 #include "inode.h"
 #include "fs_instance.h"
 
-struct _vfs_cache_entry {
-	inode_t inode;
+struct vfs_cache_entry {
+	struct inode inode;
 
 	// next entry in the corresponding entry's hash list 
-	struct _vfs_cache_entry *next;
+	struct vfs_cache_entry *next;
 };
-
-typedef struct _vfs_cache_entry vfs_cache_entry_t;
 
 
 /**
@@ -31,19 +29,19 @@ void vfs_cache_init();
  * Find an entry by its fs instance and its internal id.
  * Return NULL if the entry is not in cache.
  */
-vfs_cache_entry_t *vfs_cache_find(fs_instance_t *inst, uint32 nodeid);
+struct vfs_cache_entry *vfs_cache_find(struct fs_instance *inst, uint32 nodeid);
 
 
 /**
  * Allocate a new inode entry in the cache.
  */
-vfs_cache_entry_t *vfs_cache_alloc(fs_instance_t *inst, uint32 nodeid);
+struct vfs_cache_entry *vfs_cache_alloc(struct fs_instance *inst, uint32 nodeid);
 
 
 /**
  * Remove an entry in the cache.
  */
-void vfs_cache_remove(fs_instance_t *inst, uint32 nodeid);
+void vfs_cache_remove(struct fs_instance *inst, uint32 nodeid);
 
 
 

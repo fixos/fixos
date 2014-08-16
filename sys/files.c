@@ -11,7 +11,7 @@
 
 
 int sys_open(const char *name, int flags) {
-	process_t *proc;
+	struct process *proc;
 	int fd;
 
 	//printk("Received sys_open :\n   ('%s', %d)\n", name, flags);
@@ -19,7 +19,7 @@ int sys_open(const char *name, int flags) {
 
 	for(fd=0; fd<PROCESS_MAX_FILE && proc->files[fd] != NULL; fd++);
 	if(fd < PROCESS_MAX_FILE) {
-		inode_t *inode;
+		struct inode *inode;
 
 		// get the inode associated to file name, and open it
 		inode = vfs_resolve(name);
@@ -58,7 +58,7 @@ int sys_open(const char *name, int flags) {
 
 
 ssize_t sys_read(int fd, char *dest, int nb) {
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -73,7 +73,7 @@ ssize_t sys_read(int fd, char *dest, int nb) {
 
 
 ssize_t sys_write(int fd, const char *source, int nb){
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -87,7 +87,7 @@ ssize_t sys_write(int fd, const char *source, int nb){
 }
 
 int sys_ioctl(int fd, int request, void *arg) {
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -102,7 +102,7 @@ int sys_ioctl(int fd, int request, void *arg) {
 
 
 int sys_pipe2(int pipefd[2], int flags) {
-	process_t *proc;
+	struct process *proc;
 	int fdin, fdout;
 
 	(void)flags;
@@ -134,7 +134,7 @@ int sys_pipe2(int pipefd[2], int flags) {
 
 
 int sys_lseek(int fd, off_t offset, int whence) {
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -149,7 +149,7 @@ int sys_lseek(int fd, off_t offset, int whence) {
 
 
 int sys_fstat(int fd, struct stat *buf) {
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -164,7 +164,7 @@ int sys_fstat(int fd, struct stat *buf) {
 
 
 int sys_stat(const char *path, struct stat *buf) {
-	inode_t *target = vfs_resolve(path);
+	struct inode *target = vfs_resolve(path);
 
 	if(target != NULL) {
 		if(target->fs_op != NULL && target->fs_op->fs->iop.istat != NULL) {
@@ -178,7 +178,7 @@ int sys_stat(const char *path, struct stat *buf) {
 
 
 int sys_getdents(int fd, struct fixos_dirent *buf, size_t len) {
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && proc->files[fd] != NULL) {
@@ -192,7 +192,7 @@ int sys_getdents(int fd, struct fixos_dirent *buf, size_t len) {
 
 
 int sys_close(int fd) {
-	process_t *proc;
+	struct process *proc;
 	int ret;
 
 	proc = process_get_current();

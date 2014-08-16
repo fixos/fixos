@@ -12,10 +12,10 @@
 
 
 // hash table first entries
-static vfs_cache_entry_t *_hash_head[VFS_CACHE_HASHTABLE_SIZE];
+static struct vfs_cache_entry *_hash_head[VFS_CACHE_HASHTABLE_SIZE];
 
 // pool allocation for free inodes
-static struct pool_alloc _inode_alloc = POOL_INIT(vfs_cache_entry_t);
+static struct pool_alloc _inode_alloc = POOL_INIT(struct vfs_cache_entry);
 
 
 
@@ -32,10 +32,10 @@ void vfs_cache_init()
 
 
 
-vfs_cache_entry_t *vfs_cache_find(fs_instance_t *inst, uint32 nodeid)
+struct vfs_cache_entry *vfs_cache_find(struct fs_instance *inst, uint32 nodeid)
 {
 	int hash = VFS_CACHE_HASH(inst, nodeid);
-	vfs_cache_entry_t *cur = _hash_head[hash];
+	struct vfs_cache_entry *cur = _hash_head[hash];
 
 	while(cur != NULL && (cur->inode.fs_op != inst || cur->inode.node != nodeid))
 	{
@@ -47,9 +47,9 @@ vfs_cache_entry_t *vfs_cache_find(fs_instance_t *inst, uint32 nodeid)
 
 
 
-vfs_cache_entry_t *vfs_cache_alloc(fs_instance_t *inst, uint32 nodeid)
+struct vfs_cache_entry *vfs_cache_alloc(struct fs_instance *inst, uint32 nodeid)
 {
-	vfs_cache_entry_t *ret;
+	struct vfs_cache_entry *ret;
 	
 	ret = pool_alloc(&_inode_alloc);
 	if(ret != NULL) {
@@ -65,12 +65,12 @@ vfs_cache_entry_t *vfs_cache_alloc(fs_instance_t *inst, uint32 nodeid)
 }
 
 
-void vfs_cache_remove(fs_instance_t *inst, uint32 nodeid)
+void vfs_cache_remove(struct fs_instance *inst, uint32 nodeid)
 {
 	
 	int hash = VFS_CACHE_HASH(inst, nodeid);
-	vfs_cache_entry_t *cur = _hash_head[hash];
-	vfs_cache_entry_t *prev = NULL;
+	struct vfs_cache_entry *cur = _hash_head[hash];
+	struct vfs_cache_entry *prev = NULL;
 
 	while(cur != NULL && !(cur->inode.fs_op == inst && cur->inode.node == nodeid))
 	{

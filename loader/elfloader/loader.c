@@ -22,7 +22,7 @@ int check_elf_header(struct elf_header *header);
  * virtual addresses (useful for shared objects).
  */
 static int elfloader_load_segment(struct file *filep, void *offset,
-		const struct elf_prog_header *pheader, process_t *dest);
+		const struct elf_prog_header *pheader, struct process *dest);
 
 /**
  * Load all segment described in the given file, using offset as base virtual
@@ -33,11 +33,11 @@ static int elfloader_load_segment(struct file *filep, void *offset,
  * set to the first byte beyond the last data section allocated).
  */
 #define ELF_LOAD_SET_BRK	(1<<0)
-int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
+int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 		struct elf_header *header, int flags);
 
 
-int elfloader_load(struct file *filep, process_t *dest) {
+int elfloader_load(struct file *filep, struct process *dest) {
 	struct elf_header header;
 
 	if(elfloader_load_all(filep, NULL, dest, &header, ELF_LOAD_SET_BRK) == 0) {
@@ -81,7 +81,7 @@ int elfloader_load(struct file *filep, process_t *dest) {
 }
 
 
-int elfloader_load_all(struct file *filep, void *offset, process_t *dest,
+int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 		struct elf_header *header, int flags)
 {
 	// first step : read ELF header and check if it seems correct
@@ -194,7 +194,7 @@ int check_elf_header(struct elf_header *h) {
 
 
 int elfloader_load_segment(struct file *filep, void *offset,
-		const struct elf_prog_header *ph, process_t *dest)
+		const struct elf_prog_header *ph, struct process *dest)
 {
 	if(ph->vaddr % PM_PAGE_BYTES == 0) {
 		int i;
@@ -242,9 +242,9 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 
 #ifdef CONFIG_ELF_SHARED
-int elfloader_load_dynlib(const char *soname, process_t *dest) {
+int elfloader_load_dynlib(const char *soname, struct process *dest) {
 	char absname[40] = "/mnt/smem/lib/";
-	inode_t *ilib;
+	struct inode *ilib;
 	struct file *lib;
 
 	// TODO replace by strncpy
@@ -304,7 +304,7 @@ int elfloader_load_dynlib(const char *soname, process_t *dest) {
 
 
 
-void *elfloader_resolve_dynsymbol(const char *name, process_t *target) {
+void *elfloader_resolve_dynsymbol(const char *name, struct process *target) {
 	int i;
 	struct elf_shared_lib *cur;
 	void *ret = NULL;
@@ -338,7 +338,7 @@ void *elfloader_resolve_dynsymbol(const char *name, process_t *target) {
 
 int sys_dynbind(const char *symbol, void **dest) {
 	void *ret;
-	process_t *cur;
+	struct process *cur;
 
 	cur = process_get_current();
 	ret = elfloader_resolve_dynsymbol(symbol, cur);

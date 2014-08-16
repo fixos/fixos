@@ -1,11 +1,12 @@
 #include "waitqueue.h"
 #include <sys/scheduler.h>
+#include <sys/process.h>
 
 
 void wqueue_wait_event(struct wait_queue *queue) {
 	// use a local variable to store the wait item (on kernel stack)
 	struct wait_item item;
-	process_t *proc;
+	struct process *proc;
 	
 	proc = process_get_current();
 	item.proc = proc;

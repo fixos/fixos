@@ -23,9 +23,9 @@
  * Fill a previously allocated inode with the given header.
  * if header is NULL, return a node to use as root of the FS
  */
-inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *header, inode_t *ret);
+struct inode *smemfs_fill_inode(struct fs_instance *inst, struct smemfs_file_preheader *header, struct inode *ret);
 
-const struct _file_system smemfs_file_system = {
+const struct file_system smemfs_file_system = {
 	.name = "smemfs",
 	.mount = smemfs_mount,
 	.get_root_node = smemfs_get_root_node,
@@ -44,11 +44,11 @@ const struct _file_system smemfs_file_system = {
 // 1 if SMEM FS instance is already mounted
 static unsigned char _smemfs_mounted = 0;
 
-static fs_instance_t _smemfs_inst = {
+static struct fs_instance _smemfs_inst = {
 	.instd = NULL
 };
 
-fs_instance_t *smemfs_mount (unsigned int flags)
+struct fs_instance *smemfs_mount (unsigned int flags)
 {
 	// TODO atomic operations...
 	if(_smemfs_mounted == 0) {
@@ -64,9 +64,9 @@ fs_instance_t *smemfs_mount (unsigned int flags)
 }
 
 
-inode_t * smemfs_get_root_node (fs_instance_t *inst)
+struct inode * smemfs_get_root_node (struct fs_instance *inst)
 {
-	inode_t *ret;
+	struct inode *ret;
 	ret = vfs_get_inode(inst, SMEMFS_FILE_ROOT_ID);
 	
 	printk("smemfs: root inode=%p\n", ret);
@@ -76,7 +76,7 @@ inode_t * smemfs_get_root_node (fs_instance_t *inst)
 
 
 
-inode_t * smemfs_first_child (inode_t *target) {
+struct inode * smemfs_first_child (struct inode *target) {
 	if(target->type_flags & INODE_TYPE_PARENT) {
 		struct smemfs_file_preheader *current;
 
@@ -92,7 +92,7 @@ inode_t * smemfs_first_child (inode_t *target) {
 }
 
 
-inode_t * smemfs_next_sibling (inode_t *target) {	
+struct inode * smemfs_next_sibling (struct inode *target) {	
 	if(target->node != SMEMFS_FILE_ROOT_ID) {
 		struct smemfs_file_preheader *current;
 
@@ -109,7 +109,7 @@ inode_t * smemfs_next_sibling (inode_t *target) {
 }
 
 
-inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
+struct inode * smemfs_find_sub_node (struct inode *target, const char *name)
 {
 	struct smemfs_file_preheader *header;
 	header = smemfs_prim_get_atomic_file(name, target->node);
@@ -120,7 +120,7 @@ inode_t * smemfs_find_sub_node (inode_t *target, const char *name)
 }
 
 
-inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
+struct inode * smemfs_get_inode (struct fs_instance *inst, uint32 lnode)
 {
 	struct smemfs_file_preheader *header = NULL;
 	unsigned short node = (unsigned short)lnode;
@@ -142,7 +142,7 @@ inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
 	}
 
 
-	inode_t *ret;
+	struct inode *ret;
 	ret = vfs_alloc_inode(inst, lnode);
 	if(ret == NULL)
 	{
@@ -154,7 +154,7 @@ inode_t * smemfs_get_inode (fs_instance_t *inst, uint32 lnode)
 }
 
 
-inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *header, inode_t *ret) 
+struct inode *smemfs_fill_inode(struct fs_instance *inst, struct smemfs_file_preheader *header, struct inode *ret) 
 {
 	//printk("smemfs: fill_inode: %p\n", header);
 
@@ -193,7 +193,7 @@ inode_t *smemfs_fill_inode(fs_instance_t *inst, struct smemfs_file_preheader *he
 }
 
 
-int smemfs_open (inode_t *inode, struct file *filep) {
+int smemfs_open (struct inode *inode, struct file *filep) {
 	if(inode->flags & O_WRONLY)
 		return -EROFS;
 
@@ -204,7 +204,7 @@ int smemfs_open (inode_t *inode, struct file *filep) {
 }
 
 
-int smemfs_istat(inode_t *inode, struct stat *buf) {
+int smemfs_istat(struct inode *inode, struct stat *buf) {
 	struct smemfs_file_preheader *header;
 
 	header = (struct smemfs_file_preheader*) inode->abstract;

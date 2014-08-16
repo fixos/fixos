@@ -13,7 +13,7 @@
 #include <fs/inode.h>
 #include <fs/file.h>
 
-int vfs_dir_open(inode_t *inode, struct file *filep);
+int vfs_dir_open(struct inode *inode, struct file *filep);
 
 off_t vfs_dir_lseek(struct file *filep, off_t offset, int whence);
 

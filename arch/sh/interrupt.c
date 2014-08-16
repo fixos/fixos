@@ -96,7 +96,7 @@ void interrupt_handler() __attribute__ ((section(".handler.interrupt")));
 void interrupt_handler() {
 	int evt = INTX.INTEVT2;	// interrupt code
 	interrupt_callback_t handler;
-	process_t *cur;
+	struct process *cur;
 
 
 	switch(evt) {

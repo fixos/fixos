@@ -95,7 +95,7 @@ static uint8 _trans_index2default[SIGNAL_INDEX_MAX] = {
 
 // check if the given signal is not to ignore, and if not, prepare process
 // to handle it and remove it from the pending signals
-static void try_deliver_one(struct _process_info *proc, int sig) {
+static void try_deliver_one(struct process *proc, int sig) {
 	int sigindex;
 	struct sigaction *action;
 
@@ -145,7 +145,7 @@ static void try_deliver_one(struct _process_info *proc, int sig) {
 }
 
 
-void signal_raise(struct _process_info *proc, int sig) {
+void signal_raise(struct process *proc, int sig) {
 	sched_preempt_block();
 	sigaddset(& proc->sig_pending, sig);
 	
@@ -166,7 +166,7 @@ void signal_raise(struct _process_info *proc, int sig) {
 
 
 void signal_pgid_raise(pid_t pgid, int sig) {
-	process_t *dest;
+	struct process *dest;
 
 	for_each_process(dest) {
 		//printk("pgid_raise: pid %d, pgid %d\n", dest->pid, dest->pgid);
@@ -178,7 +178,7 @@ void signal_pgid_raise(pid_t pgid, int sig) {
 
 void signal_deliver_pending() {
 	sigset_t todeliver;
-	process_t *proc;
+	struct process *proc;
 
 	proc = process_get_current();
 	todeliver = signal_pending(proc);
@@ -208,7 +208,7 @@ int sys_sigaction(int sig, const struct sigaction *act, struct sigaction *oact) 
 		index = _trans_number2index[sig];
 
 		if(index != _SIGUNDEF) {
-			process_t *cur;
+			struct process *cur;
 			cur = process_get_current();
 
 			if(oact != NULL) {
@@ -239,7 +239,7 @@ int sys_sigaction(int sig, const struct sigaction *act, struct sigaction *oact) 
 
 int sys_kill(pid_t pid, int sig) {
 	if(sig>=0 && sig<SIGNAL_MAX && _trans_number2index[sig] != _SIGUNDEF) {
-		process_t *dest;
+		struct process *dest;
 
 		printk("signal: kill(%d, %d)\n", pid, sig);
 
@@ -266,7 +266,7 @@ int sys_kill(pid_t pid, int sig) {
 
 
 int sys_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
-	process_t *cur;
+	struct process *cur;
 
 	cur = process_get_current();
 	if(oldset != NULL) {
@@ -292,7 +292,7 @@ int sys_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
 
 
 int sys_sigreturn() {
-	process_t *cur = process_get_current();
+	struct process *cur = process_get_current();
 
 	sched_preempt_block();
 	arch_signal_restore_sigcontext(cur);

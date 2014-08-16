@@ -53,7 +53,7 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
 }
 
 
-int arch_process_mode(process_t *proc) {
+int arch_process_mode(struct process *proc) {
 	if(proc->acnt != NULL) {
 		// if MD is 1, process is in kernel mode
 		return (proc->acnt->sr & SR_MD_MASK) ? 0 : 1;
@@ -76,7 +76,7 @@ asm (
 
 extern char end_stack; // defined in linker script
 
-void arch_init_idle(struct _process_info *proc) {
+void arch_init_idle(struct process *proc) {
 	static struct _context_info acnt_idle;
 	acnt_idle.previous = NULL;
 	acnt_idle.pr = (uint32)&arch_idle_func;

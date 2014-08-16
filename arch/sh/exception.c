@@ -31,7 +31,7 @@ void exception_handler()
 	int tra;
 	void *spcval;
 	void *stackval;
-	process_t *cur;
+	struct process *cur;
 	
 	(void)(tea);
 	asm volatile ("stc spc, %0" : "=r"(spcval) );
@@ -146,7 +146,7 @@ void tlbmiss_handler()
 	// TODO : it's possible to be faster by using TTB register
 	union pm_page *page;
 	uint32 vpn;
-	process_t *curpr;
+	struct process *curpr;
 	
 	// the process which cause the TLB miss should be the current one
 	curpr = _proc_current;

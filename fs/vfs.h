@@ -8,7 +8,7 @@
   * to manage file systems (mount and unmount) in a unified interface.
   *
   * All the physicals FS use a common interface, defined in file_system.h,
-  * and are mounted into a fs_instance_t.
+  * and are mounted into a struct fs_instance.
   */
 
 #include <utils/types.h>
@@ -50,20 +50,20 @@
 void vfs_init();
 
 /**
- * Try to allocate a inode_t object into the VFS cache.
+ * Try to allocate a struct inode object into the VFS cache.
  * The FS instance and internal node id are required for the
  * caching system, and should never change during the life of
  * this inode.
  * Also, these values *must* be a unique pair in the entiere VFS!
  * Return its address, or NULL if alloc fails.
  */
-inode_t *vfs_alloc_inode(fs_instance_t *inst, uint32 node);
+struct inode *vfs_alloc_inode(struct fs_instance *inst, uint32 node);
 
 /**
  * Release one 'instance' of use (decrease the 'count' from 1).
  * If count is decreased to 0, the inode may be freed.
  */
-void vfs_release_inode(inode_t *inode);
+void vfs_release_inode(struct inode *inode);
 
 
 /**
@@ -76,19 +76,19 @@ void vfs_release_inode(inode_t *inode);
  * Return NULL if not found in the cache and not allowed by the internal
  * fs instance.
  */
-inode_t *vfs_get_inode(fs_instance_t *inst, uint32 nodeid);
+struct inode *vfs_get_inode(struct fs_instance *inst, uint32 nodeid);
 
 
-inode_t *vfs_first_child(inode_t *target);
+struct inode *vfs_first_child(struct inode *target);
 
-inode_t *vfs_next_sibling(inode_t *target);
+struct inode *vfs_next_sibling(struct inode *target);
 
 
 /**
  * Register a file system into VFS.
  * Flag should be VFS_REGISTER_AUTO!
  */
-void vfs_register_fs(const file_system_t *fs, int flags);
+void vfs_register_fs(const struct file_system *fs, int flags);
 
 
 /**
@@ -105,14 +105,14 @@ int vfs_mount(const char *fsname, const char *path, int flags);
  * WARNING : only absolute path are allowed, but '..' and '.' entries
  * are accepted (respectively the parent dir and the dir itself)
  */
-inode_t *vfs_resolve(const char *path);
+struct inode *vfs_resolve(const char *path);
 
 
 /**
  * Resolve one entry from a given inode.
  * Return the inode if found, NULL otherwise.
  */
-inode_t *vfs_walk_entry(inode_t *parent, const char *name);
+struct inode *vfs_walk_entry(struct inode *parent, const char *name);
 
 /**
  * Try to resolve a TYPE_MOUNTPOINT or a TYPE_ROOT inode.
@@ -120,7 +120,7 @@ inode_t *vfs_walk_entry(inode_t *parent, const char *name);
  * If it's a root inode, its mountpoint is returned.
  * Else, or if a root inode is the VFS root, return NULL.
  */
-inode_t *vfs_resolve_mount(inode_t *inode);
+struct inode *vfs_resolve_mount(struct inode *inode);
 
 
 #endif // FIXOS_VFS_H

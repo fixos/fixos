@@ -14,7 +14,7 @@ struct file {
 	int flags;
 
 	// inode associated to this file, may be NULL for special files (pipes...)
-	inode_t *inode;
+	struct inode *inode;
 
 	// file operations to use, usualy the same as inode->file_op (but must be
 	// used because inode may be NULL, not op!)

@@ -25,7 +25,7 @@
 #include <device/keyboard/fx9860/matrix_codes.h>
 
 // pool allocation data
-static struct pool_alloc _proc_pool = POOL_INIT(process_t);
+static struct pool_alloc _proc_pool = POOL_INIT(struct process);
 
 // contain the pid used for the next process creation
 static pid_t _pid_next;
@@ -40,7 +40,7 @@ static int _process_number = 0;
 
 
 // virtual task for idle
-process_t _proc_idle_task = {
+struct process _proc_idle_task = {
 	.pid = 0,
 	.dir_list = NULL,
 	.state = PROCESS_STATE_RUNNING,
@@ -61,7 +61,7 @@ process_t _proc_idle_task = {
  * obscure implementation details, but its simpler than using NULL.
  * A good idea should be to make all that clean and use NULL at initialization?
  */
-process_t *_proc_current = &_proc_idle_task;
+struct process *_proc_current = &_proc_idle_task;
 
 
 
@@ -79,7 +79,7 @@ void process_init()
 
 // FIXME this is a temporary hack to have a pid -> process working, need to
 // be changed soon
-process_t *process_from_pid(pid_t pid)
+struct process *process_from_pid(pid_t pid)
 {
 	// should not return anything for PID 0 ?
 	if(pid == 0)
@@ -88,9 +88,9 @@ process_t *process_from_pid(pid_t pid)
 }
 
 
-process_t *process_alloc() {
+struct process *process_alloc() {
 	if(_process_number < CONFIG_PROC_MAX) {
-		process_t *proc;
+		struct process *proc;
 
 		proc = pool_alloc(&_proc_pool);
 		if(proc != NULL) {
@@ -139,7 +139,7 @@ process_t *process_alloc() {
 }
 
 
-void process_free(process_t *proc) {
+void process_free(struct process *proc) {
 	list_remove(&_process_list, & proc->list);
 	process_release_pid(proc->pid);
 	_process_number--;
@@ -149,7 +149,7 @@ void process_free(process_t *proc) {
 }
 
 
-void process_contextjmp(process_t *proc) {
+void process_contextjmp(struct process *proc) {
 	int dummy;
 	interrupt_atomic_save(&dummy);
 
@@ -171,7 +171,7 @@ void process_contextjmp(process_t *proc) {
 
 
 
-void process_terminate(process_t *proc, int status) {
+void process_terminate(struct process *proc, int status) {
 	struct page_dir *curdir;
 	struct page_dir *nextdir;
 	int i;
@@ -220,8 +220,8 @@ void process_terminate(process_t *proc, int status) {
 
 
 pid_t sys_fork() {
-	process_t *cur;
-	process_t *newproc;
+	struct process *cur;
+	struct process *newproc;
 	int i;
 	int atomicsaved;
 	struct page_dir *dir;	
@@ -337,7 +337,7 @@ pid_t sys_getppid() {
 
 
 int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
-	inode_t *elf_inode;
+	struct inode *elf_inode;
 	struct file *elf_file;
 
 	// first, check if we can open and execute filename
@@ -347,7 +347,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		printk("execve: failed to open '%s'\n", filename);
 	}
 	else {
-		process_t *cur;
+		struct process *cur;
 		int i;
 
 		// we need to copy argv[] and env[] somewhere before to destroy process
@@ -489,7 +489,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 void *sys_sbrk(int incr) {
 	// current implementation is pretty simple (no check for stack/shared area)
-	process_t *cur;
+	struct process *cur;
 
 	cur = process_get_current();
 	if(cur->initial_brk != NULL) {
@@ -601,8 +601,8 @@ void process_release_pid(pid_t pid) {
 
 
 int sys_chdir(const char *path) {
-	process_t *cur;
-	inode_t *inode;
+	struct process *cur;
+	struct inode *inode;
 
 	cur = process_get_current();
 	inode = vfs_resolve(path);
@@ -621,8 +621,8 @@ int sys_chdir(const char *path) {
 
 
 int sys_fchdir(int fd) {
-	process_t *cur;
-	inode_t *inode;
+	struct process *cur;
+	struct inode *inode;
 
 	cur = process_get_current();
 	if(fd>=0 && fd<PROCESS_MAX_FILE && cur->files[fd] != NULL) {
@@ -651,7 +651,7 @@ int sys_fchdir(int fd) {
 
 int sys_setpgid(pid_t pid, pid_t pgid) {
 	if(pgid >= 0) { 
-		process_t *dest;
+		struct process *dest;
 
 		// set pid to real values
 		pid = pid==0 ? _proc_current->pid : pid;
@@ -674,7 +674,7 @@ int sys_setpgid(pid_t pid, pid_t pgid) {
 
 pid_t sys_getpgid(pid_t pid) {
 	if(pid >= 0) {
-		process_t *cur;
+		struct process *cur;
 		if(pid == 0)
 			cur = process_get_current();
 		else
@@ -688,8 +688,8 @@ pid_t sys_getpgid(pid_t pid) {
 }
 
 
-int process_is_descendant(process_t *proc, pid_t other) {
-	process_t *cur;
+int process_is_descendant(struct process *proc, pid_t other) {
+	struct process *cur;
 
 	for(cur=proc; cur!=NULL && cur->ppid != other && cur->pid != 1;
 		cur = process_from_pid(cur->ppid));
@@ -709,7 +709,7 @@ int process_is_descendant(process_t *proc, pid_t other) {
  * Process-related sysctls
  */
 
-static void copy_proc_user(process_t *proc, void *userbuf) {
+static void copy_proc_user(struct process *proc, void *userbuf) {
 	struct proc_uinfo *uinfo = (struct proc_uinfo*)userbuf;
 
 	uinfo->cpu_usage = load_proc_average(proc);
@@ -734,7 +734,7 @@ static int access_proc_pid(void *oldbuf, size_t *oldlen, const void *newbuf,
 		size_t newlen, int index)
 {
 	if(oldlen != NULL) {
-		process_t *proc;
+		struct process *proc;
 		proc = process_from_pid((pid_t)index);
 
 		if(proc != NULL && *oldlen >= sizeof(struct proc_uinfo) ) {
@@ -776,7 +776,7 @@ static int access_proc_all(void *oldbuf, size_t *oldlen, const void *newbuf,
 
 				cur_uinfo = (struct proc_uinfo*)oldbuf;
 				list_for_each(cur, &_process_list) {
-					copy_proc_user(container_of(cur, process_t, list), cur_uinfo);
+					copy_proc_user(container_of(cur, struct process, list), cur_uinfo);
 					cur_uinfo++;
 					if((void*)cur_uinfo > (oldbuf+size))
 						break;

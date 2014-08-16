@@ -7,14 +7,13 @@
  */
 
 #include <utils/types.h>
-#include <sys/process.h>
 
 struct symbol_entry {
 	uint32 val;
 	const char *name;
 };
 
-struct process_t;
+struct process;
 
 
 /**
@@ -29,7 +28,7 @@ extern void kdebug_oops(const char *errstr);
 /**
  * Display the memory map of the given process.
  */
-void kdebug_print_vmspace(process_t *proc);
+void kdebug_print_vmspace(struct process *proc);
 
 
 /**

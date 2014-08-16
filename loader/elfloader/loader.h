@@ -10,7 +10,7 @@
 #include <sys/process.h>
 #include <fs/file.h>
 
-int elfloader_load(struct file *filep, process_t *dest);
+int elfloader_load(struct file *filep, struct process *dest);
 
 
 #ifdef CONFIG_ELF_SHARED
@@ -18,7 +18,7 @@ int elfloader_load(struct file *filep, process_t *dest);
  * Load a dynamic library in desy address space.
  * For now, only try <SMEM_root>/lib/<soname>.
  */
-int elfloader_load_dynlib(const char *soname, process_t *dest);
+int elfloader_load_dynlib(const char *soname, struct process *dest);
 
 
 /**
@@ -27,7 +27,7 @@ int elfloader_load_dynlib(const char *soname, process_t *dest);
  * NULL is returned if symbol is not found.
  * FIXME if symbol is equal to NULL, it will seem unfound.
  */
-void *elfloader_resolve_dynsymbol(const char *symbol, process_t *target);
+void *elfloader_resolve_dynsymbol(const char *symbol, struct process *target);
 
 
 /**

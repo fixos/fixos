@@ -180,7 +180,7 @@ void test_process() {
 	void *bprocess = &osram_buser;
 	void *eprocess = bprocess + processl;
 
-	process_t *proc1;
+	struct process *proc1;
 	proc1 = process_alloc();
 	printk("_buser %p (@%p)\n_euser %p (@%p)\nus %p (@%p)\n", &buser, &buser, &euser, &euser, &usersize, &usersize);
 	printk("loading %p->%p\n", bprocess, eprocess);
@@ -208,7 +208,7 @@ const char *_init_name = "/mnt/smem/test.elf";
 
 void test_process() {
 	// test for user process load and run
-	inode_t *elf_inode;
+	struct inode *elf_inode;
 	struct file *elf_file;
 
 	// for context switch (tmp)
@@ -220,13 +220,13 @@ void test_process() {
 		while(1);
 	}
 	else {
-		process_t *proc1;
+		struct process *proc1;
 		proc1 = process_alloc();
 		printk("loading init program\n");
 		elfloader_load(elf_file, proc1);
 
 		// set working directory for test proc (root)
-		inode_t *root;
+		struct inode *root;
 		root = vfs_resolve("/");
 		proc1->cwd = root;
 
@@ -273,7 +273,7 @@ void test_vfs() {
 	vfs_create("/dev", "stdin", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 	vfs_create("/dev", "sda", INODE_TYPE_DEV, INODE_FLAG_WRITE, 0x00010000);
 
-	inode_t *curi = vfs_resolve("/mnt/smem/UEDIT/acore.cfg");
+	struct inode *curi = vfs_resolve("/mnt/smem/UEDIT/acore.cfg");
 	
 	if(curi != NULL)
 		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
@@ -282,7 +282,7 @@ void test_vfs() {
 
 	DBG_WAIT;
 
-	inode_t *curi2 = vfs_resolve("/mnt/.././mnt/smem/../../mnt/smem/UEDIT/.././././UEDIT/acore.cfg");
+	struct inode *curi2 = vfs_resolve("/mnt/.././mnt/smem/../../mnt/smem/UEDIT/.././././UEDIT/acore.cfg");
 
 	printk("with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
 
@@ -309,7 +309,7 @@ void test_vfs() {
 	// trying to open /dev/console device
 	printk("Trying to use fx9860-terminal device...\n");
 
-	inode_t *console = vfs_resolve("/dev/console");
+	struct inode *console = vfs_resolve("/dev/console");
 	filep = vfs_open(console, O_RDWR);
 
 	vfs_write(filep, "This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n", sizeof("This is a\nSIMPLE\ntest of TeRmInAl console as a DEVICE.\n")-1); 
@@ -327,7 +327,7 @@ void test_vfs() {
 
 void test_virtual_mem() {
 	/*
-	process_t *mock = process_from_asid(0xFF);
+	struct process *mock = process_from_asid(0xFF);
 
 	vm_page_t page;
 	int magic_integer = 589;
@@ -405,10 +405,10 @@ void print_content(void *addr, int size) {
 }
 
 
-void print_inode_tree(inode_t *from, int tab)
+void print_inode_tree(struct inode *from, int tab)
 {	
 	char space[10] = "         ";
-	inode_t *cur;
+	struct inode *cur;
 	int i;
 	static int wait = 0;
 
@@ -418,7 +418,7 @@ void print_inode_tree(inode_t *from, int tab)
 	cur = vfs_first_child(from);
 	while(cur != NULL)
 	{
-		inode_t *swap = NULL;
+		struct inode *swap = NULL;
 
 		if(cur->type_flags & INODE_TYPE_PARENT) {
 			printk("%s%s/\n", space, cur->name);
@@ -443,7 +443,7 @@ void print_inode_tree(inode_t *from, int tab)
 
 void ls_tree() {
 	// for now, using low level routines
-	inode_t *cur;
+	struct inode *cur;
 	
 	cur = vfs_resolve("/");
 	printk("/\n");

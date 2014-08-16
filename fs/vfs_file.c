@@ -19,7 +19,7 @@ void vfs_file_init() {
 }
 
 
-struct file *vfs_open(inode_t *inode, int flags) {
+struct file *vfs_open(struct inode *inode, int flags) {
 	struct file *filep;
 
 	// check permission and basic conditions
@@ -68,7 +68,7 @@ struct file *vfs_open(inode_t *inode, int flags) {
 }
 
 
-int vfs_open_dev(inode_t *inode, struct file *filep) {
+int vfs_open_dev(struct inode *inode, struct file *filep) {
 	if(inode->type_flags & INODE_TYPE_DEV) {
 		const struct device *dev;
 

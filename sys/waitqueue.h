@@ -7,7 +7,8 @@
  */
 
 #include <utils/list.h>
-#include <sys/process.h>
+
+struct process;
 
 struct wait_queue {
 	struct dlist_head towake;
@@ -15,7 +16,7 @@ struct wait_queue {
 
 struct wait_item {
 	struct dlist_head list;
-	process_t *proc;
+	struct process *proc;
 };
 
 #define WAIT_QUEUE_INIT(name) \

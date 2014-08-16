@@ -53,7 +53,7 @@ struct elf_shared_lib {
 
 struct tty;
 
-struct _process_info {
+struct process {
 	// address on the kernel stack of the process, or NULL if running out of any
 	// interrupt...
 	struct _context_info *acnt;
@@ -73,7 +73,7 @@ struct _process_info {
 	char fdflags[PROCESS_MAX_FILE];
 
 	// current working directory
-	inode_t *cwd;
+	struct inode *cwd;
 	
 	// signal related stuff
 	sigset_t sig_blocked;
@@ -112,13 +112,10 @@ struct _process_info {
 	struct tty *ctty;
 };
 
-typedef struct _process_info process_t;
-
-
 // list of all processes
 extern struct list_head _process_list;
 
-extern process_t *_proc_current;
+extern struct process *_proc_current;
 
 /**
  * Process used as "idle task", executed once scheduler is stared, when no other
@@ -126,13 +123,13 @@ extern process_t *_proc_current;
  * As the scheduler is initialized after all the early init job, the stack
  * used may be the kernel init stack.
  */
-extern process_t _proc_idle_task;
+extern struct process _proc_idle_task;
 
 // iterate for each process in _process_list
 #define for_each_process(cur) \
-	for(cur = container_of(&_process_list, process_t, list); \
-	   	(cur = container_of(cur->list.next, process_t, list)) \
-			!= container_of(& _process_list, process_t, list) ; )
+	for(cur = container_of(&_process_list, struct process, list); \
+	   	(cur = container_of(cur->list.next, struct process, list)) \
+			!= container_of(& _process_list, struct process, list) ; )
 
 // Init process manager
 void process_init();
@@ -140,7 +137,7 @@ void process_init();
 /**
  * Get the process from its PID (NULL if corresponding process doesn't exist)
  */
-process_t *process_from_pid(pid_t pid);
+struct process *process_from_pid(pid_t pid);
 
 
 /**
@@ -156,18 +153,18 @@ void process_release_pid(pid_t pid);
 
 /**
  * Alloc a new process in the process list, returns NULL if an error occurs.
- * In success case, the returned process_t is not fully initialized (pid is an
+ * In success case, the returned struct process is not fully initialized (pid is an
  * auto-incremented value, vm table is zeroed (but *not* freed), and the status
  * is set to PROCESS_STATE_CREATE)
  */
-process_t *process_alloc();
+struct process *process_alloc();
 
 /**
  * Free a process allocated using process_alloc().
  * WARNING : this function do not do any other job, the caller must free
  * unneeded pages, files, and any other things.
  */
-void process_free(process_t *proc);
+void process_free(struct process *proc);
 
 
 /**
@@ -175,13 +172,13 @@ void process_free(process_t *proc);
  * This can be used if the process has terminated, or if we now it will
  * not have to be executed during a long time.
  */
-//void process_release_asid(process_t *proc);
+//void process_release_asid(struct process *proc);
 
 
 /**
  * Return the running process at the time this function is called.
  */
-extern inline process_t *process_get_current() {
+extern inline struct process *process_get_current() {
 	return _proc_current;
 }
 
@@ -191,20 +188,20 @@ extern inline process_t *process_get_current() {
  * process context_info.
  * ASID and other things are changed before the real context jump is done.
  */
-void process_contextjmp(process_t *proc);
+void process_contextjmp(struct process *proc);
 
 
 /**
  * Terminate a process (becoming a zombie), and store the given status as the
  * error/exits value returned by kill()-like syscalls.
  */
-void process_terminate(process_t *proc, int status);
+void process_terminate(struct process *proc, int status);
 
 /**
  * Check if a given process is a descendant of process with given pid (child of
  * this process, or child of a descendant of this process).
  */
-int process_is_descendant(process_t *proc, pid_t other);
+int process_is_descendant(struct process *proc, pid_t other);
 
 /**
  * fork() syscall implementation, duplicate any memory area, create a kernel stack

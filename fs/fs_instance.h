@@ -7,13 +7,11 @@
 
 #include "inode.h"
 
-struct _file_system;
+struct file_system;
 
-struct _fs_instance {
-	const struct _file_system *fs;
+struct fs_instance {
+	const struct file_system *fs;
 	void *instd; // instance data, may be NULL for some FS
 };
-
-typedef struct _fs_instance fs_instance_t;
 
 #endif //_FS_FS_INSTANCE_H

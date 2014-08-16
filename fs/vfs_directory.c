@@ -11,7 +11,7 @@ static struct file_operations vfs_dir_fop = {
 
 
 
-int vfs_dir_open(inode_t *inode, struct file *filep) {
+int vfs_dir_open(struct inode *inode, struct file *filep) {
 	if(inode->type_flags & INODE_TYPE_PARENT) {
 		filep->pos = 0;
 		filep->op = &vfs_dir_fop;
@@ -42,12 +42,12 @@ int vfs_dir_getdents(struct file *filep, struct fixos_dirent *buf, size_t len) {
 	// until len is reached.
 	
 	if(filep->inode != NULL && (filep->inode->type_flags & INODE_TYPE_PARENT)) {
-		inode_t *cur;
+		struct inode *cur;
 		int curentry;
 
 		cur = vfs_first_child(filep->inode);
 		for(curentry=0; curentry < filep->pos && cur != NULL; curentry++) {
-			inode_t *swap = cur;
+			struct inode *swap = cur;
 			cur = vfs_next_sibling(cur);
 			vfs_release_inode(swap);
 		}
@@ -62,7 +62,7 @@ int vfs_dir_getdents(struct file *filep, struct fixos_dirent *buf, size_t len) {
 			while(cur != NULL) {
 				int namelen;
 				size_t dirlen;
-				inode_t *swap;
+				struct inode *swap;
 
 				// TODO strlen()
 				for(namelen=0; cur->name[namelen]!='\0'; namelen++);

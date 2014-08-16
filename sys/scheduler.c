@@ -3,6 +3,7 @@
 #include <sys/interrupt.h>
 #include <utils/log.h>
 #include <sys/stimer.h>
+#include <sys/process.h>
 
 #include <arch/generic/process.h>
 
@@ -14,7 +15,7 @@
 // for now it's a realy stupid implementation : no priority, no FIFO...
 // a simple array contains all tasks (or NULL if no task), and each one is
 // executed after the previous...
-static task_t *_tasks[SCHED_MAX_TASKS];
+static struct process *_tasks[SCHED_MAX_TASKS];
 
 static int _cur_task;
 
@@ -51,7 +52,7 @@ void sched_init() {
 }
 
 
-void sched_add_task(task_t *task) {
+void sched_add_task(struct process *task) {
 	// look for the first slot in task list
 	int i;
 
@@ -159,7 +160,7 @@ int sched_preempt_level() {
 }
 
 
-void sched_wake_up(process_t *proc) {
+void sched_wake_up(struct process *proc) {
 	if(proc->state == PROCESS_STATE_INTERRUPTIBLE ||
 			proc->state == PROCESS_STATE_UNINTERRUPTIBLE)
 	{
@@ -177,7 +178,7 @@ void sched_wake_up(process_t *proc) {
 
 
 
-void sched_stop_proc(process_t *proc, int sig) {
+void sched_stop_proc(struct process *proc, int sig) {
 	// for now, just change the process state
 	(void)sig;
 	proc->state = PROCESS_STATE_STOPPED;
@@ -188,15 +189,15 @@ void sched_stop_proc(process_t *proc, int sig) {
 
 
 
-void sched_cont_proc(process_t *proc) {
+void sched_cont_proc(struct process *proc) {
 	proc->state = PROCESS_STATE_RUNNING;
 	sched_wake_up(proc);
 }
 
 
-process_t *sched_find_pid(pid_t pid) {
+struct process *sched_find_pid(pid_t pid) {
 	int i;
-	process_t *ret;
+	struct process *ret;
 
 	ret = NULL;
 	for(i=0; i<SCHED_MAX_TASKS && ret==NULL; i++) {
@@ -255,16 +256,16 @@ pid_t sys_wait(int *status) {
 
 
 static void nanosleep_timeout(void *data) {
-	process_t *towake;
+	struct process *towake;
 
-	towake = (process_t*)data;
+	towake = (struct process*)data;
 	sched_wake_up(towake);
 }
 
 int sys_nanosleep(const struct hr_time *req, struct hr_time *rem) {
 	(void)rem;
 	if(req != NULL) {
-		process_t *cur;
+		struct process *cur;
 		clock_t ticks;
 
 		ticks = req->sec * TICK_HZ + req->nano/(1000*1000*1000/TICK_HZ);

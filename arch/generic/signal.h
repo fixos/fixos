@@ -1,7 +1,7 @@
 #ifndef _ARCH_GENERIC_SIGNAL_H
 #define _ARCH_GENERIC_SIGNAL_H
 
-struct _process_info;
+struct process;
 
 /**
  * Save the user-mode context, and set the saved context to the signal handler
@@ -9,7 +9,7 @@ struct _process_info;
  * The user stack is used to save previous context, and a trampoline is set to
  * do appropriate cleanup after the end of the signal handler.
  */
-void arch_signal_prepare_sigcontext(struct _process_info *proc,
+void arch_signal_prepare_sigcontext(struct process *proc,
 		struct sigaction *action, int sig);
 
 
@@ -17,7 +17,7 @@ void arch_signal_prepare_sigcontext(struct _process_info *proc,
  * Restore the user-mode context saved by arch_signal_prepare_sigcontext(),
  * assuming the user stack is preserved...
  */
-void arch_signal_restore_sigcontext(struct _process_info *proc);
+void arch_signal_restore_sigcontext(struct process *proc);
 
 
 

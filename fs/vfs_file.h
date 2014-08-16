@@ -45,13 +45,13 @@ extern inline void vfs_file_free(struct file *filep) {
  * Try to open the given inode as a file, with given mode and other flags.
  * Returns the new file data structure if success, NULL otherwise.
  */
-struct file *vfs_open(inode_t *inode, int flags);
+struct file *vfs_open(struct inode *inode, int flags);
 
 /**
  * Generic function for device openning, designed to be called by filesystem specific
  * implementations.
  */
-int vfs_open_dev(inode_t *inode, struct file *filep);
+int vfs_open_dev(struct inode *inode, struct file *filep);
 
 
 /**
