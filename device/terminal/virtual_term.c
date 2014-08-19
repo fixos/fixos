@@ -15,6 +15,10 @@
 #define VT_INPUT_BUFFER		256
 #define VT_LINE_BUFFER		128
 
+#define VT_100_NO_ESCAPE_CODE 0 
+#define VT_100_ESCAPE_CHARACTER_FOUND 1 
+#define VT_100_PARSING_ESCAPE_CODE 2 
+
 // define character that must be written as "^<char>" escaped form, like ^C
 #define IS_ESC_CTRL(c) \
 	((c)>=0 && (c)<0x20 && (c)!='\n')
@@ -107,16 +111,175 @@ void vt_init() {
 	}
 }
 
+// TODO export these static variables to the terminal structure
+static unsigned char vt100_discovery_state = VT_100_NO_ESCAPE_CODE;
+static unsigned char buffer[8] = {0};
+static unsigned char buffer_index = 0;
+
+static unsigned char using_arguments = 0;
+static uint32 arguments[2] = {0};
+static uint32 arguments_index = 0;
+
+static void vt_clear_escape_code(struct vt_instance *term) {
+	int i;
+	vt100_discovery_state = VT_100_NO_ESCAPE_CODE;
+	for(i = 0; i < 8; i++)
+		// TODO print char
+		buffer[i] = 0;
+
+	buffer_index = 0;
+
+	using_arguments = 0;
+	for(i = 0; i < 2; i++)
+		arguments[i] = 0;
+	arguments_index = 0;
+
+}
+
+static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) {
+	switch(str_char) {
+		// Simple escape codes
+		case 'c':
+		// TODO reset terminal setup
+		break;
+		case '(':
+		// TODO Set default font
+		break;
+		case ')':
+		// TODO Set alternative font
+		break;
+		case '7':
+		// TODO Save position and attributes(?). NO arguments
+		break;
+		case '8':
+		// TODO Restores position and attributes(?). NO arguments
+		break;
+		case 'D':
+		// TODO Scroll down display one line
+		break;
+		case 'M':
+		// TODO Scroll up display one line
+		break;
+		case 'H':
+		// TODO Set tab at this position (?)
+		break;
+		case '[':
+			buffer[buffer_index] = str_char;
+			buffer_index ++;
+			return 0;
+		break;
+	}
+	return 1;
+}
+
+static void vt_parse_escape_code(struct vt_instance *term, char str_char) {
+	switch(str_char) {
+		case 'n':
+		// TODO Device status related
+		break;
+		case 'h':
+		// TODO Line Wrap. Beware, the first argument is always a 7
+		break;
+		case 'H':
+		case 'f':
+		// TODO Cursor Home. IF both arguments are given, go to position or go to cursor home
+		break;
+		case 'A':
+		// TODO Cursor up. THe argument is optionnal (default : 1)			
+		break;
+		case 'B':
+		// TODO Cursor down. THe argument is optionnal (default : 1)			
+		break;
+		case 'C':
+		// TODO Cursor right. THe argument is optionnal (default : 1)			
+		break;
+		case 'D':
+		// TODO Cursor left. THe argument is optionnal (default : 1)			
+		break;
+		case 's':
+		// TODO Save position. NO arguments
+		break;
+		case 'u':
+		// TODO Restores position. NO arguments
+		break;
+		case 'r':
+		// TODO Enable scrolling for the whole screen. If two arguments are given (start;end), enable scrolling from {start} to {end}
+		break;
+		case 'g':
+		// TODO Clear tab at this position. If an argument is given and == 3, clear all tabs
+		break;
+		case 'K':
+		// TODO Clear the line from the position to the end. If an argument is given and == 1, clear to the begin instead.
+		// If an argument is given and == 1, clear the whole line instead.			
+		break;
+		case 'J':
+		// TODO Erase the screen down to the bottom from the current line. If an argument is given and == 1, erase up to the top instead.
+		// If an argument is given and == 2, clear the whole screen with the background color and go to cursor home.			
+		break;
+		case 'p':
+		// TODO Bind a string to a keyboard key
+		break;
+		case 'm':
+		// TODO COLORS ANd ATTRIBUTES
+		break;
+	}	
+}
+
+static void vt_read_escape_code(struct vt_instance *term, char str_char) {
+	if(vt100_discovery_state == VT_100_ESCAPE_CHARACTER_FOUND) {
+		// Avoid parsing <ESC>
+		vt100_discovery_state = VT_100_PARSING_ESCAPE_CODE;
+		return;
+	}
+	if(buffer_index == 1 && vt_parse_simple_escape_code(term, str_char) == 1) {
+			vt_clear_escape_code(term);
+			return;
+	}
+	// We're on the bigger escapes codes
+	if((str_char >= '0' && str_char <= '9') || str_char == ';') {
+		// We're adding the arguments
+		buffer[buffer_index] = str_char;
+
+		using_arguments = 1;
+
+		if(str_char == ';') {
+			arguments_index++;
+			if(arguments_index == VT_100_PARSING_ESCAPE_CODE) {
+				vt_clear_escape_code(term);
+				return;
+			}
+		} else {
+			// Setting the digit to arguments
+			arguments[arguments_index]*=10;
+			arguments[arguments_index] += str_char - '0';
+		}
+	}
+	else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
+		// If we have reached the end of an escape code
+		vt_parse_escape_code(term, str_char);
+		vt_clear_escape_code(term);
+	}
+	if(++buffer_index >= 8);
+		vt_clear_escape_code(term);
+}
 
 // function used to print characters
 static void vt_term_print(struct vt_instance *term, const void *source, size_t len) {
-	//TODO future extensions to support more VT100-like escape codes
+	// TODO future extensions to support more VT100-like escape codes
 	
+
 	int i;
 	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
-		if(str[i] == '\n') {
+		if(str[i] == 0x1B) {
+			if(vt100_discovery_state == 0) {
+				vt100_discovery_state = VT_100_ESCAPE_CHARACTER_FOUND;
+				buffer[0] = str[i];
+				buffer_index = 1;
+			}
+		}
+		else if(str[i] == '\n') {
 			// remove the current cursor display before line feed
 			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
 			term->posx = 0;
@@ -127,16 +290,21 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 			_tdisp->print_char(& term->disp, term->posx, term->posy, str[i]);
 			term->posx++;
 		}
+		if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
+			// We aren't in a vt100 escape code
+			if(term->posx >= _tdisp->cwidth) {
+				term->posx = 0;
+				term->posy++;
+			}
 
-		if(term->posx >= _tdisp->cwidth) {
-			term->posx = 0;
-			term->posy++;
+			
+			if(term->posy >= _tdisp->cheight) {
+				_tdisp->scroll(&term->disp);
+				term->posy = _tdisp->cheight - 1;
+			}			
 		}
-
-		
-		if(term->posy >= _tdisp->cheight) {
-			_tdisp->scroll(&term->disp);
-			term->posy = _tdisp->cheight - 1;
+		else {
+			vt_read_escape_code(term, str[i]);
 		}
 	}
 
