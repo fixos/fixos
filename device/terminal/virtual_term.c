@@ -19,9 +19,17 @@
 #define VT_100_ESCAPE_CHARACTER_FOUND 1 
 #define VT_100_PARSING_ESCAPE_CODE 2 
 
+#define VT_100_CONTINUE_PARSING 0
+#define VT_100_END_PARSING 1
+#define VT_100_PARSING_ERROR 2
+
+#define VT_100_FLUSH_BUFFER 1
+#define VT_100_DONT_FLUSH_BUFFER 2
+
+
 // define character that must be written as "^<char>" escaped form, like ^C
 #define IS_ESC_CTRL(c) \
-	((c)>=0 && (c)<0x20 && (c)!='\n')
+	((c)>=0 && (c)<0x20 && (c)!='\n' && (c) != 0x1B)
 
 struct vt_instance {
 	struct tdisp_data disp;
@@ -120,12 +128,21 @@ static unsigned char using_arguments = 0;
 static uint32 arguments[2] = {0};
 static uint32 arguments_index = 0;
 
-static void vt_clear_escape_code(struct vt_instance *term) {
+static void vt_clear_escape_code(struct vt_instance *term, int should_print_buffer) {
 	int i;
 	vt100_discovery_state = VT_100_NO_ESCAPE_CODE;
-	for(i = 0; i < 8; i++)
+	for(i = 0; i < buffer_index; i++) {
+		if(should_print_buffer == VT_100_FLUSH_BUFFER) {
+			_tdisp->print_char(& term->disp, term->posx, term->posy, buffer[i]);
+			term->posx++;
+			if(term->posx >= _tdisp->cwidth) {
+				term->posx = 0;
+				term->posy++;
+			}
+		}
 		// TODO print char
 		buffer[i] = 0;
+	}
 
 	buffer_index = 0;
 
@@ -139,113 +156,147 @@ static void vt_clear_escape_code(struct vt_instance *term) {
 static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) {
 	switch(str_char) {
 		// Simple escape codes
-		case 'c':
+	case 'c':
 		// TODO reset terminal setup
+		return VT_100_END_PARSING;
 		break;
-		case '(':
+	case '(':
 		// TODO Set default font
+		return VT_100_END_PARSING;
 		break;
-		case ')':
+	case ')':
 		// TODO Set alternative font
+		return VT_100_END_PARSING;
 		break;
-		case '7':
+	case '7':
 		// TODO Save position and attributes(?). NO arguments
+		return VT_100_END_PARSING;
 		break;
-		case '8':
+	case '8':
 		// TODO Restores position and attributes(?). NO arguments
+		return VT_100_END_PARSING;
 		break;
-		case 'D':
+	case 'D':
 		// TODO Scroll down display one line
+		return VT_100_END_PARSING;
 		break;
-		case 'M':
+	case 'M':
 		// TODO Scroll up display one line
+		return VT_100_END_PARSING;
 		break;
-		case 'H':
+	case 'H':
 		// TODO Set tab at this position (?)
+			return 0;
+		return VT_100_END_PARSING;
 		break;
-		case '[':
+	case '[':
 			buffer[buffer_index] = str_char;
 			buffer_index ++;
-			return 0;
+		return VT_100_CONTINUE_PARSING;
 		break;
 	}
-	return 1;
+	return VT_100_PARSING_ERROR;
 }
 
-static void vt_parse_escape_code(struct vt_instance *term, char str_char) {
+static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 	switch(str_char) {
-		case 'n':
+	case 'n':
 		// TODO Device status related
+		return VT_100_END_PARSING;
 		break;
-		case 'h':
+	case 'h':
 		// TODO Line Wrap. Beware, the first argument is always a 7
+		return VT_100_END_PARSING;
 		break;
-		case 'H':
-		case 'f':
+	case 'H':
+	case 'f':
 		// TODO Cursor Home. IF both arguments are given, go to position or go to cursor home
+		return VT_100_END_PARSING;
 		break;
-		case 'A':
+	case 'A':
 		// TODO Cursor up. THe argument is optionnal (default : 1)			
+		return VT_100_END_PARSING;
 		break;
-		case 'B':
+	case 'B':
 		// TODO Cursor down. THe argument is optionnal (default : 1)			
+		return VT_100_END_PARSING;
 		break;
-		case 'C':
+	case 'C':
 		// TODO Cursor right. THe argument is optionnal (default : 1)			
+		return VT_100_END_PARSING;
 		break;
-		case 'D':
+	case 'D':
 		// TODO Cursor left. THe argument is optionnal (default : 1)			
+		return VT_100_END_PARSING;
 		break;
-		case 's':
+	case 's':
 		// TODO Save position. NO arguments
+		return VT_100_END_PARSING;
 		break;
-		case 'u':
+	case 'u':
 		// TODO Restores position. NO arguments
+		return VT_100_END_PARSING;
 		break;
-		case 'r':
+	case 'r':
 		// TODO Enable scrolling for the whole screen. If two arguments are given (start;end), enable scrolling from {start} to {end}
+		return VT_100_END_PARSING;
 		break;
-		case 'g':
+	case 'g':
 		// TODO Clear tab at this position. If an argument is given and == 3, clear all tabs
+		return VT_100_END_PARSING;
 		break;
-		case 'K':
+	case 'K':
 		// TODO Clear the line from the position to the end. If an argument is given and == 1, clear to the begin instead.
 		// If an argument is given and == 1, clear the whole line instead.			
+		return VT_100_END_PARSING;
 		break;
-		case 'J':
+	case 'J':
 		// TODO Erase the screen down to the bottom from the current line. If an argument is given and == 1, erase up to the top instead.
 		// If an argument is given and == 2, clear the whole screen with the background color and go to cursor home.			
+		return VT_100_END_PARSING;
 		break;
-		case 'p':
+	case 'p':
 		// TODO Bind a string to a keyboard key
+		return VT_100_END_PARSING;
 		break;
-		case 'm':
+	case 'm':
 		// TODO COLORS ANd ATTRIBUTES
+		return VT_100_END_PARSING;
 		break;
 	}	
+	return VT_100_PARSING_ERROR;
 }
 
 static void vt_read_escape_code(struct vt_instance *term, char str_char) {
+	int simple_parsing_result;
 	if(vt100_discovery_state == VT_100_ESCAPE_CHARACTER_FOUND) {
 		// Avoid parsing <ESC>
 		vt100_discovery_state = VT_100_PARSING_ESCAPE_CODE;
 		return;
 	}
-	if(buffer_index == 1 && vt_parse_simple_escape_code(term, str_char) == 1) {
-			vt_clear_escape_code(term);
+	buffer[buffer_index] = str_char;
+	buffer_index++;
+
+	simple_parsing_result = vt_parse_simple_escape_code(term, str_char);
+
+	if(buffer_index == 1 && simple_parsing_result != VT_100_CONTINUE_PARSING) {
+			// If we have to sotp parsing, we have to know if a parsing error happened. If so, we have to print the buffer
+			if(simple_parsing_result == VT_100_PARSING_ERROR)
+				vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
+			else
+				vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
 			return;
 	}
 	// We're on the bigger escapes codes
 	if((str_char >= '0' && str_char <= '9') || str_char == ';') {
 		// We're adding the arguments
-		buffer[buffer_index] = str_char;
 
 		using_arguments = 1;
 
 		if(str_char == ';') {
 			arguments_index++;
 			if(arguments_index == VT_100_PARSING_ESCAPE_CODE) {
-				vt_clear_escape_code(term);
+				vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 				return;
 			}
 		} else {
@@ -256,11 +307,14 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 	}
 	else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
 		// If we have reached the end of an escape code
-		vt_parse_escape_code(term, str_char);
-		vt_clear_escape_code(term);
+		int parsing_result = vt_parse_escape_code(term, str_char);
+		if(parsing_result == VT_100_PARSING_ERROR)
+			vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
+		else
+			vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
 	}
-	if(++buffer_index >= 8);
-		vt_clear_escape_code(term);
+	if(buffer_index > 7);
+		vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 }
 
 // function used to print characters
@@ -273,25 +327,25 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 
 	for(i=0; i<len; i++) {
 		if(str[i] == 0x1B) {
-			if(vt100_discovery_state == 0) {
+			if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
 				vt100_discovery_state = VT_100_ESCAPE_CHARACTER_FOUND;
 				buffer[0] = str[i];
 				buffer_index = 1;
 			}
 		}
-		else if(str[i] == '\n') {
-			// remove the current cursor display before line feed
-			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
-			term->posx = 0;
-			term->posy++;
-		}
-		else if(str[i] == '\r') term->posx=0;
-		else {
-			_tdisp->print_char(& term->disp, term->posx, term->posy, str[i]);
-			term->posx++;
-		}
 		if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
 			// We aren't in a vt100 escape code
+			if(str[i] == '\n') {
+				// remove the current cursor display before line feed
+				_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+				term->posx = 0;
+				term->posy++;
+			}
+			else if(str[i] == '\r') term->posx=0;
+			else {
+				_tdisp->print_char(& term->disp, term->posx, term->posy, str[i]);
+				term->posx++;
+			}
 			if(term->posx >= _tdisp->cwidth) {
 				term->posx = 0;
 				term->posy++;

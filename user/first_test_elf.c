@@ -645,6 +645,13 @@ static void test_tty_master(int fdout, int fdtty) {
 }
 
 
+static void test_tty_vt100(int fdout) {
+	write_const(fdout, "VT 100 escape code test.\n");
+	write_const(fdout, "ABCD\x1Bm\n");
+	write_const(fdout, "ABCD\x1BM\n");
+	write_const(fdout, "== END ==\n");
+}
+
 //char nawak[64*1024] = {};
 
 int usertest_main(int argc, char **argv) {
@@ -685,7 +692,7 @@ int usertest_main(int argc, char **argv) {
 		chdir("/mnt/smem");
 		test_dirent(tty2, ".");
 		test_dirent(tty2, "bf");
-
+		test_tty_vt100(tty2);
 	//	wait(NULL);
 
 		test_copy_files(tty2, tty1, 1);
