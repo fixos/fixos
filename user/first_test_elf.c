@@ -646,10 +646,7 @@ static void test_tty_master(int fdout, int fdtty) {
 
 
 static void test_tty_vt100(int fdout) {
-	write_const(fdout, "VT 100 escape code test.\n");
-	write_const(fdout, "ABCD\x1Bm\n");
-	write_const(fdout, "ABCD\x1BM\n");
-	write_const(fdout, "== END ==\n");
+	write_const(fdout, "ABCD\x1B[A\n");
 }
 
 //char nawak[64*1024] = {};

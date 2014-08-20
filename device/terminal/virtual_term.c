@@ -186,12 +186,9 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
 		break;
 	case 'H':
 		// TODO Set tab at this position (?)
-			return 0;
 		return VT_100_END_PARSING;
 		break;
 	case '[':
-			buffer[buffer_index] = str_char;
-			buffer_index ++;
 		return VT_100_CONTINUE_PARSING;
 		break;
 	}
@@ -268,52 +265,57 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 }
 
 static void vt_read_escape_code(struct vt_instance *term, char str_char) {
-	int simple_parsing_result;
+	
+	buffer[buffer_index] = str_char;
+	buffer_index++;
+
 	if(vt100_discovery_state == VT_100_ESCAPE_CHARACTER_FOUND) {
 		// Avoid parsing <ESC>
 		vt100_discovery_state = VT_100_PARSING_ESCAPE_CODE;
 		return;
 	}
-	buffer[buffer_index] = str_char;
-	buffer_index++;
 
-	simple_parsing_result = vt_parse_simple_escape_code(term, str_char);
+	if(buffer_index == 2) {
+		int simple_parsing_result = vt_parse_simple_escape_code(term, str_char);
 
-	if(buffer_index == 1 && simple_parsing_result != VT_100_CONTINUE_PARSING) {
+		if(simple_parsing_result != VT_100_CONTINUE_PARSING) {
 			// If we have to sotp parsing, we have to know if a parsing error happened. If so, we have to print the buffer
 			if(simple_parsing_result == VT_100_PARSING_ERROR)
 				vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 			else
 				vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
 			return;
-	}
-	// We're on the bigger escapes codes
-	if((str_char >= '0' && str_char <= '9') || str_char == ';') {
-		// We're adding the arguments
-
-		using_arguments = 1;
-
-		if(str_char == ';') {
-			arguments_index++;
-			if(arguments_index == VT_100_PARSING_ESCAPE_CODE) {
-				vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
-				return;
-			}
-		} else {
-			// Setting the digit to arguments
-			arguments[arguments_index]*=10;
-			arguments[arguments_index] += str_char - '0';
 		}
 	}
-	else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
-		// If we have reached the end of an escape code
-		int parsing_result = vt_parse_escape_code(term, str_char);
-		if(parsing_result == VT_100_PARSING_ERROR)
-			vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
-		else
-			vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
+	else {
+		// We're on the bigger escapes codes
+		if((str_char >= '0' && str_char <= '9') || str_char == ';') {
+			// We're adding the arguments
+
+			using_arguments = 1;
+
+			if(str_char == ';') {
+				arguments_index++;
+				if(arguments_index == 2) {
+					vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
+					return;
+				}
+			} else {
+				// Setting the digit to arguments
+				arguments[arguments_index]*=10;
+				arguments[arguments_index] += str_char - '0';
+			}
+		}
+		else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
+			// If we have reached the end of an escape code
+			int parsing_result = vt_parse_escape_code(term, str_char);
+			if(parsing_result == VT_100_PARSING_ERROR)
+				vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
+			else
+				vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
+		}		
 	}
-	if(buffer_index > 7);
+	if(buffer_index > 7)
 		vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 }
 
@@ -329,8 +331,6 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 		if(str[i] == 0x1B) {
 			if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
 				vt100_discovery_state = VT_100_ESCAPE_CHARACTER_FOUND;
-				buffer[0] = str[i];
-				buffer_index = 1;
 			}
 		}
 		if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
