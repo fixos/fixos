@@ -207,23 +207,63 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'H':
 	case 'f':
-		// TODO Cursor Home. IF both arguments are given, go to position or go to cursor home
+		if(using_arguments) {
+			term->posx = arguments[0];
+			term->posy = arguments[1];
+		}
+		else {
+			term->posx = 0;
+			term->posy = 0;
+		}
 		return VT_100_END_PARSING;
 		break;
 	case 'A':
-		// TODO Cursor up. THe argument is optionnal (default : 1)			
+		// Cursor up
+		if(using_arguments) {
+			if(term->posy < arguments[0])
+				term->posy = 0;
+			else
+				term->posy -= arguments[0];
+		}
+		else if(term->posy > 0)
+			term->posy--;
+
 		return VT_100_END_PARSING;
 		break;
 	case 'B':
-		// TODO Cursor down. THe argument is optionnal (default : 1)			
+		// Cursor down
+		if(using_arguments) {
+			if(term->posy + arguments[0] >= term->cheight)
+				term->posy = term->cheight - 1;
+			else
+				term->posy += arguments[0];
+		}
+		else if(term->posy < term->cheight - 1)
+			term->posy++;
 		return VT_100_END_PARSING;
 		break;
 	case 'C':
-		// TODO Cursor right. THe argument is optionnal (default : 1)			
+		// Cursor left
+		if(using_arguments) {
+			if(term->posx < arguments[0])
+				term->posx = 0;
+			else
+				term->posx -= arguments[0];
+		}
+		else if(term->posx > 0)
+			term->posx--;
 		return VT_100_END_PARSING;
 		break;
 	case 'D':
-		// TODO Cursor left. THe argument is optionnal (default : 1)			
+		// Cursor right
+		if(using_arguments) {
+			if(term->posx + arguments[0] >= term->cwidth)
+				term->posx = term->width - 1;
+			else
+				term->posx += arguments[0];
+		}
+		else if(term->posx < term->width - 1)
+			term->posx++;
 		return VT_100_END_PARSING;
 		break;
 	case 's':

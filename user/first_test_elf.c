@@ -646,7 +646,8 @@ static void test_tty_master(int fdout, int fdtty) {
 
 
 static void test_tty_vt100(int fdout) {
-	write_const(fdout, "ABCD\x1B[A\n");
+	write_const(fdout, "ABCD\x1B[HDEF\n");
+	write_const(fdout, "\x1B[5;2H  LOL  \n");
 }
 
 //char nawak[64*1024] = {};
