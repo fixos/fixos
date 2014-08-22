@@ -31,6 +31,16 @@
 #define IS_ESC_CTRL(c) \
 	((c)>=0 && (c)<0x20 && (c)!='\n' && (c) != 0x1B)
 
+struct vt100_esc_state {
+	unsigned char discovery_state;
+	unsigned char buffer[8];
+	unsigned char buffer_index;
+
+	unsigned char using_arguments;
+	uint32 arguments[2];
+	uint32 arguments_index;
+};
+
 struct vt_instance {
 	struct tdisp_data disp;
 	int posx;
@@ -46,6 +56,8 @@ struct vt_instance {
 	struct wait_queue wqueue;
 
 	struct tty tty;
+
+	struct vt100_esc_state esc_state;
 };
 
 
@@ -93,7 +105,7 @@ static const struct tty_ops _vt_tty_ops = {
 
 
 void vt_init() {
-	int i;
+	int i,j;
 
 	_vt_current = -1;
 
@@ -116,24 +128,25 @@ void vt_init() {
 		_vts[i].tty.fpgid = 0;
 		_vts[i].tty.private = & _vts[i];
 		_vts[i].tty.ops = &_vt_tty_ops;
+
+		_vts[i].esc_state.discovery_state = VT_100_NO_ESCAPE_CODE;
+		for(j = 0; j < 8; j++)
+			_vts[i].esc_state.buffer[i] = 0;
+		_vts[i].esc_state.buffer_index = 0;
+		_vts[i].esc_state.using_arguments = 0;
+		for(j = 0; j < 2; j++)
+			_vts[i].esc_state.arguments[i] = 0;
+		_vts[i].esc_state.arguments_index = 0;
+
 	}
 }
 
-// TODO export these static variables to the terminal structure
-static unsigned char vt100_discovery_state = VT_100_NO_ESCAPE_CODE;
-static unsigned char buffer[8] = {0};
-static unsigned char buffer_index = 0;
-
-static unsigned char using_arguments = 0;
-static uint32 arguments[2] = {0};
-static uint32 arguments_index = 0;
-
 static void vt_clear_escape_code(struct vt_instance *term, int should_print_buffer) {
 	int i;
-	vt100_discovery_state = VT_100_NO_ESCAPE_CODE;
-	for(i = 0; i < buffer_index; i++) {
+	term->esc_state.discovery_state = VT_100_NO_ESCAPE_CODE;
+	for(i = 0; i < term->esc_state.buffer_index; i++) {
 		if(should_print_buffer == VT_100_FLUSH_BUFFER) {
-			_tdisp->print_char(& term->disp, term->posx, term->posy, buffer[i]);
+			_tdisp->print_char(& term->disp, term->posx, term->posy, term->esc_state.buffer[i]);
 			term->posx++;
 			if(term->posx >= _tdisp->cwidth) {
 				term->posx = 0;
@@ -141,15 +154,15 @@ static void vt_clear_escape_code(struct vt_instance *term, int should_print_buff
 			}
 		}
 		// TODO print char
-		buffer[i] = 0;
+		term->esc_state.buffer[i] = 0;
 	}
 
-	buffer_index = 0;
+	term->esc_state.buffer_index = 0;
 
-	using_arguments = 0;
+	term->esc_state.using_arguments = 0;
 	for(i = 0; i < 2; i++)
-		arguments[i] = 0;
-	arguments_index = 0;
+		term->esc_state.arguments[i] = 0;
+	term->esc_state.arguments_index = 0;
 
 }
 
@@ -207,9 +220,9 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'H':
 	case 'f':
-		if(using_arguments) {
-			term->posx = arguments[0];
-			term->posy = arguments[1];
+		if(term->esc_state.using_arguments) {
+			term->posx = term->esc_state.arguments[0];
+			term->posy = term->esc_state.arguments[1];
 		}
 		else {
 			term->posx = 0;
@@ -219,11 +232,11 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'A':
 		// Cursor up
-		if(using_arguments) {
-			if(term->posy < arguments[0])
+		if(term->esc_state.using_arguments) {
+			if(term->posy < term->esc_state.arguments[0])
 				term->posy = 0;
 			else
-				term->posy -= arguments[0];
+				term->posy -= term->esc_state.arguments[0];
 		}
 		else if(term->posy > 0)
 			term->posy--;
@@ -232,23 +245,23 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'B':
 		// Cursor down
-		if(using_arguments) {
-			if(term->posy + arguments[0] >= term->cheight)
-				term->posy = term->cheight - 1;
+		if(term->esc_state.using_arguments) {
+			if(term->posy + term->esc_state.arguments[0] >= _tdisp->cheight)
+				term->posy = _tdisp->cheight - 1;
 			else
-				term->posy += arguments[0];
+				term->posy += term->esc_state.arguments[0];
 		}
-		else if(term->posy < term->cheight - 1)
+		else if(term->posy < _tdisp->cheight - 1)
 			term->posy++;
 		return VT_100_END_PARSING;
 		break;
 	case 'C':
 		// Cursor left
-		if(using_arguments) {
-			if(term->posx < arguments[0])
+		if(term->esc_state.using_arguments) {
+			if(term->posx < term->esc_state.arguments[0])
 				term->posx = 0;
 			else
-				term->posx -= arguments[0];
+				term->posx -= term->esc_state.arguments[0];
 		}
 		else if(term->posx > 0)
 			term->posx--;
@@ -256,13 +269,13 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'D':
 		// Cursor right
-		if(using_arguments) {
-			if(term->posx + arguments[0] >= term->cwidth)
-				term->posx = term->width - 1;
+		if(term->esc_state.using_arguments) {
+			if(term->posx + term->esc_state.arguments[0] >= _tdisp->cwidth)
+				term->posx = _tdisp->cwidth - 1;
 			else
-				term->posx += arguments[0];
+				term->posx += term->esc_state.arguments[0];
 		}
-		else if(term->posx < term->width - 1)
+		else if(term->posx < _tdisp->cwidth - 1)
 			term->posx++;
 		return VT_100_END_PARSING;
 		break;
@@ -306,16 +319,16 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 
 static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 	
-	buffer[buffer_index] = str_char;
-	buffer_index++;
+	term->esc_state.buffer[term->esc_state.buffer_index] = str_char;
+	term->esc_state.buffer_index++;
 
-	if(vt100_discovery_state == VT_100_ESCAPE_CHARACTER_FOUND) {
+	if(term->esc_state.discovery_state == VT_100_ESCAPE_CHARACTER_FOUND) {
 		// Avoid parsing <ESC>
-		vt100_discovery_state = VT_100_PARSING_ESCAPE_CODE;
+		term->esc_state.discovery_state = VT_100_PARSING_ESCAPE_CODE;
 		return;
 	}
 
-	if(buffer_index == 2) {
+	if(term->esc_state.buffer_index == 2) {
 		int simple_parsing_result = vt_parse_simple_escape_code(term, str_char);
 
 		if(simple_parsing_result != VT_100_CONTINUE_PARSING) {
@@ -332,18 +345,18 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 		if((str_char >= '0' && str_char <= '9') || str_char == ';') {
 			// We're adding the arguments
 
-			using_arguments = 1;
+			term->esc_state.using_arguments = 1;
 
 			if(str_char == ';') {
-				arguments_index++;
-				if(arguments_index == 2) {
+				term->esc_state.arguments_index++;
+				if(term->esc_state.arguments_index == 2) {
 					vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 					return;
 				}
 			} else {
 				// Setting the digit to arguments
-				arguments[arguments_index]*=10;
-				arguments[arguments_index] += str_char - '0';
+				term->esc_state.arguments[term->esc_state.arguments_index]*=10;
+				term->esc_state.arguments[term->esc_state.arguments_index] += str_char - '0';
 			}
 		}
 		else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
@@ -355,7 +368,7 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 				vt_clear_escape_code(term, VT_100_DONT_FLUSH_BUFFER);
 		}		
 	}
-	if(buffer_index > 7)
+	if(term->esc_state.buffer_index > 7)
 		vt_clear_escape_code(term, VT_100_FLUSH_BUFFER);
 }
 
@@ -369,11 +382,11 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 
 	for(i=0; i<len; i++) {
 		if(str[i] == 0x1B) {
-			if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
-				vt100_discovery_state = VT_100_ESCAPE_CHARACTER_FOUND;
+			if(term->esc_state.discovery_state == VT_100_NO_ESCAPE_CODE) {
+				term->esc_state.discovery_state = VT_100_ESCAPE_CHARACTER_FOUND;
 			}
 		}
-		if(vt100_discovery_state == VT_100_NO_ESCAPE_CODE) {
+		if(term->esc_state.discovery_state == VT_100_NO_ESCAPE_CODE) {
 			// We aren't in a vt100 escape code
 			if(str[i] == '\n') {
 				// remove the current cursor display before line feed
