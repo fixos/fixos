@@ -45,6 +45,8 @@ struct vt_instance {
 	struct tdisp_data disp;
 	int posx;
 	int posy;
+	int saved_posx;
+	int saved_posy;
 
 	// for input control :
 	char fifo_buf[VT_INPUT_BUFFER];
@@ -121,6 +123,8 @@ void vt_init() {
 
 		_vts[i].posx = 0;
 		_vts[i].posy = 0;
+		_vts[i].saved_posx = 0;
+		_vts[i].saved_posy = 0;
 
 		INIT_WAIT_QUEUE(& _vts[i].wqueue);
 
@@ -183,10 +187,14 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
 		break;
 	case '7':
 		// TODO Save position and attributes(?). NO arguments
+		term->saved_posx = term->posx;
+		term->saved_posy = term->posy;
 		return VT_100_END_PARSING;
 		break;
 	case '8':
 		// TODO Restores position and attributes(?). NO arguments
+		term->posx = term->saved_posx;
+		term->posy = term->saved_posy;
 		return VT_100_END_PARSING;
 		break;
 	case 'D':
@@ -216,6 +224,9 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'h':
 		// TODO Line Wrap. Beware, the first argument is always a 7
+		if(term->esc_state.using_arguments != 0 || term->esc_state.arguments[0] != 7)
+			return VT_100_PARSING_ERROR;
+
 		return VT_100_END_PARSING;
 		break;
 	case 'H':
@@ -280,11 +291,16 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		return VT_100_END_PARSING;
 		break;
 	case 's':
-		// TODO Save position. NO arguments
+		// Save cursor position.
+		term->saved_posx = term->posx;
+		term->saved_posy = term->posy;
 		return VT_100_END_PARSING;
 		break;
 	case 'u':
-		// TODO Restores position. NO arguments
+		// Restores cursor position.
+		term->posx = term->saved_posx;
+		term->posy = term->saved_posy;
+
 		return VT_100_END_PARSING;
 		break;
 	case 'r':
@@ -310,7 +326,7 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		return VT_100_END_PARSING;
 		break;
 	case 'm':
-		// TODO COLORS ANd ATTRIBUTES
+		// TODO Colors and attributes
 		return VT_100_END_PARSING;
 		break;
 	}	
