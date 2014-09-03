@@ -125,4 +125,5 @@ config.h:
 # as config.h is included in every compiled file, this is a big dependency
 $(C_SRC) $(ASM_SRC): config.h
 
-
+count:
+	cloc . --exclude-lang="make,D,Bourne Shell"
