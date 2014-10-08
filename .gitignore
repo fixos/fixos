@@ -1,10 +1,15 @@
 *~
 *.swp
 *.o
+*.so
+*.a
 fixos
+fixos.debug
 *.elf
+*.elf.big
 *.d
 config.mk
 bootloader/bootldr.bin
 bootloader/bootldr.elf
 bootloader/bootldr.g1a
+user/sharedtest/stubs
