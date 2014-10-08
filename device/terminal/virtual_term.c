@@ -33,7 +33,7 @@
 
 // define character that must be written as "^<char>" escaped form, like ^C
 #define IS_ESC_CTRL(c) \
-	((c)>=0 && (c)<0x20 && (c)!='\n' && (c) != 0x1B)
+	((c)>=0 && (c)<0x20 && (c)!='\n')
 
 
 struct vt100_esc_state {
@@ -157,6 +157,28 @@ void vt_init() {
 }
 
 
+
+/**
+ * Move the cursor from its current position to (newx, newy), after checking
+ * screen boundaries.
+ * TODO the cursor should be implemented in terminal_disp directly to avoid
+ * overwriting characters when moving it using VT100 sequences!
+ */
+static void vt_move_cursor(struct vt_instance *term, int newx, int newy) {
+	_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+
+	term->posx = newx > _tdisp->cwidth-1 ? _tdisp->cwidth-1
+		: (newx < 0 ? 0 : newx);
+	term->posy = newy > _tdisp->cheight-1 ? _tdisp->cheight-1
+		: (newy < 0 ? 0 : newy);
+
+	// print cursor at current position
+	_tdisp->print_char(& term->disp, term->posx, term->posy,
+			VT_CURSOR_CHAR);
+
+	_tdisp->flush(& term->disp);
+}
+
 /**
  * Check for the 1-character ANSI/VT100 escape codes (like "^[ c"), and return
  * the next state of the parser.
@@ -182,8 +204,7 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
 		break;
 	case '8':
 		// TODO Restores position and attributes(?). NO arguments
-		term->posx = term->saved_posx;
-		term->posy = term->saved_posy;
+		vt_move_cursor(term, term->saved_posx, term->saved_posy);
 		break;
 	case 'D':
 		// TODO Scroll down display one line
@@ -212,6 +233,7 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
  */
 static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 	int ret = VT100_STATE_NONE;
+	int tmp;
 
 	switch(str_char) {
 	case 'n':
@@ -227,62 +249,38 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 
 	case 'H':
 	case 'f':
+		// in ANSI escape sequences, position 1;1 is the top-left corner
 		if(term->esc_state.arguments_index >= 0) {
-			term->posx = term->esc_state.arguments[0];
-			term->posy = term->esc_state.arguments[1];
+			vt_move_cursor(term, term->esc_state.arguments[0]-1,
+					term->esc_state.arguments[1]-1);
 		}
 		else {
-			term->posx = 0;
-			term->posy = 0;
+			vt_move_cursor(term, 0, 0);
 		}
 		break;
 
 	case 'A':
 		// Cursor up
-		if(term->esc_state.arguments_index >= 0) {
-			if(term->posy < term->esc_state.arguments[0])
-				term->posy = 0;
-			else
-				term->posy -= term->esc_state.arguments[0];
-		}
-		else if(term->posy > 0)
-			term->posy--;
+		tmp = term->esc_state.arguments_index >= 0 ? term->esc_state.arguments[0] : 1;
+		vt_move_cursor(term, term->posx, term->posy - tmp);
 		break;
 
 	case 'B':
 		// Cursor down
-		if(term->esc_state.arguments_index >= 0) {
-			if(term->posy + term->esc_state.arguments[0] >= _tdisp->cheight)
-				term->posy = _tdisp->cheight - 1;
-			else
-				term->posy += term->esc_state.arguments[0];
-		}
-		else if(term->posy < _tdisp->cheight - 1)
-			term->posy++;
+		tmp = term->esc_state.arguments_index >= 0 ? term->esc_state.arguments[0] : 1;
+		vt_move_cursor(term, term->posx, term->posy + tmp);
 		break;
 
 	case 'C':
 		// Cursor left
-		if(term->esc_state.arguments_index >= 0) {
-			if(term->posx < term->esc_state.arguments[0])
-				term->posx = 0;
-			else
-				term->posx -= term->esc_state.arguments[0];
-		}
-		else if(term->posx > 0)
-			term->posx--;
+		tmp = term->esc_state.arguments_index >= 0 ? term->esc_state.arguments[0] : 1;
+		vt_move_cursor(term, term->posx - tmp, term->posy);
 		break;
 
 	case 'D':
 		// Cursor right
-		if(term->esc_state.arguments_index >= 0) {
-			if(term->posx + term->esc_state.arguments[0] >= _tdisp->cwidth)
-				term->posx = _tdisp->cwidth - 1;
-			else
-				term->posx += term->esc_state.arguments[0];
-		}
-		else if(term->posx < _tdisp->cwidth - 1)
-			term->posx++;
+		tmp = term->esc_state.arguments_index >= 0 ? term->esc_state.arguments[0] : 1;
+		vt_move_cursor(term, term->posx + tmp, term->posy);
 		break;
 
 	case 's':
@@ -293,8 +291,7 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 
 	case 'u':
 		// Restores cursor position.
-		term->posx = term->saved_posx;
-		term->posy = term->saved_posy;
+		vt_move_cursor(term, term->saved_posx, term->saved_posy);
 		break;
 
 	case 'r':
@@ -388,7 +385,7 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
-		if(mayesc && term->esc_state.discovery_state == VT100_STATE_NONE && str[i] != '\x1B') {
+		if(!mayesc || (term->esc_state.discovery_state == VT100_STATE_NONE && str[i] != '\x1B')) {
 			// We aren't in a vt100 escape code
 			if(str[i] == '\n') {
 				// remove the current cursor display before line feed
