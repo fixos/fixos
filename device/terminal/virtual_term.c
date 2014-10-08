@@ -17,21 +17,18 @@
 
 
 // for VT100 escape code handling :
-#define VT100_NO_ESCAPE_CODE 			0
-#define VT100_ESCAPE_CHARACTER_FOUND	1
-#define VT100_PARSING_ESCAPE_CODE		2
 
-#define VT100_CONTINUE_PARSING			0
-#define VT100_END_PARSING				1
-#define VT100_PARSING_ERROR				2
-
-#define VT100_FLUSH_BUFFER				1
-#define VT100_DONT_FLUSH_BUFFER			2
+// not in an escape sequence
+#define VT100_STATE_NONE				0
+// in a simple escape (after a "^[" )
+#define VT100_STATE_SIMPLE_ESCAPE		1
+// in a CSI escape sequence ( "^[ [ ..." )
+#define VT100_STATE_CSI_ESCAPE			2
+// in a CSI with question mark sequence ( "^[ [ ? ...")
+#define VT100_STATE_CSI_QM_ESCAPE		3
 
 // maximum of integer arguments acceptable in VT100 parser
-#define VT100_MAX_INTARGS				2
-// maximum buffer size for VT100 parser
-#define VT100_BUFSIZE					8
+#define VT100_MAX_INTARGS				4
 
 
 // define character that must be written as "^<char>" escaped form, like ^C
@@ -42,9 +39,6 @@
 struct vt100_esc_state {
 	// keep current parser state
 	unsigned char discovery_state;
-	// used to maintain some data into a VT100-like escape code
-	char buffer[VT100_BUFSIZE];
-	short buffer_index;
 
 	// integer arguments, using short but it seems a byte should be enough?
 	unsigned short arguments[VT100_MAX_INTARGS];
@@ -117,8 +111,21 @@ static const struct tty_ops _vt_tty_ops = {
 };
 
 
+/**
+ * Clear the given VT escape parser data to get a clean state again.
+ */
+static void vt_clear_escape_code(struct vt_instance *term) {
+	int i;
+	term->esc_state.discovery_state = VT100_STATE_NONE;
+
+	for(i = 0; i < VT100_MAX_INTARGS; i++)
+		term->esc_state.arguments[i] = 0;
+	term->esc_state.arguments_index = -1;
+}
+
+
 void vt_init() {
-	int i,j;
+	int i;
 
 	_vt_current = -1;
 
@@ -144,56 +151,18 @@ void vt_init() {
 		_vts[i].tty.private = & _vts[i];
 		_vts[i].tty.ops = &_vt_tty_ops;
 
-		// TODO call vt_clear_escape_code() ?
-		_vts[i].esc_state.discovery_state = VT100_NO_ESCAPE_CODE;
-		for(j = 0; j < VT100_BUFSIZE; j++)
-			_vts[i].esc_state.buffer[i] = 0;
-		_vts[i].esc_state.buffer_index = 0;
-		_vts[i].esc_state.arguments_index = -1;
-		for(j = 0; j < VT100_MAX_INTARGS; j++)
-			_vts[i].esc_state.arguments[i] = 0;
+		vt_clear_escape_code(_vts + i);
 
 	}
-}
-
-/**
- * Clear the given VT escape parser data to get a clean state again, and may display
- * the content of the internal buffer as if it was just write to the VT.
- * TODO bad design? should call vt_print internal, with argument to avoid VT100 parsing!
- */
-static void vt_clear_escape_code(struct vt_instance *term, int should_print_buffer) {
-	int i;
-	term->esc_state.discovery_state = VT100_NO_ESCAPE_CODE;
-	for(i = 0; i < term->esc_state.buffer_index; i++) {
-		if(should_print_buffer == VT100_FLUSH_BUFFER) {
-			_tdisp->print_char(& term->disp, term->posx, term->posy,
-					term->esc_state.buffer[i]);
-			term->posx++;
-			if(term->posx >= _tdisp->cwidth) {
-				term->posx = 0;
-				term->posy++;
-			}
-		}
-		// TODO print char
-		term->esc_state.buffer[i] = 0;
-	}
-
-	term->esc_state.buffer_index = -1;
-
-	for(i = 0; i < VT100_MAX_INTARGS; i++)
-		term->esc_state.arguments[i] = 0;
-	term->esc_state.arguments_index = 0;
-
 }
 
 
 /**
  * Check for the 1-character ANSI/VT100 escape codes (like "^[ c"), and return
- * what should be do after (end of escape code, bad escape code, or continue
- * to parse a multi-char escape code).
+ * the next state of the parser.
  */
 static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) {
-	int ret = VT100_END_PARSING;
+	int ret = VT100_STATE_NONE;
 
 	switch(str_char) {
 		// Simple escape codes
@@ -226,10 +195,11 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
 		// TODO Set tab at this position (?)
 		break;
 	case '[':
-		ret = VT100_CONTINUE_PARSING;
+		ret = VT100_STATE_CSI_ESCAPE;
 		break;
 	default:
-		ret = VT100_PARSING_ERROR;
+		// parsing error, get back into the not-escape state
+		ret = VT100_STATE_NONE;
 	}
 
 	return ret;
@@ -237,11 +207,11 @@ static int vt_parse_simple_escape_code(struct vt_instance *term, char str_char) 
 
 
 /**
- * Parse all subsequent characters of an escape code, returning each time
- * if the escape code is valid, partialy valid, or erroneous.
+ * Parse all subsequent characters of an escape code, one by one, and return
+ * each time the next state of the VT100 escape sequences parser.
  */
 static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
-	int ret = VT100_END_PARSING;
+	int ret = VT100_STATE_NONE;
 
 	switch(str_char) {
 	case 'n':
@@ -250,8 +220,9 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 
 	case 'h':
 		// TODO Line Wrap. Beware, the first argument is always a 7
-		if(term->esc_state.arguments_index == -1 || term->esc_state.arguments[0] != 7)
-			ret = VT100_PARSING_ERROR;
+		if(term->esc_state.arguments_index != -1 && term->esc_state.arguments[0] == 7) {
+			// here
+		}
 		break;
 
 	case 'H':
@@ -348,7 +319,8 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	
 	default:
-		ret = VT100_PARSING_ERROR;
+		// bad escape sequence
+		ret = VT100_STATE_NONE;
 	}
 
 	return ret;
@@ -357,32 +329,22 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 
 
 static void vt_read_escape_code(struct vt_instance *term, char str_char) {
+	int newstate = VT100_STATE_NONE;
+
+	switch(term->esc_state.discovery_state) {
+	case VT100_STATE_NONE:
+		if(str_char == '\x1B') 
+			newstate = VT100_STATE_SIMPLE_ESCAPE;
+		break;
+
+	case VT100_STATE_SIMPLE_ESCAPE:
+		newstate = vt_parse_simple_escape_code(term, str_char);
+		break;
 	
-	term->esc_state.buffer[term->esc_state.buffer_index] = str_char;
-	term->esc_state.buffer_index++;
-
-	if(term->esc_state.discovery_state == VT100_ESCAPE_CHARACTER_FOUND) {
-		// Avoid parsing <ESC>
-		term->esc_state.discovery_state = VT100_PARSING_ESCAPE_CODE;
-		return;
-	}
-
-	if(term->esc_state.buffer_index == 2) {
-		int simple_parsing_result = vt_parse_simple_escape_code(term, str_char);
-
-		if(simple_parsing_result != VT100_CONTINUE_PARSING) {
-			// If we have to stop parsing, we have to know if a parsing error
-			// happened. If so, we have to print the buffer
-			if(simple_parsing_result == VT100_PARSING_ERROR)
-				vt_clear_escape_code(term, VT100_FLUSH_BUFFER);
-			else
-				vt_clear_escape_code(term, VT100_DONT_FLUSH_BUFFER);
-			return;
-		}
-	}
-	else {
-		// We're on the bigger escapes codes
+	case VT100_STATE_CSI_ESCAPE:
+		// parsing a "^[ [ ..." escape code
 		if((str_char >= '0' && str_char <= '9') || str_char == ';') {
+			newstate = VT100_STATE_CSI_ESCAPE;
 			// We're adding the arguments
 			if(term->esc_state.arguments_index < 0)
 				term->esc_state.arguments_index = 0;
@@ -391,8 +353,8 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 				term->esc_state.arguments_index++;
 				// check if there are too much arguments for our simple parser
 				if(term->esc_state.arguments_index == VT100_MAX_INTARGS) {
-					vt_clear_escape_code(term, VT100_FLUSH_BUFFER);
-					return;
+					vt_clear_escape_code(term);
+					newstate = VT100_STATE_NONE;
 				}
 			} else {
 				// Setting the digit to arguments
@@ -400,34 +362,33 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 				term->esc_state.arguments[term->esc_state.arguments_index] += str_char - '0';
 			}
 		}
-		else if((str_char >= 'a' && str_char <= 'z') || (str_char >= 'A' && str_char <= 'Z')) {
-			// If we have reached the end of an escape code
-			int parsing_result = vt_parse_escape_code(term, str_char);
-			if(parsing_result == VT100_PARSING_ERROR)
-				vt_clear_escape_code(term, VT100_FLUSH_BUFFER);
-			else
-				vt_clear_escape_code(term, VT100_DONT_FLUSH_BUFFER);
-		}		
+		else {
+			// maybe we reached the end of an escape code
+			newstate = vt_parse_escape_code(term, str_char);
+		}
+		break;
+
+	case VT100_STATE_CSI_QM_ESCAPE:
+		// TODO (mainly the sequences "^[ [ ? 2 5 l" for hiding cursor)
+		break;
 	}
-	if(term->esc_state.buffer_index > VT100_BUFSIZE-1)
-		vt_clear_escape_code(term, VT100_FLUSH_BUFFER);
+
+	term->esc_state.discovery_state = newstate;
 }
 
-// function used to print characters
-static void vt_term_print(struct vt_instance *term, const void *source, size_t len) {
-	// TODO future extensions to support more VT100-like escape codes
-	
-
+/**
+ * Function used to print characters (as well written to term and echoed input from
+ * keyboard).
+ * If mayesc is not-zero, try to check VT100-like escape sequences from source data.
+ */
+static void vt_term_print(struct vt_instance *term, const void *source, size_t len,
+		int mayesc)
+{
 	int i;
 	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
-		if(str[i] == 0x1B) {
-			if(term->esc_state.discovery_state == VT100_NO_ESCAPE_CODE) {
-				term->esc_state.discovery_state = VT100_ESCAPE_CHARACTER_FOUND;
-			}
-		}
-		if(term->esc_state.discovery_state == VT100_NO_ESCAPE_CODE) {
+		if(mayesc && term->esc_state.discovery_state == VT100_STATE_NONE && str[i] != '\x1B') {
 			// We aren't in a vt100 escape code
 			if(str[i] == '\n') {
 				// remove the current cursor display before line feed
@@ -452,6 +413,7 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 			}			
 		}
 		else {
+			// parse the character as a part of a VT100-like escape sequence
 			vt_read_escape_code(term, str[i]);
 		}
 	}
@@ -491,10 +453,10 @@ static void vt_add_character(struct vt_instance *term, char c) {
 	// basic echo, need to be improved (do not copy_to_dd() each time...)
 	if(IS_ESC_CTRL(c)) {
 		char esc[2] = {'^', ASCII_UNCTRL(c)};
-		vt_term_print(term, esc, 2);
+		vt_term_print(term, esc, 2, 0);
 	}
 	else {
-		vt_term_print(term, &c, 1);
+		vt_term_print(term, &c, 1, 0);
 	}
 	_tdisp->flush(& term->disp);
 }
@@ -514,7 +476,7 @@ static void vt_do_special(struct vt_instance *term, char spe) {
 			// kill group
 			if(term->tty.fpgid != 0)
 				signal_pgid_raise(term->tty.fpgid, SIGINT);
-			vt_term_print(term, spestr, 2);
+			vt_term_print(term, spestr, 2, 0);
 			_tdisp->flush(& term->disp);
 			break;
 
@@ -522,7 +484,7 @@ static void vt_do_special(struct vt_instance *term, char spe) {
 			// stop foreground
 			if(term->tty.fpgid != 0)
 				signal_pgid_raise(term->tty.fpgid, SIGSTOP);
-			vt_term_print(term, spestr, 2);
+			vt_term_print(term, spestr, 2, 0);
 			_tdisp->flush(& term->disp);
 			break;
 
@@ -610,7 +572,7 @@ static struct tty *vt_get_tty(uint16 minor) {
 
 
 static ssize_t vt_prim_write(struct vt_instance *term, const void *source, size_t len) {
-	vt_term_print(term, source, len);
+	vt_term_print(term, source, len, 1);
 
 	// screen should be flushed only if it's the current active
 	if(term == &_vts[_vt_current])
