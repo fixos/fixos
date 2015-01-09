@@ -12,12 +12,12 @@
 
 #define DIRENT_MAX_NAME	255
 
-#define DIRENT_BASE_SIZE	(sizeof(ino_t) + sizeof(size_t) + sizeof(char))
+#define DIRENT_BASE_SIZE	(sizeof(__kernel_ino_t) + sizeof(__kernel_size_t) + sizeof(char))
 struct fixos_dirent {
 	// inode number of this entry
-	ino_t d_ino;
+	__kernel_ino_t d_ino;
 	// offset to the next fixos_dirent (size of this dirent with alignment)
-	size_t d_off;
+	__kernel_size_t d_off;
 
 	// (not implemented for now) type of this entry, or DT_UNKNOWN
 	char d_type;

@@ -16,11 +16,11 @@ enum display_format {
 };
 
 struct display_info {
-	size_t width;
-	size_t height;
-	size_t bpp;		// bits per pixel
+	__kernel_size_t width;
+	__kernel_size_t height;
+	__kernel_size_t bpp;		// bits per pixel
 	enum display_format format;
-	size_t vram_size;
+	__kernel_size_t vram_size;
 	int flags;		// additional capabilities...
 };
 

@@ -13,6 +13,38 @@
 #include <fixos/stat.h>
 #include <fixos/dirent.h>
 
+// fix types definitions
+typedef __kernel_size_t		size_t;
+typedef __kernel_ssize_t	ssize_t;
+typedef __kernel_off_t		off_t;
+
+
+// classic plateform-independant types
+typedef __kernel_uint32		uint32;
+typedef __kernel_int32		int32;
+typedef __kernel_uint16 	uint16;
+typedef __kernel_int16		int16;
+typedef __kernel_uint8		uint8;
+typedef __kernel_int8		int8;
+
+// Process IDendifier
+typedef __kernel_pid_t		pid_t;
+
+
+// devices identifier and macros for major/minor decomposition
+typedef __kernel_dev_t		dev_t;
+#define major(x)			__kernel_major(x)
+#define minor(x)			__kernel_minor(x)
+#define makedev(maj, min)	__kernel_makedev(maj, min)
+
+typedef __kernel_ino_t		ino_t;
+typedef __kernel_mode_t		mode_t;
+
+// time representation
+typedef __kernel_clock_t	clock_t;
+typedef __kernel_time_t		time_t;
+
+
 
 extern int open(const char *file, int mode);
 

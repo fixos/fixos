@@ -41,12 +41,12 @@ struct winsize {
  * Get/set the foreground process group.
  * WARNING: argument is in both case a *pointer* to a pid_t variable!
  */
-#define TIOCGPGRP		IOCTL_W( TTYCTL, 0x0005, pid_t *)
-#define TIOCSPGRP		IOCTL_R( TTYCTL, 0x0006, const pid_t *)
+#define TIOCGPGRP		IOCTL_W( TTYCTL, 0x0005, __kernel_pid_t *)
+#define TIOCSPGRP		IOCTL_R( TTYCTL, 0x0006, const __kernel_pid_t *)
 
 /**
  * Get the session ID of the given terminal.
  */
-#define TIOCGSID		IOCTL_W( TTYCTL, 0x0007, pid_t *)
+#define TIOCGSID		IOCTL_W( TTYCTL, 0x0007, __kernel_pid_t *)
 
 #endif //_FIXOS_INTERFACE_TTY_H

@@ -8,7 +8,7 @@
 #include <fixos/types.h>
 
 
-typedef uint32 sigset_t;
+typedef __kernel_uint32 sigset_t;
 
 
 // not exactly the POSIX specification, but should be usefull :

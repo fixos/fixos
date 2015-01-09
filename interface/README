@@ -1,8 +1,8 @@
 This directory is used to place all definitions that are aimed to be used from
 the user space.
-This is not common on "real" UNIX-like kernels, which generaly mix kernel and
-shared kernel/user definitions in each public header and use preprocessor to
-restrict user view (e.g. _KERNEL on Linux or NetBSD).
+This is not always the case on "real" UNIX-like kernels, which sometimes mix
+kernel and shared kernel/user definitions in each public header and use
+preprocessor to restrict user view (e.g. _KERNEL on Linux or NetBSD).
 
 I assume the common way have interesting benefits (centralized headers, no need
 to duplicate some directory trees...), but it seems a bit dirty for me.
@@ -24,13 +24,18 @@ an ISO C / POSIX library. Types and macros defined by FiXos headers are
 conflicting with userspace definitions, and are not suitable for direct usage
 (because the userspace library may need to only declare a subset of them
  in some places to be conform with a given standard).
-On Linux/Glibc, the -partial- solution was to redifined almost every macro
+On Linux/Glibc, the -partial- solution was to redefine almost every macro
 and type with hardcoded values in Glibc...
-I think a better solution may be to use a namespace for every variable and
-macro that should be used by POSIX.1, like "__kernel_" for types and lower
-case macros, and "__KERNEL_" for upper case macros. Eventualy, the kernel
-should have an additional definition without this namespace in internal kernel
-headers.
-Of course, all definition that are not expected to collide to POSIX or ISO C
-may be defined without namespace (e.g. specific ioctls values and types).
+After a long time thinking to the better solution, it seems to be a very
+delicate problem to solve in C language (mainly because of macros and
+struct/enum 'tag' names).
+The final idea is to do "lazy renaming" : if a definition in interface header
+is a problem for implementing the C/POSIX library, and no simple solution is
+found in the library part, it is possible to rename (using a __kernel_ or
+__KERNEL_ prefix) some items here.
+For now, this renaming will not be generalized to avoid overcomplicated headers
+and make kernel <-> user space interfaces easier to understand and use (even
+without any library).
+
+
 
