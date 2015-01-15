@@ -128,7 +128,7 @@ pid_t sys_wait(int *status);
  * time if needed, and add special case of busy-loop waiting if a process
  * is using real time scheduling policy with a small time amount.
  */
-int sys_nanosleep(const struct hr_time *req, struct hr_time *rem);
+int sys_nanosleep(const struct timespec *req, struct timespec *rem);
 
 
 #endif //_SYS_SCHEDULER_H

@@ -13,21 +13,21 @@ extern int stimer_do_tick();
 static clock_t _monotonic_ticks = 0;
 
 // real time clock (from startup moment, not from epoch)
-static struct hr_time _monotonic_time;
+static struct timespec _monotonic_time;
 
 // real time at time_init() call, relative to epoch
 // so real time at a any moment is obtained by adding _monotonic_time to it.
-static struct hr_time _init_epoch_time;
+static struct timespec _init_epoch_time;
 
 
 
 // arch-specific constant, representing the time ellapsed during one clock tick
-extern const struct hr_time g_arch_tick_time;
+extern const struct timespec g_arch_tick_time;
 
 // TODO move it to arch-spec file
-const struct hr_time g_arch_tick_time = {
-	.sec = 0,
-	.nano = 3906250  // 256 Hz
+const struct timespec g_arch_tick_time = {
+	.tv_sec = 0,
+	.tv_nsec = 3906250  // 256 Hz
 };
 
 
@@ -37,8 +37,8 @@ void time_init() {
 	arch_time_init();
 
 	_monotonic_ticks = 0;
-	_monotonic_time.sec = 0;
-	_monotonic_time.nano = 0;
+	_monotonic_time.tv_sec = 0;
+	_monotonic_time.tv_nsec = 0;
 	arch_time_get_hw(&_init_epoch_time);
 }
 
@@ -50,13 +50,13 @@ clock_t time_monotonic_ticks() {
 
 
 
-void time_monotonic_time(struct hr_time *t) {
-	t->sec = _monotonic_time.sec;
-	t->nano = _monotonic_time.nano;
+void time_monotonic_time(struct timespec *t) {
+	t->tv_sec = _monotonic_time.tv_sec;
+	t->tv_nsec = _monotonic_time.tv_nsec;
 }
 
 
-void time_real_time(struct hr_time *t) {
+void time_real_time(struct timespec *t) {
 	time_add_hr(&_monotonic_time, &_init_epoch_time, t);
 }
 
@@ -88,15 +88,15 @@ void time_do_tick() {
 
 }
 
-int sys_gettimeofday(struct hr_time *tv, struct timezone *tz) {
+int sys_gettimeofday(struct timespec *tv, struct timezone *tz) {
 	(void)tz;
 
 	if(tv != NULL) {
-		struct hr_time temp_tv; // for later user-space secured copy
+		struct timespec temp_tv; // for later user-space secured copy
 
 		time_real_time(&temp_tv);
-		tv->sec = temp_tv.sec;
-		tv->nano = temp_tv.nano;
+		tv->tv_sec = temp_tv.tv_sec;
+		tv->tv_nsec = temp_tv.tv_nsec;
 	}
 
 	return 0;

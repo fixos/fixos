@@ -262,13 +262,13 @@ static void nanosleep_timeout(void *data) {
 	sched_wake_up(towake);
 }
 
-int sys_nanosleep(const struct hr_time *req, struct hr_time *rem) {
+int sys_nanosleep(const struct timespec *req, struct timespec *rem) {
 	(void)rem;
 	if(req != NULL) {
 		struct process *cur;
 		clock_t ticks;
 
-		ticks = req->sec * TICK_HZ + req->nano/(1000*1000*1000/TICK_HZ);
+		ticks = req->tv_sec * TICK_HZ + req->tv_nsec/(1000*1000*1000/TICK_HZ);
 		cur = process_get_current();
 
 		sched_preempt_block();
@@ -279,8 +279,8 @@ int sys_nanosleep(const struct hr_time *req, struct hr_time *rem) {
 		sched_schedule();
 
 		if(rem != NULL) {
-			rem->nano = 0;
-			rem->sec = 0;
+			rem->tv_nsec = 0;
+			rem->tv_sec = 0;
 		}
 		return 0;
 	}

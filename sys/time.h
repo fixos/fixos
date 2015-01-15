@@ -3,6 +3,8 @@
 
 #include <utils/types.h>
 #include <arch/time.h>
+#include <interface/fixos/time.h>
+#include <interface/fixos/times.h>
 
 /**
  * Real time informations, using arch-dependant functions if RTC is present.
@@ -28,9 +30,9 @@ void time_init();
  */
 clock_t time_monotonic_ticks();
 
-void time_monotonic_time(struct hr_time *t);
+void time_monotonic_time(struct timespec *t);
 
-void time_real_time(struct hr_time *t);
+void time_real_time(struct timespec *t);
 
 
 /**
@@ -44,14 +46,14 @@ void time_do_tick();
  * Add time described in t1 and t2, and write the result in res.
  * res may points to the same location as t1 or t2.
  */
-extern inline void time_add_hr(const struct hr_time *t1,
-		const struct hr_time *t2, struct hr_time *res)
+extern inline void time_add_hr(const struct timespec *t1,
+		const struct timespec *t2, struct timespec *res)
 {
-	res->sec = t1->sec + t2->sec;
-	res->nano = t1->nano + t2->nano;
-	if(res->nano >= (1000*1000*1000)) {
-		res->nano -= 1000*1000*1000;
-		res->sec++;
+	res->tv_sec = t1->tv_sec + t2->tv_sec;
+	res->tv_nsec = t1->tv_nsec + t2->tv_nsec;
+	if(res->tv_nsec >= (1000*1000*1000)) {
+		res->tv_nsec -= 1000*1000*1000;
+		res->tv_sec++;
 	}
 }
 
@@ -62,7 +64,7 @@ extern inline void time_add_hr(const struct hr_time *t1,
  * (for now, tz is not set by the implementation)
  */
 struct timezone;
-int sys_gettimeofday(struct hr_time *tv, struct timezone *tz);
+int sys_gettimeofday(struct timespec *tv, struct timezone *tz);
 
 
 clock_t sys_times(struct tms *buf); 

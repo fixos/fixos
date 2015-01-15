@@ -34,7 +34,7 @@ void rtc_set_interrupt(interrupt_callback_t callback, int period) {
 
 // functions defined in arch/generic/time.h
 
-int arch_time_get_hw(struct hr_time *t) {
+int arch_time_get_hw(struct timespec *t) {
 	time_t ret;
 	int tmp;
 	int isleap;
@@ -68,12 +68,12 @@ int arch_time_get_hw(struct hr_time *t) {
 			+ RTC.RMINCNT.BIT.M10 * 10 + RTC.RMINCNT.BIT.M1) * 60
 			+ RTC.RSECCNT.BIT.S10 * 10 + RTC.RSECCNT.BIT.S1;
 
-	t->sec = ret;
-	t->nano = 0;
+	t->tv_sec = ret;
+	t->tv_nsec = 0;
 
 	return 0;
 }
 
-int arch_time_set_hw(const struct hr_time *t) {
+int arch_time_set_hw(const struct timespec *t) {
 	return -1;
 }

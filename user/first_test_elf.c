@@ -94,15 +94,15 @@ static void write_int_oct(int fd, unsigned int val) {
 
 
 static void test_gettimeofday(int fd) {
-	struct hr_time prev;
+	struct timespec prev;
 	gettimeofday(&prev, NULL);
 	while(1) {
-		struct hr_time cur;
+		struct timespec cur;
 		gettimeofday(&cur, NULL);
 
-		if(cur.sec - prev.sec >= 1) {
-			prev.sec = cur.sec;
-			prev.nano = cur.nano;
+		if(cur.tv_sec - prev.tv_sec >= 1) {
+			prev.tv_sec = cur.tv_sec;
+			prev.tv_nsec = cur.tv_nsec;
 			write(fd, "-", 1);
 		}
 		
@@ -299,14 +299,14 @@ static int test_display(int fdout) {
 	// simple "FPS" test
 	if(ioctl(disp, DISPCTL_SETMODE, (void*)(DISPMODE_ACTIVATE)) == 0) {
 		if(ioctl(disp, DISPCTL_MAPVRAM, &vram) == 0) {
-			struct hr_time prev;
+			struct timespec prev;
 			unsigned char val = 0xFF;
 			int i;
 			int fps = 0;
 
 			gettimeofday(&prev, NULL);
 			while(1) {
-				struct hr_time cur;
+				struct timespec cur;
 				for(i=0; i<info.vram_size; i++)
 					vram[i] = val;
 
@@ -320,9 +320,9 @@ static int test_display(int fdout) {
 				fps++;
 
 				gettimeofday(&cur, NULL);
-				if(cur.sec - prev.sec >= 1) {
-					prev.sec = cur.sec;
-					prev.nano = cur.nano;
+				if(cur.tv_sec - prev.tv_sec >= 1) {
+					prev.tv_sec = cur.tv_sec;
+					prev.tv_nsec = cur.tv_nsec;
 					write_const(fdout, "fps: 0x");
 					write_int_hex(fdout, fps);
 					write_const(fdout, "\n");
@@ -486,7 +486,7 @@ static void test_print_all_proc(int fdout) {
 }
 
 static void test_sysctl_proc(int fdout) {
-	struct hr_time val = { .sec=0, .nano=500000000 };
+	struct timespec val = { .tv_sec=0, .tv_nsec=500000000 };
 
 	while(1) {
 		test_print_all_proc(fdout);

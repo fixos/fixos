@@ -9,6 +9,8 @@
 
 #include <interface/fixos/types.h>
 
+#define NULL	__KERNEL_NULL
+
 /**
  * Types used in user space interface are re-defined here without their prefix.
  */

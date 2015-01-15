@@ -6,10 +6,7 @@
  * All definitions are protected by "__kernel_" namespace in user space.
  */
 
-#ifndef NULL
-#define NULL ((void*)0)
-#endif //defined(NULL)
-
+#define __KERNEL_NULL ((void*)0)
 
 typedef unsigned int __kernel_size_t;
 typedef int __kernel_ssize_t;
@@ -40,19 +37,5 @@ typedef __kernel_uint32 __kernel_mode_t;
 // time representation
 typedef __kernel_uint32 __kernel_clock_t;
 typedef __kernel_uint32 __kernel_time_t;
-
-// high precision time struct
-struct hr_time {
-	__kernel_time_t sec;
-	__kernel_uint32 nano;
-};
-
-// temp location (easier for user/kernel sharing)
-struct tms {
-	__kernel_clock_t tms_utime;
-	__kernel_clock_t tms_stime;
-	__kernel_clock_t tms_cutime;
-	__kernel_clock_t tms_cstime;
-};
 
 #endif //_FIXOS_INTERFACE_TYPES_H

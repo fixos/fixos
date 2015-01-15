@@ -12,6 +12,10 @@
 #include <fixos/signal.h>
 #include <fixos/stat.h>
 #include <fixos/dirent.h>
+#include <fixos/time.h>
+#include <fixos/times.h>
+
+#define NULL	__KERNEL_NULL
 
 // fix types definitions
 typedef __kernel_size_t		size_t;
@@ -65,7 +69,7 @@ extern pid_t wait(int *status);
 extern int execve(const char *filename, char *const argv[], char *const envp[]);
 
 struct timezone;
-extern int gettimeofday(struct hr_time *tv, struct timezone *tz);
+extern int gettimeofday(struct timespec *tv, struct timezone *tz);
 
 extern clock_t times(struct tms *buf); 
 
@@ -90,7 +94,7 @@ extern int sysctl_read(const int *name, size_t name_len, void *buf, size_t *len)
 extern int sysctl_write(const int *name, size_t name_len,
 		const void *buf, size_t *len);
 
-extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
+extern int nanosleep(const struct timespec *req, struct timespec *rem);
 
 extern int sysctl_mibname(const char *strname, int *name, int *name_len);
 

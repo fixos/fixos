@@ -6,7 +6,7 @@
  */
 #include <arch/time.h>
 
-struct hr_time;
+struct timespec;
 
 
 /**
@@ -19,9 +19,9 @@ void arch_time_init();
  * if present, and fill the given struct with the current time.
  * Returns 0 in success case, negative value else (no RTC or error)
  */
-int arch_time_get_hw(struct hr_time *t);
+int arch_time_get_hw(struct timespec *t);
 
-int arch_time_set_hw(const struct hr_time *t);
+int arch_time_set_hw(const struct timespec *t);
 
 
 #endif //_ARCH_GENERIC_TIME_H

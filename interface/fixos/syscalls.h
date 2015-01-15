@@ -73,7 +73,7 @@
 //			const void *buf, size_t *len);
 #define SYSCALL_SYSCTL_WRITE	21
 
-// extern int nanosleep(const struct hr_time *req, struct hr_time *rem);
+// extern int nanosleep(const struct timespec *req, struct timespec *rem);
 #define SYSCALL_NANOSLEEP	22
 
 // extern int sysctl_mibname(const char *strname, int *name, int *name_len);
