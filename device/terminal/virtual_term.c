@@ -604,7 +604,8 @@ ssize_t vt_read(struct file *filep, void *dest, size_t len) {
 		int curlen = 0;
 		volatile size_t *fifo_size = &(_vts[term].fifo.size);
 
-		while(curlen < len) {
+		// FIXME check behavior : should return the first line available
+		//while(curlen < len) {
 			size_t readlen;
 
 			wait_until_condition(& _vts[term].wqueue, (readlen=*fifo_size) > 0);
@@ -613,7 +614,7 @@ ssize_t vt_read(struct file *filep, void *dest, size_t len) {
 			readlen = readlen + curlen > len ? len - curlen : readlen;
 			cfifo_pop(& _vts[term].fifo, dest, readlen);
 			curlen += readlen;
-		}
+		//}
 		
 		return curlen;
 	}

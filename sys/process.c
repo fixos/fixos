@@ -386,10 +386,12 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// space for argument pointer array
 			args_pos = nbargs * sizeof(char*);
 
+			printk("execve: %d args\n", nbargs);
 			for(i=0 ; i<nbargs; i++) {
 				char *copied_arg = args_page + args_pos;
 				size_t curarg_size;
 				for(curarg_size = 0; argv[i][curarg_size] != '\0'; curarg_size++);
+				printk("execve: arg%d (@%p) = %dbytes\n", i, argv[i], curarg_size);
 				curarg_size++;
 
 				// TODO check max size
