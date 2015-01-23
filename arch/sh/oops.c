@@ -57,9 +57,9 @@ static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 	i = 0;
 	while(stack < bottom && i < MAX_STACK_FRAMES) {
 		if(IS_KERNEL_TEXT(*stack)) {
-			printk(LOG_DEBUG, "@%p: ", stack);
+			printk(LOG_EMERG, "@%p: ", stack);
 			kdebug_print_symbol((void*)*stack);
-			printk(LOG_DEBUG, "\n");
+			printk(LOG_EMERG, "\n");
 			i++;
 		}
 		stack++;
