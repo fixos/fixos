@@ -58,7 +58,7 @@ struct file *vfs_open(struct inode *inode, int flags) {
 		}
 
 		if(!done) {
-			printk(LOG_DEBUG, "vfs_open: inode-specific open() failed\n");
+			printk(LOG_WARNING, "vfs_open: inode-specific open() failed\n");
 			// free file structure
 			vfs_file_free(filep);
 			filep = NULL;
@@ -74,7 +74,7 @@ int vfs_open_dev(struct inode *inode, struct file *filep) {
 
 		dev = dev_device_from_major(major(inode->typespec.dev));
 		if(dev == NULL) {
-			printk(LOG_DEBUG, "vfs: open invalid device inode (major %d)\n",
+			printk(LOG_WARNING, "vfs: open invalid device inode (major %d)\n",
 					major(inode->typespec.dev));
 			return -ENXIO;
 		}

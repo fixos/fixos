@@ -50,7 +50,7 @@ int sys_open(const char *name, int flags) {
 		}
 	}
 	else {
-		printk(LOG_DEBUG, "sys_open: no more file desc\n");
+		printk(LOG_WARNING, "sys_open: no more file desc\n");
 	}
 	return -1;
 }
@@ -122,11 +122,11 @@ int sys_pipe2(int pipefd[2], int flags) {
 			return 0;
 		}
 		else {
-			printk(LOG_DEBUG, "sys_pipe2: pipe creation failed\n");
+			printk(LOG_ERR, "sys_pipe2: pipe creation failed\n");
 		}
 	}
 	else {
-		printk(LOG_DEBUG, "sys_pipe2: no more file desc\n");
+		printk(LOG_WARNING, "sys_pipe2: no more file desc\n");
 	}
 	return -1;
 

@@ -53,7 +53,7 @@ static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 				: "=r"(cur), "=r"(stack) : : );
 				*/
 
-	printk(LOG_DEBUG, "Stack=%p\nCall trace:\n", stack);
+	printk(LOG_EMERG, "Stack=%p\nCall trace:\n", stack);
 	i = 0;
 	while(stack < bottom && i < MAX_STACK_FRAMES) {
 		if(IS_KERNEL_TEXT(*stack)) {
@@ -64,7 +64,7 @@ static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 		}
 		stack++;
 	}
-	printk(LOG_DEBUG, "(End of call trace)\n\n");
+	printk(LOG_EMERG, "(End of call trace)\n\n");
 }
 
 
@@ -86,14 +86,14 @@ void kdebug_oops(const char *errstr) {
 	struct _context_info *cont;
 	
 
-	printk(LOG_DEBUG, "Fatal kernel oops!\n");
+	printk(LOG_EMERG, "Fatal kernel oops!\n");
 	if(errstr != NULL)
-		printk(LOG_DEBUG, "(%s)\n", errstr);
-	printk(LOG_DEBUG, "Following informations may help :\n");
+		printk(LOG_EMERG, "(%s)\n", errstr);
+	printk(LOG_EMERG, "Following informations may help :\n");
 
 	proc = process_get_current();
 	if(proc != NULL) {
-		printk(LOG_DEBUG, "Running pid %d (asid=%d)\n", proc->pid, mmu_getasid());
+		printk(LOG_EMERG, "Running pid %d (asid=%d)\n", proc->pid, mmu_getasid());
 	}
 
 	kdebug_print_vmspace(proc);
@@ -103,11 +103,11 @@ void kdebug_oops(const char *errstr) {
 
 	cont = proc->acnt;
 	while(cont != NULL && cont->previous != NULL) {
-		printk(LOG_DEBUG, "---- Previous Context ----\n       PC: ");
+		printk(LOG_EMERG, "---- Previous Context ----\n       PC: ");
 		kdebug_print_symbol((void*)(cont->pc));
-		printk(LOG_DEBUG, "\n       PR: ");
+		printk(LOG_EMERG, "\n       PR: ");
 		kdebug_print_symbol((void*)(cont->pr));
-		printk(LOG_DEBUG, "\n");
+		printk(LOG_EMERG, "\n");
 
 		arch_print_trace((uint32*)(cont->reg[15]), (uint32*)(cont->previous) );
 		cont = cont->previous;

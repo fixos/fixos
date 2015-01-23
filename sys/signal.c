@@ -103,7 +103,7 @@ static void try_deliver_one(struct process *proc, int sig) {
 
 	sigindex = _trans_number2index[sig];
 	if(sigindex == _SIGUNDEF) {
-		printk(LOG_DEBUG, "signal: unimplemented SIG %d ignored\n", sig);
+		printk(LOG_WARNING, "signal: unimplemented SIG %d ignored\n", sig);
 	}
 	else {
 		action = &(proc->sig_array[sigindex]);

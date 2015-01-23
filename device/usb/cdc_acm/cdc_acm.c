@@ -335,7 +335,7 @@ static int cdc_acm_setup_other(const struct usb_setup *setup) {
 
 
 	default:
-		printk(LOG_DEBUG, "USB: Unknown setup req %d\n", setup->b_request);
+		printk(LOG_WARNING, "USB: Unknown setup req %d\n", setup->b_request);
 		return -1;
 	}
 

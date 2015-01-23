@@ -134,7 +134,7 @@ struct process *process_alloc() {
 		return proc;
 	}
 	
-	printk(LOG_DEBUG, "process_alloc: no more allowed process\n");
+	printk(LOG_ERR, "process_alloc: no more allowed process\n");
 	return NULL;
 }
 
@@ -212,7 +212,7 @@ void process_terminate(struct process *proc, int status) {
 	// we can still execute code in case of re-execution of zombie process
 	while(1) {
 		sched_schedule();
-		printk(LOG_DEBUG, "exit: exited process executed!\n");
+		printk(LOG_WARNING, "exit: exited process executed!\n");
 	}
 
 }
@@ -231,7 +231,7 @@ pid_t sys_fork() {
 	// do fork only if this is the first context-switch of the process
 	// (this should be the case here, but it's useful for debug)
 	if(cur->acnt->previous != NULL) {
-		printk(LOG_DEBUG, "fork: multiple context... aborted\n");
+		printk(LOG_ERR, "fork: multiple context... aborted\n");
 		return -1;
 	}
 	
@@ -367,7 +367,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 		args_page = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(args_page == NULL) {
-			printk(LOG_DEBUG, "execve: not enought memory\n");
+			printk(LOG_ERR, "execve: not enought memory\n");
 			// TODO abort
 			while(1);
 		}
@@ -440,7 +440,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		
 		cur->state = PROCESS_STATE_CREATE;
 		if(elfloader_load(elf_file , cur) != 0) {
-			printk(LOG_DEBUG, "execve: unable to load ELF file\n");
+			printk(LOG_WARNING, "execve: unable to load ELF file\n");
 			// 'kill' process TODO proper way to do that
 			cur->state = PROCESS_STATE_CREATE;
 
@@ -448,7 +448,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			sched_preempt_unblock();
 			sched_schedule(cur);
 
-			printk(LOG_DEBUG, "execve: re-executed dead process!\n");
+			printk(LOG_ERR, "execve: re-executed dead process!\n");
 		}
 		else {
 			// the image is load, we can't simply return from syscall because
@@ -481,7 +481,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 							"r"(old_kstack-1), "r"(cur), "r"(&process_contextjmp)
 							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
 
-			printk(LOG_DEBUG, "execve: this should not happen!\n");
+			printk(LOG_ERR, "execve: this should not happen!\n");
 		}
 	}
 

@@ -413,8 +413,8 @@ void usb_sh3_interrupt_handler() {
 
 
 	if(!jobdone) {
-		printk(LOG_DEBUG, "USB: Do not know what to do!\n");
-		printk(LOG_DEBUG, "# IFRs: 0x%x 0x%x [0x%x]\n", USB.IFR0.BYTE, USB.IFR1.BYTE, USB.EPSTL.BYTE);
+		printk(LOG_WARNING, "USB: Do not know what to do!\n");
+		printk(LOG_WARNING, "# IFRs: 0x%x 0x%x [0x%x]\n", USB.IFR0.BYTE, USB.IFR1.BYTE, USB.EPSTL.BYTE);
 		USB.IFR0.BYTE = 0x00;
 		USB.IFR1.BYTE = 0x00;
 	}

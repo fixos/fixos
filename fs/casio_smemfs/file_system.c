@@ -146,7 +146,7 @@ struct inode * smemfs_get_inode (struct fs_instance *inst, uint32 lnode)
 	ret = vfs_alloc_inode(inst, lnode);
 	if(ret == NULL)
 	{
-		printk(LOG_DEBUG, "Error:\nvfs: unable to alloc inode\n");
+		printk(LOG_ERR, "vfs: unable to alloc inode\n");
 		return NULL;
 	}
 

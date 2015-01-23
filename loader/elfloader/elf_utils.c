@@ -91,7 +91,7 @@ int elf_symbol_lookup(struct file *filep, const struct elf_section_header *symta
 int elf_get_header(struct file *filep, struct elf_header *header) {
 	vfs_lseek(filep, 0, SEEK_SET);
 	if(vfs_read(filep, header, sizeof(*header)) != sizeof(*header)) {
-		printk(LOG_DEBUG, "elf: unable to read header\n");
+		printk(LOG_WARNING, "elf: unable to read header\n");
 		return -1;
 	}
 	return 0;

@@ -63,7 +63,7 @@ void sched_add_task(struct process *task) {
 		task->state = PROCESS_STATE_RUNNING;
 	}
 	else {
-		printk(LOG_DEBUG, "sched: unable to add new task!\n");
+		printk(LOG_ERR, "sched: unable to add new task!\n");
 	}
 }
 
@@ -149,7 +149,7 @@ void sched_preempt_block() {
 void sched_preempt_unblock() {
 	_preempt_level--;
 	if(_preempt_level < 0) {
-		printk(LOG_DEBUG, "[W] Preemption level < 0\n");		
+		printk(LOG_WARNING, "sched: preemption level < 0\n");		
 		_preempt_level = 0;
 	}
 }

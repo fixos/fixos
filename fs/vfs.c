@@ -51,7 +51,7 @@ void vfs_release_inode(struct inode *inode)
 	//printk(LOG_DEBUG, "vfs: --(%s, , 0x%x, %d)\n", inode->name, inode->node, inode->count);
 	if(inode->count > 0) {
 		if(inode->count == 1 && (inode->type_flags & (INODE_TYPE_ROOT | INODE_TYPE_MOUNTPOINT)) )
-			printk(LOG_DEBUG, "vfs: W: trying free mount|root\n");
+			printk(LOG_WARNING, "vfs: trying free mount|root\n");
 		else {
 			inode->count--;
 			if(inode->count == 0)
@@ -59,7 +59,7 @@ void vfs_release_inode(struct inode *inode)
 		}
 	}
 	else 
-		printk(LOG_DEBUG, "vfs: W: trying free count=0\n");
+		printk(LOG_WARNING, "vfs: trying free count=0\n");
 
 }
 
@@ -81,7 +81,7 @@ struct inode *vfs_get_inode(struct fs_instance *inst, uint32 nodeid)
 		ret->count++; // increment counter of usage
 	}
 	else 
-		printk(LOG_DEBUG, "vfs: getinode: !0x%x\n", nodeid);
+		printk(LOG_WARNING, "vfs: getinode failed (0x%x)\n", nodeid);
 	
 	return ret;
 }
@@ -131,7 +131,7 @@ void vfs_register_fs(const struct file_system *fs, int flags)
 	// TODO dynamic allocation???
 	
 	if(!ok)
-		printk(LOG_DEBUG, "vfs: unable to register fs\n");
+		printk(LOG_ERR, "vfs: unable to register fs\n");
 }
 
 
@@ -151,7 +151,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 	}
 
 	if(fs == NULL) {
-		printk(LOG_DEBUG, "vfs: fs not found '%s'\n", fsname);
+		printk(LOG_WARNING, "vfs: fs not found '%s'\n", fsname);
 		return -1;
 	}
 
@@ -202,7 +202,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 				}
 			}
 			else
-				printk(LOG_DEBUG, "vfs: unable to mount (inv. inode)\n");
+				printk(LOG_ERR, "vfs: unable to mount (inv. inode)\n");
 			
 		}
 	}

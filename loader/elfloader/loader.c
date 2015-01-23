@@ -49,7 +49,7 @@ int elfloader_load(struct file *filep, struct process *dest) {
 		// alloc physical page and set it as the VM process stack
 		vmstack = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(vmstack == NULL) {
-			printk(LOG_DEBUG, "elfloader: no physical page\n");
+			printk(LOG_ERR, "elfloader: no physical page\n");
 			return -1;
 		}
 		page.private.ppn = PM_PHYSICAL_PAGE(vmstack);
@@ -60,7 +60,7 @@ int elfloader_load(struct file *filep, struct process *dest) {
 		// set kernel stack address, for now any physical memory
 		pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(pageaddr == NULL) {
-			printk(LOG_DEBUG, "elfloader: no physical page\n");
+			printk(LOG_ERR, "elfloader: no physical page\n");
 			return -1;
 		}
 
@@ -87,7 +87,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 	// first step : read ELF header and check if it seems correct
 	if(elf_get_header(filep, header) == 0) {
 		if(check_elf_header(header) != 0) {
-			printk(LOG_DEBUG, "elf: unexpected value in header\n");
+			printk(LOG_ERR, "elf: unexpected value in header\n");
 			return -1;
 		}
 		else {
@@ -101,7 +101,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 			for(curph=0; curph < header->phnum; curph++) {
 				vfs_lseek(filep, header->phoff + curph*sizeof(pheader), SEEK_SET);
 				if(vfs_read(filep, &pheader, sizeof(pheader)) != sizeof(pheader)) {
-					printk(LOG_DEBUG, "elfloader: unable to read prog header %d\n", curph);
+					printk(LOG_ERR, "elfloader: unable to read prog header %d\n", curph);
 					return -1;
 				}
 
@@ -113,7 +113,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 						}
 					}
 					else {
-						printk(LOG_DEBUG, "elfloader: unable to load segment\n");
+						printk(LOG_ERR, "elfloader: unable to load segment\n");
 						// TODO free loaded segments
 						return -1;
 					}
@@ -142,7 +142,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 						}
 					}
 #else
-					printk(LOG_DEBUG, "elfloader: no shared library support!\n");
+					printk(LOG_ERR, "elfloader: no shared library support!\n");
 #endif //CONFIG_ELF_SHARED
 				}
 
@@ -212,7 +212,7 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 			pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 			if(pageaddr == NULL) {
-				printk(LOG_DEBUG, "elfloader: no physical page\n");
+				printk(LOG_ERR, "elfloader: no physical page\n");
 				// TODO really dirty way to exit, need to clean all done job!
 				return -1;
 			}
@@ -235,7 +235,7 @@ int elfloader_load_segment(struct file *filep, void *offset,
 		return 0;
 	}
 	else {
-		printk(LOG_DEBUG, "elfloader: segment begin not page-aligned.\n");
+		printk(LOG_ERR, "elfloader: segment begin not page-aligned.\n");
 		return -1;
 	}
 }
@@ -297,7 +297,7 @@ int elfloader_load_dynlib(const char *soname, struct process *dest) {
 		return 0;
 	}
 	else {
-		printk(LOG_DEBUG, "elfloader: unable to find dynamic lib '%s'\n", absname);
+		printk(LOG_ERR, "elfloader: unable to find dynamic lib '%s'\n", absname);
 		return -1;
 	}
 }
@@ -314,7 +314,7 @@ void *elfloader_resolve_dynsymbol(const char *name, struct process *target) {
 
 		if(elf_get_header(cur->file, &header) == 0) {
 			if(check_elf_header(&header) != 0) {
-				printk(LOG_DEBUG, "elf: unexpected value in header\n");
+				printk(LOG_ERR, "elf: unexpected value in header\n");
 				return NULL;
 			}
 

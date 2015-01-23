@@ -71,7 +71,7 @@ void init() {
 	earlyterm_write("Kernel initialization...\n");
 
 	set_kernel_print(&earlyterm_write);
-	printk(LOG_DEBUG, "cmd args: '%s'\n", &cmdargs_begin);
+	printk(LOG_INFO, "cmd args: '%s'\n", &cmdargs_begin);
 
 	cmdline_parse(&cmdargs_begin, 1024);
 
@@ -101,7 +101,7 @@ void init() {
 	DBG_WAIT;
 
 	// will be the last message displayed on early console
-	printk(LOG_DEBUG, "Switching screen to tty1...\n  The display will be cleared.\n");
+	printk(LOG_INFO, "Switching screen to tty1...\n  The display will be cleared.\n");
 	console_make_active();
 
 	// in all cases, Virtual Terminals should be made active (tty1)
@@ -115,10 +115,10 @@ void init() {
 	freq_time_calibrate();
 
 	freq = freq_get_internal_hz();
-	printk(LOG_DEBUG, "CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+	printk(LOG_INFO, "CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 
 	freq = freq_get_peripheral_hz();
-	printk(LOG_DEBUG, "Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+	printk(LOG_INFO, "Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 
 	// initialize sysctl tables
 	ctl_init();
@@ -220,8 +220,8 @@ void init() {
 	test_process();
 	
 
-	printk(LOG_DEBUG, "End of init job, sleeping...\n");
+	printk(LOG_WARNING, "End of init job, sleeping...\n");
 	while(1)
-		printk(LOG_DEBUG, "IER: 0x%x 0x%x\n", USB.IFR0.BYTE, USB.IFR1.BYTE);
+		printk(LOG_WARNING, "IER: 0x%x 0x%x\n", USB.IFR0.BYTE, USB.IFR1.BYTE);
 }
 
