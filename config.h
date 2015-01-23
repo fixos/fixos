@@ -28,9 +28,12 @@
 // should be a power of 2 for optimization purpose
 #define CONFIG_PID_MAX			1024
 
-// If defined, try to force optimizer to remove printk() calls (and constants
-// passed to it), usefull to check how much size is used by printk() messages
-//#define CONFIG_PRINTK_DUMMY		y
+// Define the "static log level", which allow to remove at compile-time
+// all calls to printk() with a lower level (including their string).
+// Its value should be in [0-7], with 0 as "Keep everything" and 7 as
+// "remove all".
+// A value of 1 is interesting to remove LOG_DEBUG messages.
+#define CONFIG_PRINTK_STATIC_LEVEL	0
 
 // Used to enable stack-debuging (allow more powerful post-mortem stack analysis)
 //#define CONFIG_DEBUG_STACK		y

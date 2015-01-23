@@ -11,9 +11,9 @@
 // defined in arch/generic/process.h :
 
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt) {
-//	printk("[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
+//	printk(LOG_DEBUG, "[I] new context pc = %p\n  new sr = %p\n", (void*)(cnt->pc), (void*)(cnt->sr));  
 
-	//printk("kstack = %p\n", cnt->kernel_stack);
+	//printk(LOG_DEBUG, "kstack = %p\n", cnt->kernel_stack);
 	
 	if(old_cnt != NULL)
 		*old_cnt = cnt->previous;

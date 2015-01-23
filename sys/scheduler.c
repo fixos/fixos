@@ -63,7 +63,7 @@ void sched_add_task(struct process *task) {
 		task->state = PROCESS_STATE_RUNNING;
 	}
 	else {
-		printk("sched: unable to add new task!\n");
+		printk(LOG_DEBUG, "sched: unable to add new task!\n");
 	}
 }
 
@@ -149,7 +149,7 @@ void sched_preempt_block() {
 void sched_preempt_unblock() {
 	_preempt_level--;
 	if(_preempt_level < 0) {
-		printk("[W] Preemption level < 0\n");		
+		printk(LOG_DEBUG, "[W] Preemption level < 0\n");		
 		_preempt_level = 0;
 	}
 }
@@ -220,8 +220,8 @@ pid_t sys_wait(int *status) {
 		
 		sched_preempt_block();
 		for(i=0; i<SCHED_MAX_TASKS; i++) {
-			//printk("task %d", i);
-			//printk("->%p\n", _tasks[i]);
+			//printk(LOG_DEBUG, "task %d", i);
+			//printk(LOG_DEBUG, "->%p\n", _tasks[i]);
 			if(_tasks[i] != NULL && _tasks[i]->ppid == ppid) {
 				if(_tasks[i]->state == PROCESS_STATE_ZOMBIE) {
 					ret = _tasks[i]->pid;

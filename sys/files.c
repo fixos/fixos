@@ -14,7 +14,7 @@ int sys_open(const char *name, int flags) {
 	struct process *proc;
 	int fd;
 
-	//printk("Received sys_open :\n   ('%s', %d)\n", name, flags);
+	//printk(LOG_DEBUG, "Received sys_open :\n   ('%s', %d)\n", name, flags);
 	proc = process_get_current();
 
 	for(fd=0; fd<PROCESS_MAX_FILE && proc->files[fd] != NULL; fd++);
@@ -36,21 +36,21 @@ int sys_open(const char *name, int flags) {
 
 			proc->files[fd] = vfs_open(inode, flags);
 			if(proc->files[fd] != NULL) {
-				//printk("sys_open: new fd = %d\n", fd);
+				//printk(LOG_DEBUG, "sys_open: new fd = %d\n", fd);
 
 				// done
 				return fd;
 			}
 			else {
-				printk("sys_open: unable to open ('%s', f=0x%x)\n", name, flags);
+				printk(LOG_DEBUG, "sys_open: unable to open ('%s', f=0x%x)\n", name, flags);
 			}
 		}
 		else {
-			printk("sys_open: no such inode found\n");
+			printk(LOG_DEBUG, "sys_open: no such inode found\n");
 		}
 	}
 	else {
-		printk("sys_open: no more file desc\n");
+		printk(LOG_DEBUG, "sys_open: no more file desc\n");
 	}
 	return -1;
 }
@@ -65,7 +65,7 @@ ssize_t sys_read(int fd, char *dest, int nb) {
 		return vfs_read(proc->files[fd], dest, nb);	
 	}
 	else {
-		printk("sys_read: invalid fd\n");
+		printk(LOG_DEBUG, "sys_read: invalid fd\n");
 		return -EBADF;
 	}	
 }
@@ -80,7 +80,7 @@ ssize_t sys_write(int fd, const char *source, int nb){
 		return vfs_write(proc->files[fd], source, nb);	
 	}
 	else {
-		printk("sys_write: invalid fd (%d)\n", fd);
+		printk(LOG_DEBUG, "sys_write: invalid fd (%d)\n", fd);
 	}	
 
 	return -EBADF;
@@ -94,7 +94,7 @@ int sys_ioctl(int fd, int request, void *arg) {
 		return vfs_ioctl(proc->files[fd], request, arg);	
 	}
 	else {
-		printk("sys_ioctl: invalid fd (%d)\n", fd);
+		printk(LOG_DEBUG, "sys_ioctl: invalid fd (%d)\n", fd);
 	}	
 
 	return -1;
@@ -122,11 +122,11 @@ int sys_pipe2(int pipefd[2], int flags) {
 			return 0;
 		}
 		else {
-			printk("sys_pipe2: pipe creation failed\n");
+			printk(LOG_DEBUG, "sys_pipe2: pipe creation failed\n");
 		}
 	}
 	else {
-		printk("sys_pipe2: no more file desc\n");
+		printk(LOG_DEBUG, "sys_pipe2: no more file desc\n");
 	}
 	return -1;
 
@@ -141,7 +141,7 @@ int sys_lseek(int fd, off_t offset, int whence) {
 		return vfs_lseek(proc->files[fd], offset, whence);	
 	}
 	else {
-		printk("sys_lseek: invalid fd\n");
+		printk(LOG_DEBUG, "sys_lseek: invalid fd\n");
 	}
 
 	return -1;
@@ -156,7 +156,7 @@ int sys_fstat(int fd, struct stat *buf) {
 		return vfs_fstat(proc->files[fd], buf);	
 	}
 	else {
-		printk("sys_fstat: invalid fd\n");
+		printk(LOG_DEBUG, "sys_fstat: invalid fd\n");
 	}
 
 	return -1;
@@ -185,7 +185,7 @@ int sys_getdents(int fd, struct fixos_dirent *buf, size_t len) {
 		return vfs_dir_getdents(proc->files[fd], buf, len);
 	}
 	else {
-		printk("sys_getdents: invalid fd\n");
+		printk(LOG_DEBUG, "sys_getdents: invalid fd\n");
 		return -EBADF;
 	}	
 }
@@ -201,7 +201,7 @@ int sys_close(int fd) {
 		proc->files[fd] = NULL;
 	}
 	else {
-		printk("sys_close: invalid fd\n");
+		printk(LOG_DEBUG, "sys_close: invalid fd\n");
 		ret = -EBADF;
 	}
 

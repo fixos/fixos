@@ -147,7 +147,7 @@ void interrupt_handler() {
 
 	// for now only hard-coded for SDHI SD Interrupt
 	case INT_CODE_SDHI_SDI:
-		printk("SDI interrupt [0x%x]!\n", SDHI.word_u14 & 0x00B8);
+		printk(LOG_DEBUG, "SDI interrupt [0x%x]!\n", SDHI.word_u14 & 0x00B8);
 		// TODO reset interrupt bit...
 
 		SDHI.word_u14 &= 0xFF47;
@@ -156,7 +156,7 @@ void interrupt_handler() {
 		break;
 
 	default:
-		printk("Unknown interrupt catched :\nEVT2=0x%x\n", evt);
+		printk(LOG_DEBUG, "Unknown interrupt catched :\nEVT2=0x%x\n", evt);
 		break;
 	}
 

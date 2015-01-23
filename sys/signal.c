@@ -103,7 +103,7 @@ static void try_deliver_one(struct process *proc, int sig) {
 
 	sigindex = _trans_number2index[sig];
 	if(sigindex == _SIGUNDEF) {
-		printk("signal: unimplemented SIG %d ignored\n", sig);
+		printk(LOG_DEBUG, "signal: unimplemented SIG %d ignored\n", sig);
 	}
 	else {
 		action = &(proc->sig_array[sigindex]);
@@ -169,7 +169,7 @@ void signal_pgid_raise(pid_t pgid, int sig) {
 	struct process *dest;
 
 	for_each_process(dest) {
-		//printk("pgid_raise: pid %d, pgid %d\n", dest->pid, dest->pgid);
+		//printk(LOG_DEBUG, "pgid_raise: pid %d, pgid %d\n", dest->pid, dest->pgid);
 		if (dest->pgid == pgid)
 			signal_raise(dest, sig);
 	}
@@ -191,7 +191,7 @@ void signal_deliver_pending() {
 
 		for(cursig=0; cursig<SIGNAL_MAX; cursig++) {
 			if(sigismember(&todeliver, cursig)) {
-				printk("signal: try to deliver %d\n", cursig);
+				printk(LOG_DEBUG, "signal: try to deliver %d\n", cursig);
 				try_deliver_one(proc, cursig);
 			}
 		}
@@ -241,7 +241,7 @@ int sys_kill(pid_t pid, int sig) {
 	if(sig>=0 && sig<SIGNAL_MAX && _trans_number2index[sig] != _SIGUNDEF) {
 		struct process *dest;
 
-		printk("signal: kill(%d, %d)\n", pid, sig);
+		printk(LOG_DEBUG, "signal: kill(%d, %d)\n", pid, sig);
 
 		// depending pid value, this can be a gid or a pid
 		if(pid > 0) {

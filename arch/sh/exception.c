@@ -42,19 +42,19 @@ void exception_handler()
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		printk("> Address : %p\n", (void*)tea);
-		printk("> SPC Value = %p\n", spcval);
+		printk(LOG_DEBUG, "> Address : %p\n", (void*)tea);
+		printk(LOG_DEBUG, "> SPC Value = %p\n", spcval);
 		kdebug_oops("CPU Access Violation (R/W)");
 		break;
 
 	case EXP_CODE_TRAPA:
 		tra = INTC.TRA >> 2; 
-		//printk("TRAPA (%d) catched!\n", tra);
+		//printk(LOG_DEBUG, "TRAPA (%d) catched!\n", tra);
 		{
 			void *func;
 			func = syscall_get_function(tra);
 			if(func == NULL) {
-				printk("Not a reconized syscall!\n");
+				printk(LOG_DEBUG, "Not a reconized syscall!\n");
 			}
 			else {
 				int *context = (void*)(cur->acnt);
@@ -80,9 +80,9 @@ void exception_handler()
 
 	case EXP_CODE_BAD_INSTR:
 	case EXP_CODE_BAD_SLOTINSTR:
-		printk("> TEA value = %p\n", (void*)tea);
-		printk(">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
-		printk("> SPC Value = %p\n", spcval);
+		printk(LOG_DEBUG, "> TEA value = %p\n", (void*)tea);
+		printk(LOG_DEBUG, ">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
+		printk(LOG_DEBUG, "> SPC Value = %p\n", spcval);
 		if(EXP_CODE_BAD_SLOTINSTR)
 			kdebug_oops("Illegal slot instruction");
 		else
@@ -90,7 +90,7 @@ void exception_handler()
 		break;
 
 	case EXP_CODE_USER_BREAK:
-		printk("Unexpected (blocking):\nUser Break exception.\n");
+		printk(LOG_DEBUG, "Unexpected (blocking):\nUser Break exception.\n");
 		while(1);
 		break;
 
@@ -99,7 +99,7 @@ void exception_handler()
 		break;
 
 	case EXP_CODE_TLB_INITWRITE:
-		printk("[I] Initial MMU page write.\n");
+		printk(LOG_DEBUG, "[I] Initial MMU page write.\n");
 		break;
 
 	case EXP_CODE_TLB_PROTECT_R:
@@ -122,7 +122,7 @@ void exception_handler()
 
 	// avoid verbosity for TRAPA
 	if(evt != EXP_CODE_TRAPA)
-		printk("@ end of exception\nSPC Value = %p\n", spcval);
+		printk(LOG_DEBUG, "@ end of exception\nSPC Value = %p\n", spcval);
 
 	// do not return, do direct context switch
 	sched_if_needed();
@@ -184,7 +184,7 @@ void tlbmiss_handler()
 			// load the TLB entry!
 			mmu_tlb_fillload(ppn, flags);
 			/*
-			printk("vm: [pid %d] page tr #(%p)->@(%p)\n", curpr->pid,
+			printk(LOG_DEBUG, "vm: [pid %d] page tr #(%p)->@(%p)\n", curpr->pid,
 					(void*)(ppn << PM_PAGE_ORDER),
 					(void*)(vpn << PM_PAGE_ORDER));
 			*/
@@ -200,7 +200,7 @@ void tlbmiss_handler()
 
 		asm volatile("stc spc, %0":"=r"(spcval));
 		asm volatile("mov r15, %0":"=r"(stack));
-		printk("> Dereference %p\n> With PC=%p\n",
+		printk(LOG_DEBUG, "> Dereference %p\n> With PC=%p\n",
 				(void*)TEA, (void*)spcval);
 		kdebug_oops("Access to a forbiden page");
 	}

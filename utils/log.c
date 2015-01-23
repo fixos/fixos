@@ -4,6 +4,7 @@
 #include <fs/vfs_file.h>
 
 // normally provide by GCC, with only builtins calls...
+// FIXME replace by in-kernel definition with __builtin_va_*
 #include <stdarg.h>
 
 #define BUFFER_SIZE 256
@@ -13,12 +14,14 @@ static print_callback_t current_kernel_print = NULL;
 // used by print_to_file()
 static struct file *current_log_file = NULL;
 
+// dynamic level, default is to display everything
+static int printk_dynamic_level = 0;
+
 static void print_to_file(const char *str);
 
-#ifndef CONFIG_PRINTK_DUMMY
-void printk(const char *str, ...)
+void printk_internal(int level, const char *str, ...)
 {
-	if(current_kernel_print != NULL) {
+	if(level >= printk_dynamic_level && current_kernel_print != NULL) {
 		va_list vargs;
 		char buf[BUFFER_SIZE];
 		int i;
@@ -90,7 +93,11 @@ void printk(const char *str, ...)
 		va_end(vargs);
 	}
 }
-#endif //!CONFIG_PRINTK_DUMMY
+
+
+void printk_set_level(int level) {
+	printk_dynamic_level = level;
+}
 
 
 void set_kernel_print(print_callback_t func)

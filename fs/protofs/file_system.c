@@ -166,7 +166,7 @@ struct inode * protofs_get_inode (struct fs_instance *inst, uint32 node)
 	struct inode *ret;
 	ret = vfs_alloc_inode(inst, node);	
 	if(ret == NULL) {
-		printk("protofs: vfs inode alloc failed\n");
+		printk(LOG_DEBUG, "protofs: vfs inode alloc failed\n");
 	}
 
 	return protofs_fill_inode(inst, nodeptr, ret);

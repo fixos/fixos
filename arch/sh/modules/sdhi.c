@@ -107,20 +107,20 @@ int sd_init() {
 
 	sd_sdhi_fun8_1();
 	
-	printk("Begin of init\n");
+	printk(LOG_DEBUG, "Begin of init\n");
 
 	// send CMD0(0,0) sdhi_fun3
 	sd_send_command(0, 0x00000000);
 
 	sd_get_resp32(&resp32);
-	printk("CMD0 resp = {%p}\n", (void*)(resp32));
+	printk(LOG_DEBUG, "CMD0 resp = {%p}\n", (void*)(resp32));
 
 	// send CMD55(0, 0)
 	tmp = sd_send_command(55, 0x00000000);
 
 	sd_get_resp32(&resp32);
-	printk("CMD55 resp = {%p}\n", (void*)(resp32));
-	printk("ret = %d\n", tmp);
+	printk(LOG_DEBUG, "CMD55 resp = {%p}\n", (void*)(resp32));
+	printk(LOG_DEBUG, "ret = %d\n", tmp);
 
 	if( tmp == 0) {
 		int loopquit = 0;
@@ -137,7 +137,7 @@ int sd_init() {
 			// read response
 			sd_get_resp32(&resp32);
 
-			printk("ACMD41 resp = {%p}\n", (void*)(resp32));
+			printk(LOG_DEBUG, "ACMD41 resp = {%p}\n", (void*)(resp32));
 
 			// check a part of the response
 			if( (resp32 & 0x80000000) == 0) {
@@ -379,7 +379,7 @@ int sd_read_block(int blocknb, char *dest) {
 	blocksdone = 0;
 
 	retval = sd_send_command(16, 512);
-	printk("Ohoh, resp=%d [set bl_len 512]\n", retval);
+	printk(LOG_DEBUG, "Ohoh, resp=%d [set bl_len 512]\n", retval);
 	
 
 
@@ -398,12 +398,12 @@ int sd_read_block(int blocknb, char *dest) {
 
 		// WARNING, use SD_CMD_READ_MULTIPLE_BLOCK if size is more than 1 block!
 		retval = sd_send_command(SD_CMD_READ_SINGLE_BLOCK, firstaddr);
-		printk("CMD17 = %d\n", retval);
+		printk(LOG_DEBUG, "CMD17 = %d\n", retval);
 
 		if(retval == 0) {
 			// probably not useful, but done by Casio's OS
 			sd_get_resp32(&resp);
-			printk("resp_data=%p\n", (void*)resp);
+			printk(LOG_DEBUG, "resp_data=%p\n", (void*)resp);
 
 			do {
 				if( (SDHI.word_u15 & 0x0100) != 0) {
@@ -415,18 +415,18 @@ int sd_read_block(int blocknb, char *dest) {
 					// prepare DMAC for 256 word copy in read (0)
 					sd_dma_read(buffer, 256);
 
-					printk("DMA copy started.\n");
+					printk(LOG_DEBUG, "DMA copy started.\n");
 
 					// wait for end of DMAC or error occurs
 					// TODO better implementation
 					while( DMAC.DMATCR_0 != 0) {
-						printk("DMATCR_0 = %d | Data=0x%x\n", DMAC.DMATCR_0, SDHI.data);
+						printk(LOG_DEBUG, "DMATCR_0 = %d | Data=0x%x\n", DMAC.DMATCR_0, SDHI.data);
 						kusleep(100000);
 						if( ( (DMAC.DMAOR & 0x0006) != 0)
 								|| ( (DMAC.DMAOR & 0x0001) == 0)
 								|| ( (DMAC.CHCR_0 & 0x00000001) == 0) )
 						{
-							printk("DMA error occurs!\n");
+							printk(LOG_DEBUG, "DMA error occurs!\n");
 							retval = 0x00d7;
 							break;
 						}

@@ -215,11 +215,11 @@ int sys_sysctl_read(const int *name, size_t name_len, void *buf, size_t *len)
 		}
 	}
 
-	printk("sysctl: name not found {");
+	printk(LOG_DEBUG, "sysctl: name not found {");
 	int i;
 	for(i=0; i<name_len; i++)
-		printk("%d, ", name[i]);
-	printk("}\n");
+		printk(LOG_DEBUG, "%d, ", name[i]);
+	printk(LOG_DEBUG, "}\n");
 	return -1;
 }
 
@@ -282,7 +282,7 @@ int sys_sysctl_mibname(const char *strname, int *name, int *name_len) {
 				part[plen] = '\0';
 				curparent = ctl_find_child_byname(curparent, part);
 				if(curparent == NULL || *name_len < curlen+1) {
-					printk("sysctl: not found '%s'\n", part);
+					printk(LOG_DEBUG, "sysctl: not found '%s'\n", part);
 					return -1;
 				}
 
@@ -290,7 +290,7 @@ int sys_sysctl_mibname(const char *strname, int *name, int *name_len) {
 			}
 			else {
 				// too long
-				printk("sysctl: string name too long\n");
+				printk(LOG_DEBUG, "sysctl: string name too long\n");
 				return -1;
 			}
 		}

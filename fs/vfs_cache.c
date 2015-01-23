@@ -23,7 +23,7 @@ void vfs_cache_init()
 {
 	int i;
 	
-	printk("vfs_cache: inode/page=%d\n", _inode_alloc.perpage);
+	printk(LOG_DEBUG, "vfs_cache: inode/page=%d\n", _inode_alloc.perpage);
 
 	// initilize the hash table
 	for(i=0; i<VFS_CACHE_HASHTABLE_SIZE; i++)

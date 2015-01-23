@@ -49,7 +49,7 @@ int elfloader_load(struct file *filep, struct process *dest) {
 		// alloc physical page and set it as the VM process stack
 		vmstack = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(vmstack == NULL) {
-			printk("elfloader: no physical page\n");
+			printk(LOG_DEBUG, "elfloader: no physical page\n");
 			return -1;
 		}
 		page.private.ppn = PM_PHYSICAL_PAGE(vmstack);
@@ -60,7 +60,7 @@ int elfloader_load(struct file *filep, struct process *dest) {
 		// set kernel stack address, for now any physical memory
 		pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(pageaddr == NULL) {
-			printk("elfloader: no physical page\n");
+			printk(LOG_DEBUG, "elfloader: no physical page\n");
 			return -1;
 		}
 
@@ -87,7 +87,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 	// first step : read ELF header and check if it seems correct
 	if(elf_get_header(filep, header) == 0) {
 		if(check_elf_header(header) != 0) {
-			printk("elf: unexpected value in header\n");
+			printk(LOG_DEBUG, "elf: unexpected value in header\n");
 			return -1;
 		}
 		else {
@@ -101,7 +101,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 			for(curph=0; curph < header->phnum; curph++) {
 				vfs_lseek(filep, header->phoff + curph*sizeof(pheader), SEEK_SET);
 				if(vfs_read(filep, &pheader, sizeof(pheader)) != sizeof(pheader)) {
-					printk("elfloader: unable to read prog header %d\n", curph);
+					printk(LOG_DEBUG, "elfloader: unable to read prog header %d\n", curph);
 					return -1;
 				}
 
@@ -113,7 +113,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 						}
 					}
 					else {
-						printk("elfloader: unable to load segment\n");
+						printk(LOG_DEBUG, "elfloader: unable to load segment\n");
 						// TODO free loaded segments
 						return -1;
 					}
@@ -134,7 +134,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 							index += strsize;
 
 							if(strsize > 0) {
-								printk("elfloader: need library '%s'\n", buf);
+								printk(LOG_DEBUG, "elfloader: need library '%s'\n", buf);
 								elfloader_load_dynlib(buf, dest);
 							}
 							else
@@ -142,7 +142,7 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 						}
 					}
 #else
-					printk("elfloader: no shared library support!\n");
+					printk(LOG_DEBUG, "elfloader: no shared library support!\n");
 #endif //CONFIG_ELF_SHARED
 				}
 
@@ -212,7 +212,7 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 			pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 			if(pageaddr == NULL) {
-				printk("elfloader: no physical page\n");
+				printk(LOG_DEBUG, "elfloader: no physical page\n");
 				// TODO really dirty way to exit, need to clean all done job!
 				return -1;
 			}
@@ -226,16 +226,16 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 			if(toread > 0) {
 				nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
-				printk("[I] %d bytes read from ELF.\n", nbread);
+				printk(LOG_DEBUG, "[I] %d bytes read from ELF.\n", nbread);
 			}
 
 			mem_insert_page(& dest->dir_list , &page, vm_segaddr);
-			printk("[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
+			printk(LOG_DEBUG, "[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
 		}
 		return 0;
 	}
 	else {
-		printk("elfloader: segment begin not page-aligned.\n");
+		printk(LOG_DEBUG, "elfloader: segment begin not page-aligned.\n");
 		return -1;
 	}
 }
@@ -260,7 +260,7 @@ int elfloader_load_dynlib(const char *soname, struct process *dest) {
 		if(elfloader_load_all(lib, offset, dest, &header, 0) == 0) {
 			struct elf_section_header symtab;
 
-			printk("elfloader: library '%s' loaded!\n", absname);
+			printk(LOG_DEBUG, "elfloader: library '%s' loaded!\n", absname);
 			if(elf_get_symtab(lib, &header, &symtab) == 0) {
 				struct elf_symbol sym;
 				uint32 *reloc_got_b = NULL;
@@ -278,7 +278,7 @@ int elfloader_load_dynlib(const char *soname, struct process *dest) {
 					reloc_got_e = offset + sym.value;
 				}
 
-				printk("elfloader: RELOC_GOT_B=%p nb=%d\n", reloc_got_b,
+				printk(LOG_DEBUG, "elfloader: RELOC_GOT_B=%p nb=%d\n", reloc_got_b,
 						reloc_got_e - reloc_got_b);
 
 				for( ; reloc_got_b < reloc_got_e; reloc_got_b++) {
@@ -297,7 +297,7 @@ int elfloader_load_dynlib(const char *soname, struct process *dest) {
 		return 0;
 	}
 	else {
-		printk("elfloader: unable to find dynamic lib '%s'\n", absname);
+		printk(LOG_DEBUG, "elfloader: unable to find dynamic lib '%s'\n", absname);
 		return -1;
 	}
 }
@@ -314,7 +314,7 @@ void *elfloader_resolve_dynsymbol(const char *name, struct process *target) {
 
 		if(elf_get_header(cur->file, &header) == 0) {
 			if(check_elf_header(&header) != 0) {
-				printk("elf: unexpected value in header\n");
+				printk(LOG_DEBUG, "elf: unexpected value in header\n");
 				return NULL;
 			}
 
@@ -325,7 +325,7 @@ void *elfloader_resolve_dynsymbol(const char *name, struct process *target) {
 
 				if(elf_symbol_lookup(cur->file, &symtab, &header, name, &sym) == 0) {
 					ret = cur->offset + sym.value;
-					printk("elfloader: '%s' solved @%p\n", name, ret);
+					printk(LOG_DEBUG, "elfloader: '%s' solved @%p\n", name, ret);
 				}
 			}
 		}

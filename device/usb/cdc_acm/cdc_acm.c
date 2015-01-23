@@ -165,7 +165,7 @@ void cdc_acm_init() {
 	if(usb_find_endpoint_config(3, _cdc_enpoints) == 0) {
 		// We have a working config, set appropriate values
 		// for endpoint descriptors
-		printk("cdc/acm: ep -> {0x%x, 0x%x, 0x%x}\n", _cdc_enpoints[0].endpoint,
+		printk(LOG_DEBUG, "cdc/acm: ep -> {0x%x, 0x%x, 0x%x}\n", _cdc_enpoints[0].endpoint,
 				_cdc_enpoints[1].endpoint, _cdc_enpoints[2].endpoint);
 
 		_epdesc1.b_endpoint_addr = _cdc_enpoints[2].endpoint;
@@ -335,7 +335,7 @@ static int cdc_acm_setup_other(const struct usb_setup *setup) {
 
 
 	default:
-		printk("USB: Unknown setup req %d\n", setup->b_request);
+		printk(LOG_DEBUG, "USB: Unknown setup req %d\n", setup->b_request);
 		return -1;
 	}
 

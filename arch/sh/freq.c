@@ -25,7 +25,7 @@ int freq_change(int ckio_mul, int ifc, int pfc) {
 	CPG.FRQCR.WORD = (CPG.FRQCR.WORD & 0xFC00) | (new_pfc<<0) | (new_ifc<<4) 
 		| (new_stc<<8) ;
 
-	//printk("WTCNT = %d\n", WDT.WTCNT.READ);
+	//printk(LOG_DEBUG, "WTCNT = %d\n", WDT.WTCNT.READ);
 	//TODO wait for watchdog if needed?
 	
 	return 0;
@@ -40,7 +40,7 @@ int freq_time_calibrate() {
 
 	// take the control of the RTC for the calibration, disable interrupts
 	// and exceptions, to use interrupt flag in a sequential way
-	printk("freq: Start calib...");
+	printk(LOG_DEBUG, "freq: Start calib...");
 
 	interrupt_inhibit_all(1);
 	old_rcr2 = RTC.RCR2.BYTE;
@@ -69,7 +69,7 @@ int freq_time_calibrate() {
 	
 	interrupt_inhibit_all(0);
 
-	printk("done!\n");
+	printk(LOG_DEBUG, "done!\n");
 	return 0;
 }
 

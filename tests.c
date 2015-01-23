@@ -36,28 +36,28 @@
 
 void test_sdcard() {
 	// SD Card communication tests
-	printk("Trying to init SD card...\n");
-	//printk("Trying to send SD command...\n");
+	printk(LOG_DEBUG, "Trying to init SD card...\n");
+	//printk(LOG_DEBUG, "Trying to send SD command...\n");
 
 	sd_resp128_t resp;
 	union sd_reg_csd csd;
 
 	//sd_init_registers();
 	
-	//printk("SD registers initialized..\n");
+	//printk(LOG_DEBUG, "SD registers initialized..\n");
 	
 	//int sdret = sd_send_command(0, 0, 0);
 
 	//sd_get_resp32(&resp);
-	//printk("sd_send ret = %d\nCMD0 resp = {%p}\n", sdret, (void*)(resp.w0 + (resp.w1 << 16) ));
+	//printk(LOG_DEBUG, "sd_send ret = %d\nCMD0 resp = {%p}\n", sdret, (void*)(resp.w0 + (resp.w1 << 16) ));
 
 	int sdret = sd_init();
-	printk("Done, SD init = %d\n", sdret);
+	printk(LOG_DEBUG, "Done, SD init = %d\n", sdret);
 	
 	sdret = sd_send_command(2, 0x00000000);
 
 	sd_get_resp128(&resp);
-	printk("sd_send ret = %d\nCMD2 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(resp.r0), (void*)(resp.r1), (void*)(resp.r2), (void*)(resp.r3));
+	printk(LOG_DEBUG, "sd_send ret = %d\nCMD2 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(resp.r0), (void*)(resp.r1), (void*)(resp.r2), (void*)(resp.r3));
 
 
 	DBG_WAIT;
@@ -71,7 +71,7 @@ void test_sdcard() {
 
 	sd_get_resp32(&resp32);
 	card_rca = resp32 >> 16;
-	printk("sd_send ret = %d\nCMD3 resp = {%p}\nNew RCA = %d\n", sdret, (void*)(resp32), card_rca);
+	printk(LOG_DEBUG, "sd_send ret = %d\nCMD3 resp = {%p}\nNew RCA = %d\n", sdret, (void*)(resp32), card_rca);
 
 
 	DBG_WAIT;
@@ -80,27 +80,27 @@ void test_sdcard() {
 	sdret = sd_send_command(9, (card_rca << 16) + 0x0000);
 
 	sd_get_resp128(&(csd.resp));
-	printk("sd_send ret = %d\nCMD9 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(csd.resp.r0), (void*)(csd.resp.r1), (void*)(csd.resp.r2), (void*)(csd.resp.r3));
+	printk(LOG_DEBUG, "sd_send ret = %d\nCMD9 resp = {\n%p %p\n%p %p }\n", sdret, (void*)(csd.resp.r0), (void*)(csd.resp.r1), (void*)(csd.resp.r2), (void*)(csd.resp.r3));
 
-	printk("c_size(%d) sz_mult(%d) len(%d)\n", SD_CSD_GET_C_SIZE(csd), csd.content.c_size_mult, csd.content.read_bl_len);
+	printk(LOG_DEBUG, "c_size(%d) sz_mult(%d) len(%d)\n", SD_CSD_GET_C_SIZE(csd), csd.content.c_size_mult, csd.content.read_bl_len);
 
 	// compute max size
 	int card_size = (SD_CSD_GET_C_SIZE(csd)+ 1) * (1 << (csd.content.c_size_mult +2))
 			* (1 << csd.content.read_bl_len);
 	
-	printk("Card Size = %dB (aprox. %dMiB)\n", card_size, card_size >> 20);
+	printk(LOG_DEBUG, "Card Size = %dB (aprox. %dMiB)\n", card_size, card_size >> 20);
 
 	DBG_WAIT;
 
 	// select the given SD card before to send/receive data
 	sdret = sd_send_command(7, (card_rca << 16) + 0x0000);
 
-	printk("Select RCA %d -> %d\n", card_rca, sdret);
+	printk(LOG_DEBUG, "Select RCA %d -> %d\n", card_rca, sdret);
 
 	uint32 blockbuf[128];
 	sdret = sd_read_block(0, (char*)blockbuf);
 
-	printk("Read return = %d\n{%p %p}\n", sdret, (void*)blockbuf[0], (void*)blockbuf[1]);
+	printk(LOG_DEBUG, "Read return = %d\n{%p %p}\n", sdret, (void*)blockbuf[0], (void*)blockbuf[1]);
 
 	DBG_WAIT;
 }
@@ -109,17 +109,17 @@ void test_sdcard() {
 
 void test_sleep_funcs() {
 	// kdelay/kusleep tests
-	printk("Trying kusleep(2000000) in infinite loop...\n");
+	printk(LOG_DEBUG, "Trying kusleep(2000000) in infinite loop...\n");
 
 	DBG_WAIT;
 
-	printk("started!");
+	printk(LOG_DEBUG, "started!");
 
 	int nbdelay = 0;
 	while(1) {
 		kusleep(2000000);
 		nbdelay++;
-		printk("%d done\n", nbdelay);
+		printk(LOG_DEBUG, "%d done\n", nbdelay);
 	}
 
 	DBG_WAIT;
@@ -134,16 +134,16 @@ void test_eeprom() {
 	int deviceid = eeprom_get_device_id();
 	unsigned short eepromsz = eeprom_get_cfi(EEPROM_CFI_DEVICE_SIZE);
 
-	printk("EEPROM DevID = %x\nEEPROM Size = %dB\n", deviceid, 1 << eepromsz);
+	printk(LOG_DEBUG, "EEPROM DevID = %x\nEEPROM Size = %dB\n", deviceid, 1 << eepromsz);
 
 	// try to erase EEPROM page
 	unsigned int testaddr = 0xA01C0000;
 	volatile unsigned short * shortaddr = (unsigned short *)testaddr;
 	if(*shortaddr != 0xFFFF) {
-		printk("Erasing EEPROM Sector at %p\n", shortaddr);
+		printk(LOG_DEBUG, "Erasing EEPROM Sector at %p\n", shortaddr);
 		eeprom_erase_sector(testaddr);
 		while(*shortaddr != 0xFFFF);
-		printk("Erased!\n");
+		printk(LOG_DEBUG, "Erased!\n");
 	}
 
 	// test programming eeprom!
@@ -152,15 +152,15 @@ void test_eeprom() {
 	eeprom_program_word(testaddr, 0x55AA);
 	valafter = *(volatile unsigned short *)(testaddr);
 
-	printk("EEPROM Write (bfr=%x, aft=%x)\n", valprev, valafter);
+	printk(LOG_DEBUG, "EEPROM Write (bfr=%x, aft=%x)\n", valprev, valafter);
 
 	while(*(volatile unsigned char *)(testaddr) != 0x55 && *(volatile unsigned char *)(testaddr) != 0xAA);
-	printk("Done! After = %x\n", *(volatile unsigned short*)testaddr);
+	printk(LOG_DEBUG, "Done! After = %x\n", *(volatile unsigned short*)testaddr);
 
 
 	DBG_WAIT;
 
-	printk("Trying to write abritrary array in EEPROM.\n");
+	printk(LOG_DEBUG, "Trying to write abritrary array in EEPROM.\n");
 	eeprom_program_array(testaddr + 0x03, eepromarray, sizeof(eepromarray));
 
 
@@ -182,17 +182,17 @@ void test_process() {
 
 	struct process *proc1;
 	proc1 = process_alloc();
-	printk("_buser %p (@%p)\n_euser %p (@%p)\nus %p (@%p)\n", &buser, &buser, &euser, &euser, &usersize, &usersize);
-	printk("loading %p->%p\n", bprocess, eprocess);
-	printk("user proc : %p\n", proc1);
+	printk(LOG_DEBUG, "_buser %p (@%p)\n_euser %p (@%p)\nus %p (@%p)\n", &buser, &buser, &euser, &euser, &usersize, &usersize);
+	printk(LOG_DEBUG, "loading %p->%p\n", bprocess, eprocess);
+	printk(LOG_DEBUG, "user proc : %p\n", proc1);
 
 	DBG_WAIT;
 
 	ramloader_load(bprocess, processl, proc1);
 	process_set_asid(proc1);
 	mmu_setasid(proc1->asid);
-	printk("[D] ASID = %d\n", mmu_getasid());
-	printk("asid=%d, pid=%d\n", proc1->asid, proc1->pid);
+	printk(LOG_DEBUG, "[D] ASID = %d\n", mmu_getasid());
+	printk(LOG_DEBUG, "asid=%d, pid=%d\n", proc1->asid, proc1->pid);
 	
 	DBG_WAIT;
 
@@ -216,13 +216,13 @@ void test_process() {
 
 	elf_inode = vfs_resolve(_init_name);
 	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode, O_RDONLY)) == NULL ) {
-		printk("Not found '%s'\nKernel running, but no init!\n", _init_name);
+		printk(LOG_DEBUG, "Not found '%s'\nKernel running, but no init!\n", _init_name);
 		while(1);
 	}
 	else {
 		struct process *proc1;
 		proc1 = process_alloc();
-		printk("loading init program\n");
+		printk(LOG_DEBUG, "loading init program\n");
 		elfloader_load(elf_file, proc1);
 
 		// set working directory for test proc (root)
@@ -252,7 +252,7 @@ void test_process() {
 
 static int parse_init(const char *val) {
 	if(val != NULL) {
-		printk("init : '%s'\n", val);
+		printk(LOG_DEBUG, "init : '%s'\n", val);
 		_init_name = val;
 	}
 	return 0;
@@ -276,15 +276,15 @@ void test_vfs() {
 	struct inode *curi = vfs_resolve("/mnt/smem/UEDIT/acore.cfg");
 	
 	if(curi != NULL)
-		printk("entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
+		printk(LOG_DEBUG, "entry : '%s'\n    node=0x%x\n", curi->name, curi->node);
 	else
-		printk("VFS unfound file.\n");
+		printk(LOG_DEBUG, "VFS unfound file.\n");
 
 	DBG_WAIT;
 
 	struct inode *curi2 = vfs_resolve("/mnt/.././mnt/smem/../../mnt/smem/UEDIT/.././././UEDIT/acore.cfg");
 
-	printk("with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
+	printk(LOG_DEBUG, "with '..' and '.' : %s\n", curi2==curi ? "Ok" : "Fail");
 
 	DBG_WAIT;
 
@@ -298,16 +298,16 @@ void test_vfs() {
 	nbread = vfs_read(filep, file_buf, 49);
 	file_buf[nbread] = '\0';
 
-	printk("Trying to read 49(%d) bytes :\n%s\n", nbread, file_buf);
+	printk(LOG_DEBUG, "Trying to read 49(%d) bytes :\n%s\n", nbread, file_buf);
 
 	vfs_close(filep);
 
-	printk("Done.\n");
+	printk(LOG_DEBUG, "Done.\n");
 
 	DBG_WAIT;
 
 	// trying to open /dev/console device
-	printk("Trying to use fx9860-terminal device...\n");
+	printk(LOG_DEBUG, "Trying to use fx9860-terminal device...\n");
 
 	struct inode *console = vfs_resolve("/dev/console");
 	filep = vfs_open(console, O_RDWR);
@@ -347,16 +347,16 @@ void test_virtual_mem() {
 
 	int *surprise = (int*)(0x01000000 + magic_offset);
 
-	printk("s: %p -> %p\nppn = %d, vpn = %d\n", &magic_integer, surprise, page.ppn, page.vpn);
-	printk("[D] ASID = %d\n", mmu_getasid());
+	printk(LOG_DEBUG, "s: %p -> %p\nppn = %d, vpn = %d\n", &magic_integer, surprise, page.ppn, page.vpn);
+	printk(LOG_DEBUG, "[D] ASID = %d\n", mmu_getasid());
 	DBG_WAIT;
 
-	printk("Magic? %d\n", *surprise);
+	printk(LOG_DEBUG, "Magic? %d\n", *surprise);
 	*surprise = 986;
 
 	unsigned int ppn1;
 	if(! pm_get_free_page(&ppn1)) {
-		printk("Page number : %d\n", ppn1);
+		printk(LOG_DEBUG, "Page number : %d\n", ppn1);
 	}
 
 	*/
@@ -385,11 +385,11 @@ void test_keyboard_int() {
 void test() {
 	//static int i = 0;
 
-	//printk("Ohohoh! Surprise^%d!\n", i);
+	//printk(LOG_DEBUG, "Ohohoh! Surprise^%d!\n", i);
 	//i++;
 	
 	if(magic_lock != 0) {
-		printk("Try to switch process (key).\n");
+		printk(LOG_DEBUG, "Try to switch process (key).\n");
 		sched_schedule();
 	}
 }
@@ -399,7 +399,7 @@ void print_content(void *addr, int size) {
 	unsigned char *mem = addr;
 	int i;
 	for(i=0; i<size; i+=10) {
-		printk("%p : %x %x %x %x %x %x %x %x %x %x\n", mem, mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7], mem[8], mem[9]);
+		printk(LOG_DEBUG, "%p : %x %x %x %x %x %x %x %x %x %x\n", mem, mem[0], mem[1], mem[2], mem[3], mem[4], mem[5], mem[6], mem[7], mem[8], mem[9]);
 		mem += 10;
 	}
 }
@@ -421,11 +421,11 @@ void print_inode_tree(struct inode *from, int tab)
 		struct inode *swap = NULL;
 
 		if(cur->type_flags & INODE_TYPE_PARENT) {
-			printk("%s%s/\n", space, cur->name);
+			printk(LOG_DEBUG, "%s%s/\n", space, cur->name);
 			print_inode_tree(cur, tab+1);
 		}
 		else
-			printk("%s%s\n", space, cur->name);
+			printk(LOG_DEBUG, "%s%s\n", space, cur->name);
 
 		i++;
 		swap = cur;
@@ -446,7 +446,7 @@ void ls_tree() {
 	struct inode *cur;
 	
 	cur = vfs_resolve("/");
-	printk("/\n");
+	printk(LOG_DEBUG, "/\n");
 	print_inode_tree(cur, 1);
 
 	vfs_release_inode(cur);
@@ -455,7 +455,7 @@ void ls_tree() {
 void test_time() {
 	unsigned int freq;
 
-	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
+	printk(LOG_DEBUG, "FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
 			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
 
 	// change frequency
@@ -463,17 +463,17 @@ void test_time() {
 
 	freq_change(FREQ_STC_4, FREQ_DIV_1, FREQ_DIV_4);
 
-	printk("FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
+	printk(LOG_DEBUG, "FRQCR: x%d, [I x1/%d] [P x1/%d]\n", CPG.FRQCR.BIT.STC + 1,
 			CPG.FRQCR.BIT.IFC + 1, CPG.FRQCR.BIT._PFC + 1 );
 
 
 	freq_time_calibrate();
 
 	freq = freq_get_internal_hz();
-	printk("CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+	printk(LOG_DEBUG, "CPU freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 
 	freq = freq_get_peripheral_hz();
-	printk("Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
+	printk(LOG_DEBUG, "Peripheral freq : %d.%dMHz\n", freq/1000000, (freq/100000)%10);
 }
 
 /*static volatile int __stupid_job;
@@ -482,15 +482,15 @@ static void micdelay(int t) {
 }*/
 
 static void callback_pressed(int code) {
-	printk("P(0x%x)\n", code);
+	printk(LOG_DEBUG, "P(0x%x)\n", code);
 }
 
 static void callback_released(int code) {
-	printk("R(0x%x)\n", code);
+	printk(LOG_DEBUG, "R(0x%x)\n", code);
 }
 
 void test_keymatrix() {
-	printk("Checking keyboard...\n");
+	printk(LOG_DEBUG, "Checking keyboard...\n");
 
 	hwkbd_init();
 	hwkbd_set_kpressed_callback(&callback_pressed);
@@ -524,7 +524,7 @@ void test_keymatrix() {
 			keys[7-i] = ((cols>>i) & 0x01) == 0 ? 'o' : 'x';
 		}
 
-		printk("Cols : %s\n", keys);
+		printk(LOG_DEBUG, "Cols : %s\n", keys);
 	}
 	*/
 }
@@ -537,7 +537,7 @@ static void callback_keystroke(int code) {
 	str[0] = (char)code;
 	str[1] = '\0';
 
-	printk("%s", str);
+	printk(LOG_DEBUG, "%s", str);
 }
 
 void test_keyboard() {

@@ -56,7 +56,7 @@ static int pm_discover_ram_order() {
 	}
 
 	if(!confirmed) {
-		printk("pm_discover: unable to discover RAM size!\n");
+		printk(LOG_DEBUG, "pm_discover: unable to discover RAM size!\n");
 		// default value
 		return (RAM_DEFAULT_ORDER);
 	}
@@ -78,7 +78,7 @@ void pm_init_pages()
 	phy_end = (unsigned int)(&end_stack) & 0x1FFFFFFF;
 
 	ram_order = pm_discover_ram_order();
-	printk("Total RAM size about %dKio...\n", 1<<(ram_order-10));
+	printk(LOG_DEBUG, "Total RAM size about %dKio...\n", 1<<(ram_order-10));
 
 	// go to the first *fully* free page
 	page = (void*)( ((phy_end-1) & (0xFFFFFFFF << PM_PAGE_ORDER))
@@ -103,7 +103,7 @@ void pm_init_pages()
 	}
 
 	pm_nbfree = nb_pages;
-	printk("%d pages of %dB\n", nb_pages, PM_PAGE_BYTES);
+	printk(LOG_DEBUG, "%d pages of %dB\n", nb_pages, PM_PAGE_BYTES);
 }
 
 
@@ -114,12 +114,12 @@ int pm_get_free_page(unsigned int *ppn)
 	{
 		*ppn = PM_PHYSICAL_PAGE(pm_first_free);
 		pm_first_free = pm_first_free->next;
-		printk("pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
+		printk(LOG_DEBUG, "pm: get page %p\n", PM_PHYSICAL_ADDR(*ppn));
 		pm_nbfree--;
 		return 0;
 	}
 	
-	printk("pm: error: no more physical page!\n  (in theory, %d pages free)", pm_nbfree);
+	printk(LOG_DEBUG, "pm: error: no more physical page!\n  (in theory, %d pages free)", pm_nbfree);
 	while(1);
 	return -1;
 }
@@ -135,7 +135,7 @@ void pm_free_page(unsigned int ppn)
 		page = PM_PHYSICAL_ADDR(ppn);
 		page = (void*)((int)page + P1_SECTION_BASE);
 
-		printk("free pm: %p (->%p)\n", page, pm_first_free);
+		printk(LOG_DEBUG, "free pm: %p (->%p)\n", page, pm_first_free);
 
 		page->next = pm_first_free;
 		pm_first_free = page;
@@ -143,7 +143,7 @@ void pm_free_page(unsigned int ppn)
 		pm_nbfree++;
 	}
 	else {
-		printk("free pm: error: trying to free ppn=0\n");
+		printk(LOG_DEBUG, "free pm: error: trying to free ppn=0\n");
 		while(1);
 	}
 }

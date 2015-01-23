@@ -69,7 +69,7 @@ struct inode * smemfs_get_root_node (struct fs_instance *inst)
 	struct inode *ret;
 	ret = vfs_get_inode(inst, SMEMFS_FILE_ROOT_ID);
 	
-	printk("smemfs: root inode=%p\n", ret);
+	printk(LOG_DEBUG, "smemfs: root inode=%p\n", ret);
 
 	return ret;
 }
@@ -82,7 +82,7 @@ struct inode * smemfs_first_child (struct inode *target) {
 
 		current = smemfs_prim_get_next_child(NULL, target->node);
 
-		printk("smemfs: f(%x)->%p\n", target->node & 0xFFFF, current);
+		printk(LOG_DEBUG, "smemfs: f(%x)->%p\n", target->node & 0xFFFF, current);
 		if(current != NULL) {
 			return vfs_get_inode(target->fs_op, FULL_NODE_ID(current) );
 		}
@@ -100,7 +100,7 @@ struct inode * smemfs_next_sibling (struct inode *target) {
 		current = smemfs_prim_get_next_child((struct smemfs_file_preheader*)(target->abstract),
 				target->parent);
 
-		//printk("smemfs: %p->%p\n", target->abstract, current); 
+		//printk(LOG_DEBUG, "smemfs: %p->%p\n", target->abstract, current); 
 		if(current != NULL) {
 			return vfs_get_inode(target->fs_op, FULL_NODE_ID(current));
 		}
@@ -125,7 +125,7 @@ struct inode * smemfs_get_inode (struct fs_instance *inst, uint32 lnode)
 	struct smemfs_file_preheader *header = NULL;
 	unsigned short node = (unsigned short)lnode;
 
-	//printk("smemfs: get_inode: 0x%x\n", lnode);
+	//printk(LOG_DEBUG, "smemfs: get_inode: 0x%x\n", lnode);
 	
 	if(lnode == SMEMFS_INVALID_NODE)
 		return NULL;
@@ -146,7 +146,7 @@ struct inode * smemfs_get_inode (struct fs_instance *inst, uint32 lnode)
 	ret = vfs_alloc_inode(inst, lnode);
 	if(ret == NULL)
 	{
-		printk("Error:\nvfs: unable to alloc inode\n");
+		printk(LOG_DEBUG, "Error:\nvfs: unable to alloc inode\n");
 		return NULL;
 	}
 
@@ -156,7 +156,7 @@ struct inode * smemfs_get_inode (struct fs_instance *inst, uint32 lnode)
 
 struct inode *smemfs_fill_inode(struct fs_instance *inst, struct smemfs_file_preheader *header, struct inode *ret) 
 {
-	//printk("smemfs: fill_inode: %p\n", header);
+	//printk(LOG_DEBUG, "smemfs: fill_inode: %p\n", header);
 
 
 	ret->fs_op = inst;
@@ -172,7 +172,7 @@ struct inode *smemfs_fill_inode(struct fs_instance *inst, struct smemfs_file_pre
 	else {
 		ret->node = header->entry_id;
 
-		//printk("smemfs: inode=%p\n", ret);
+		//printk(LOG_DEBUG, "smemfs: inode=%p\n", ret);
 
 		ret->flags = INODE_FLAG_READ;
 		ret->parent = header->parent_id;
@@ -187,7 +187,7 @@ struct inode *smemfs_fill_inode(struct fs_instance *inst, struct smemfs_file_pre
 		smemfs_prim_get_file_name(header, ret->name, CHAR_ASCII_AUTO);
 	}
 
-	//printk("smemfs: filename=%s\n", ret->name);
+	//printk(LOG_DEBUG, "smemfs: filename=%s\n", ret->name);
 	
 	return ret;
 }

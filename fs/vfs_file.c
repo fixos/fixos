@@ -15,7 +15,7 @@ struct pool_alloc _vfs_file_palloc = POOL_INIT(struct file);
 
 
 void vfs_file_init() {
-	printk("vfs_file: file/page=%d\n", _vfs_file_palloc.perpage);
+	printk(LOG_DEBUG, "vfs_file: file/page=%d\n", _vfs_file_palloc.perpage);
 }
 
 
@@ -41,7 +41,7 @@ struct file *vfs_open(struct inode *inode, int flags) {
 		filep->pos = 0;
 		filep->count = 1;
 
-		//printk("vfs_open: inode-open = %p\n", inode->file_op->open);
+		//printk(LOG_DEBUG, "vfs_open: inode-open = %p\n", inode->file_op->open);
 
 		// if inode is a directory, use directory-specific operations
 		if(inode->type_flags & INODE_TYPE_PARENT) {
@@ -58,7 +58,7 @@ struct file *vfs_open(struct inode *inode, int flags) {
 		}
 
 		if(!done) {
-			printk("vfs_open: inode-specific open() failed\n");
+			printk(LOG_DEBUG, "vfs_open: inode-specific open() failed\n");
 			// free file structure
 			vfs_file_free(filep);
 			filep = NULL;
@@ -74,7 +74,7 @@ int vfs_open_dev(struct inode *inode, struct file *filep) {
 
 		dev = dev_device_from_major(major(inode->typespec.dev));
 		if(dev == NULL) {
-			printk("vfs: open invalid device inode (major %d)\n",
+			printk(LOG_DEBUG, "vfs: open invalid device inode (major %d)\n",
 					major(inode->typespec.dev));
 			return -ENXIO;
 		}

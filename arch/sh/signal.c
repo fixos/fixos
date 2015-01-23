@@ -41,7 +41,7 @@ void arch_signal_prepare_sigcontext(struct process *proc, struct sigaction *acti
 	ucontext = ((void*)ustack) - sizeof(struct sigcontext);
 	ustack = (void*)ucontext;
 
-	printk("signal: prepare %d, handler=%p, ucontext=%p, ustack=%p\n",
+	printk(LOG_DEBUG, "signal: prepare %d, handler=%p, ucontext=%p, ustack=%p\n",
 			sig, action->sa_handler, ucontext, ustack);
 
 
@@ -67,7 +67,7 @@ void arch_signal_prepare_sigcontext(struct process *proc, struct sigaction *acti
 		cnt->reg[6] = 0;
 	}
 
-	printk("signal: prepare() end\n");
+	printk(LOG_DEBUG, "signal: prepare() end\n");
 	interrupt_atomic_restore(inter);
 }
 

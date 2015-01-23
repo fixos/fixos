@@ -48,10 +48,10 @@ struct inode *vfs_alloc_inode(struct fs_instance *inst, uint32 node)
 
 void vfs_release_inode(struct inode *inode)
 {
-	//printk("vfs: --(%s, , 0x%x, %d)\n", inode->name, inode->node, inode->count);
+	//printk(LOG_DEBUG, "vfs: --(%s, , 0x%x, %d)\n", inode->name, inode->node, inode->count);
 	if(inode->count > 0) {
 		if(inode->count == 1 && (inode->type_flags & (INODE_TYPE_ROOT | INODE_TYPE_MOUNTPOINT)) )
-			printk("vfs: W: trying free mount|root\n");
+			printk(LOG_DEBUG, "vfs: W: trying free mount|root\n");
 		else {
 			inode->count--;
 			if(inode->count == 0)
@@ -59,7 +59,7 @@ void vfs_release_inode(struct inode *inode)
 		}
 	}
 	else 
-		printk("vfs: W: trying free count=0\n");
+		printk(LOG_DEBUG, "vfs: W: trying free count=0\n");
 
 }
 
@@ -77,11 +77,11 @@ struct inode *vfs_get_inode(struct fs_instance *inst, uint32 nodeid)
 		ret = &(cached->inode);
 
 	if(ret != NULL) {
-		//printk("vfs: ++(%s, , 0x%x, %d)\n", ret->name, ret->node, ret->count);
+		//printk(LOG_DEBUG, "vfs: ++(%s, , 0x%x, %d)\n", ret->name, ret->node, ret->count);
 		ret->count++; // increment counter of usage
 	}
 	else 
-		printk("vfs: getinode: !0x%x\n", nodeid);
+		printk(LOG_DEBUG, "vfs: getinode: !0x%x\n", nodeid);
 	
 	return ret;
 }
@@ -94,7 +94,7 @@ struct inode *vfs_first_child(struct inode *target)
 		if(target->type_flags & INODE_TYPE_MOUNTPOINT) {
 			// replace with the real inode (root of the mounted FS)
 			real = target->typespec.mnt_root;
-			//printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
+			//printk(LOG_DEBUG, "vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
 		}
 		return real->fs_op->fs->first_child(real);
 	}
@@ -131,7 +131,7 @@ void vfs_register_fs(const struct file_system *fs, int flags)
 	// TODO dynamic allocation???
 	
 	if(!ok)
-		printk("vfs: unable to register fs\n");
+		printk(LOG_DEBUG, "vfs: unable to register fs\n");
 }
 
 
@@ -151,7 +151,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 	}
 
 	if(fs == NULL) {
-		printk("vfs: fs not found '%s'\n", fsname);
+		printk(LOG_DEBUG, "vfs: fs not found '%s'\n", fsname);
 		return -1;
 	}
 
@@ -202,7 +202,7 @@ int vfs_mount(const char *fsname, const char *path, int flags)
 				}
 			}
 			else
-				printk("vfs: unable to mount (inv. inode)\n");
+				printk(LOG_DEBUG, "vfs: unable to mount (inv. inode)\n");
 			
 		}
 	}
@@ -250,7 +250,7 @@ struct inode *vfs_resolve(const char *path)
 				c = path[ppos];
 			}
 			tmpname[namepos] = '\0';
-			//printk("resolve: split=%s\n", tmpname);
+			//printk(LOG_DEBUG, "resolve: split=%s\n", tmpname);
 			
 			// look for an entry with this name :
 			if(namepos > 0) {
@@ -284,7 +284,7 @@ struct inode *vfs_walk_entry(struct inode *parent, const char *name)
 	// current entry (".")
 	if(name[0] == '.' && name[1] == '\0') {
 		ret = parent;
-		//printk("vfs: ++(%s, , 0x%x, %d)\n", parent->name, parent->node, parent->count);
+		//printk(LOG_DEBUG, "vfs: ++(%s, , 0x%x, %d)\n", parent->name, parent->node, parent->count);
 		parent->count++;
 	}
 	// parent entry ("..")
@@ -293,7 +293,7 @@ struct inode *vfs_walk_entry(struct inode *parent, const char *name)
 		if(parent->type_flags & INODE_TYPE_ROOT) { 
 			// don't change the count
 			real = parent->typespec.mnt_point;
-			//printk("vfs: rslv root: %s\n", real == NULL ? "nil" : real->name);
+			//printk(LOG_DEBUG, "vfs: rslv root: %s\n", real == NULL ? "nil" : real->name);
 		}
 		// get the parent (may be NULL if parent is the root fs
 		if(real != NULL) {
@@ -305,7 +305,7 @@ struct inode *vfs_walk_entry(struct inode *parent, const char *name)
 		if(parent->type_flags & INODE_TYPE_MOUNTPOINT) {
 			// replace with the real inode (root of the mounted FS)
 			real = parent->typespec.mnt_root;
-			//printk("vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
+			//printk(LOG_DEBUG, "vfs: rslv mount: %s\n", real == NULL ? "nil" : real->fs_op->fs->name);
 		}
 		ret = real->fs_op->fs->find_sub_node(real, name);
 	}
@@ -333,7 +333,7 @@ struct inode *vfs_resolve_mount(struct inode *inode) {
 			ret = mounted->fs->get_root_node(mounted);
 		}
 		else
-			printk("vfs: error: bad mount point\n    node='%s'\n", name);
+			printk(LOG_DEBUG, "vfs: error: bad mount point\n    node='%s'\n", name);
 */
 	}
 	else if(inode->type_flags & INODE_TYPE_ROOT) {

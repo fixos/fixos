@@ -48,7 +48,7 @@ extern inline void user_write_32(void *addr, uint32 value, struct process *proc)
 		}
 
 		if(pmaddr != NULL) {
-			printk("userw32: %p\n", pmaddr);
+			printk(LOG_DEBUG, "userw32: %p\n", pmaddr);
 			*pmaddr = value;
 		}
 	}

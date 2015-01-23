@@ -32,7 +32,7 @@ void mmu_init()
 	MMU.MMUCR.LONG = mmu;
 	mmu_setasid(0xFF);
 
-	printk("[I] MMU init : 0x%x\n     (real=0x%x)\nPTEH=%p\n", mmu, MMU.MMUCR.LONG, (void*)(MMU.PTEH.LONG));
+	printk(LOG_DEBUG, "[I] MMU init : 0x%x\n     (real=0x%x)\nPTEH=%p\n", mmu, MMU.MMUCR.LONG, (void*)(MMU.PTEH.LONG));
 
 	MMU.TTB = 0;
 
@@ -73,7 +73,7 @@ int arch_adrsp_switch_to(struct addr_space *adrsp) {
 			// if no more ASID are available even after quick cleanning :
 			// FIXME force old ASID to be removed?
 			if(i >= ASID_MAX) {
-				printk("adrsp: no more ASID available!\n");
+				printk(LOG_DEBUG, "adrsp: no more ASID available!\n");
 				return -1;
 			}
 			else {

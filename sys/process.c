@@ -72,7 +72,7 @@ void process_init()
 	bitfield_set(_pid_used, 0);
 	_pid_next = 1;
 
-	printk("process: proc/page=%d\n", _proc_pool.perpage);
+	printk(LOG_DEBUG, "process: proc/page=%d\n", _proc_pool.perpage);
 }
 
 
@@ -134,7 +134,7 @@ struct process *process_alloc() {
 		return proc;
 	}
 	
-	printk("process_alloc: no more allowed process\n");
+	printk(LOG_DEBUG, "process_alloc: no more allowed process\n");
 	return NULL;
 }
 
@@ -145,7 +145,7 @@ void process_free(struct process *proc) {
 	_process_number--;
 
 	pool_free(&_proc_pool, proc);
-	printk("free proc %p\n", proc);
+	printk(LOG_DEBUG, "free proc %p\n", proc);
 }
 
 
@@ -212,7 +212,7 @@ void process_terminate(struct process *proc, int status) {
 	// we can still execute code in case of re-execution of zombie process
 	while(1) {
 		sched_schedule();
-		printk("exit: exited process executed!\n");
+		printk(LOG_DEBUG, "exit: exited process executed!\n");
 	}
 
 }
@@ -231,7 +231,7 @@ pid_t sys_fork() {
 	// do fork only if this is the first context-switch of the process
 	// (this should be the case here, but it's useful for debug)
 	if(cur->acnt->previous != NULL) {
-		printk("fork: multiple context... aborted\n");
+		printk(LOG_DEBUG, "fork: multiple context... aborted\n");
 		return -1;
 	}
 	
@@ -239,7 +239,7 @@ pid_t sys_fork() {
 	// we need to block any exception, fork operation should be atomic
 	interrupt_atomic_save(&atomicsaved);
 
-	printk("fork start\n");
+	printk(LOG_DEBUG, "fork start\n");
 
 	// alloc a new process, and copy everything
 	newproc = process_alloc();
@@ -311,7 +311,7 @@ pid_t sys_fork() {
 
 	return newproc->pid;
 
-	/*printk("preempt_fork returned %d\n", val);
+	/*printk(LOG_DEBUG, "preempt_fork returned %d\n", val);
 	while(!hwkbd_real_keydown(K_EXE));
 	while(hwkbd_real_keydown(K_EXE));*/
 }
@@ -344,7 +344,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 	elf_inode = vfs_resolve(filename);
 	if(elf_inode == NULL || (elf_file = vfs_open(elf_inode, O_RDONLY)) == NULL ) {
-		printk("execve: failed to open '%s'\n", filename);
+		printk(LOG_DEBUG, "execve: failed to open '%s'\n", filename);
 	}
 	else {
 		struct process *cur;
@@ -367,7 +367,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 		args_page = arch_pm_get_free_page(MEM_PM_CACHED);
 		if(args_page == NULL) {
-			printk("execve: not enought memory\n");
+			printk(LOG_DEBUG, "execve: not enought memory\n");
 			// TODO abort
 			while(1);
 		}
@@ -386,12 +386,12 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// space for argument pointer array
 			args_pos = nbargs * sizeof(char*);
 
-			printk("execve: %d args\n", nbargs);
+			printk(LOG_DEBUG, "execve: %d args\n", nbargs);
 			for(i=0 ; i<nbargs; i++) {
 				char *copied_arg = args_page + args_pos;
 				size_t curarg_size;
 				for(curarg_size = 0; argv[i][curarg_size] != '\0'; curarg_size++);
-				printk("execve: arg%d (@%p) = %dbytes\n", i, argv[i], curarg_size);
+				printk(LOG_DEBUG, "execve: arg%d (@%p) = %dbytes\n", i, argv[i], curarg_size);
 				curarg_size++;
 
 				// TODO check max size
@@ -440,7 +440,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		
 		cur->state = PROCESS_STATE_CREATE;
 		if(elfloader_load(elf_file , cur) != 0) {
-			printk("execve: unable to load ELF file\n");
+			printk(LOG_DEBUG, "execve: unable to load ELF file\n");
 			// 'kill' process TODO proper way to do that
 			cur->state = PROCESS_STATE_CREATE;
 
@@ -448,7 +448,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			sched_preempt_unblock();
 			sched_schedule(cur);
 
-			printk("execve: re-executed dead process!\n");
+			printk(LOG_DEBUG, "execve: re-executed dead process!\n");
 		}
 		else {
 			// the image is load, we can't simply return from syscall because
@@ -466,7 +466,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			interrupt_atomic_save(&dummy);
 			sched_preempt_unblock();
 
-			printk("exec: ready, r15=%p\n", (void*)(cur->acnt->reg[15]));
+			printk(LOG_DEBUG, "exec: ready, r15=%p\n", (void*)(cur->acnt->reg[15]));
 			// this job is done using inline assembly to avoid GCC stack usage
 			 asm volatile (
 					"mov %0, r15;"
@@ -481,7 +481,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 							"r"(old_kstack-1), "r"(cur), "r"(&process_contextjmp)
 							: "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" );
 
-			printk("execve: this should not happen!\n");
+			printk(LOG_DEBUG, "execve: this should not happen!\n");
 		}
 	}
 
@@ -501,7 +501,7 @@ void *sys_sbrk(int incr) {
 			cur->current_brk = cur->initial_brk;
 		ret = cur->current_brk;
 
-		printk("sbrk: incr=%d\n", incr);
+		printk(LOG_DEBUG, "sbrk: incr=%d\n", incr);
 
 		// add or remove the given size
 		if(incr > 0) {
@@ -523,7 +523,7 @@ void *sys_sbrk(int incr) {
 				while(relincr >= 0) {
 					void *pageaddr;
 
-					printk("sbrk: add page @%p\n", curvm);
+					printk(LOG_DEBUG, "sbrk: add page @%p\n", curvm);
 					pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
 					if(pageaddr == NULL) {
 						// FIXME clean before return
@@ -559,7 +559,7 @@ void *sys_sbrk(int incr) {
 						% PM_PAGE_BYTES);
 
 				while(nbpages > 0) {
-					printk("sbrk: remove page @%p\n", curvm);
+					printk(LOG_DEBUG, "sbrk: remove page @%p\n", curvm);
 
 					page = mem_find_page(cur->dir_list, curvm);
 					if(page != NULL) {
@@ -631,7 +631,7 @@ int sys_fchdir(int fd) {
 		inode = cur->files[fd]->inode;
 	}
 	else {
-		printk("sys_fchdir: invalid fd\n");
+		printk(LOG_DEBUG, "sys_fchdir: invalid fd\n");
 		return -EBADF;
 	}
 
@@ -701,7 +701,7 @@ int process_is_descendant(struct process *proc, pid_t other) {
 			return 1;
 	}
 	else {
-		printk("proc: bad process hierarchy\n");
+		printk(LOG_DEBUG, "proc: bad process hierarchy\n");
 	}
 	return 0;
 }

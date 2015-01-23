@@ -22,7 +22,7 @@ static uint32 _console_node = (CONSOLE_TTY_MAJOR << 16) | CONSOLE_TTY_MINOR_BASE
 static struct file _console_file;
 
 int parse_console(const char *val) {
-	//printk("ARG: console='%s'\n", val);
+	//printk(LOG_DEBUG, "ARG: console='%s'\n", val);
 	if(val != NULL) {
 		if(val[0]=='t' && val[1]=='t' && val[2]=='y') {
 			// check for ttyn
@@ -30,19 +30,19 @@ int parse_console(const char *val) {
 				_console_node = (CONSOLE_TTY_MAJOR << 16) | 
 					(CONSOLE_TTY_MINOR_BASE + val[3] - '1');
 
-				printk("console: will use tty%d soon\n", val[3]-'0');
+				printk(LOG_DEBUG, "console: will use tty%d soon\n", val[3]-'0');
 				return 0;
 			}
 
 			// check for USB0
 			else if(!strcmp(val+3, "USB0")) {
 				_console_node = (CONSOLE_USB_MAJOR << 16) | CONSOLE_USB_MINOR_BASE;
-				printk("console: will use USB soon\n");
+				printk(LOG_DEBUG, "console: will use USB soon\n");
 				return 0;
 			}
 		}
 	}
-	printk("malformed 'console' parameter\n");
+	printk(LOG_DEBUG, "malformed 'console' parameter\n");
 	return -1;
 }
 
@@ -65,20 +65,20 @@ void console_make_active() {
 		if(console_dev->open(minor(_console_node), &_console_file) == 0) {
 			if(tty != NULL && !tty_is_ready(tty)) {
 				// wait until the TTY is ready
-				printk("[console tty not ready...]\n");
+				printk(LOG_DEBUG, "[console tty not ready...]\n");
 				while(!tty_is_ready(tty));
-				printk("[ready!]\n");
+				printk(LOG_DEBUG, "[ready!]\n");
 			}
-			// set printk() callback func
+			// set printk(LOG_DEBUG, ) callback func
 			set_kernel_print_file(&_console_file);
-			printk("Now using console device for printk()!\n");
+			printk(LOG_DEBUG, "Now using console device for printk(LOG_DEBUG, )!\n");
 		}
 		else {
-			printk("console: unable to open minor %d!\n", minor(_console_node));
+			printk(LOG_DEBUG, "console: unable to open minor %d!\n", minor(_console_node));
 		}
 	}
 	else {
-		printk("console: unable to find device %d!\n", major(_console_node));
+		printk(LOG_DEBUG, "console: unable to find device %d!\n", major(_console_node));
 	}
 }
 

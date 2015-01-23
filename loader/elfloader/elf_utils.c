@@ -14,7 +14,7 @@ int elf_get_symtab(struct file *filep, const struct elf_header *header,
 			return -1;
 		}
 		else if(symtab->type == ELFS_TYPE_SYMTAB) {
-			printk("elf: SYMTAB offset : 0x%x\n", symtab->offset);
+			printk(LOG_DEBUG, "elf: SYMTAB offset : 0x%x\n", symtab->offset);
 			break;
 		}
 	}
@@ -78,7 +78,7 @@ int elf_symbol_lookup(struct file *filep, const struct elf_section_header *symta
 		elf_get_symbol(filep, symtab, cursym, symbol);
 		if(symbol->name != 0) {
 			elf_get_string(filep, &last_strtab, symbol->name, buf, 30);
-			//printk("elfloader: symbol '%s' @%p\n", absname, (void*)sym.value);
+			//printk(LOG_DEBUG, "elfloader: symbol '%s' @%p\n", absname, (void*)sym.value);
 			if(strcmp(buf, name) == 0) {
 				return 0;	
 			}
@@ -91,7 +91,7 @@ int elf_symbol_lookup(struct file *filep, const struct elf_section_header *symta
 int elf_get_header(struct file *filep, struct elf_header *header) {
 	vfs_lseek(filep, 0, SEEK_SET);
 	if(vfs_read(filep, header, sizeof(*header)) != sizeof(*header)) {
-		printk("elf: unable to read header\n");
+		printk(LOG_DEBUG, "elf: unable to read header\n");
 		return -1;
 	}
 	return 0;

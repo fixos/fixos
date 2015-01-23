@@ -17,13 +17,13 @@ int vfs_create(const char *path, const char *name, uint16 type_flags,
 		if(newnode != NULL)
 			vfs_release_inode(newnode);
 
-		printk("vfs_create: new=%p\n", newnode);
+		printk(LOG_DEBUG, "vfs_create: new=%p\n", newnode);
 
 		vfs_release_inode(target);
 		return newnode == NULL ? -1 : 0;
 	}
 
-	printk("vfs_create: fail '%s'\n",path);
+	printk(LOG_DEBUG, "vfs_create: fail '%s'\n",path);
 
 	return -1;
 }

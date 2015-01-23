@@ -464,7 +464,7 @@ static void vt_do_special(struct vt_instance *term, char spe) {
 	/*
 	char str[3] = {'^', ' ', '\0'};
 	str[1] = ASCII_UNCTRL(spe);
-	printk("tty: received %s, pgid=%d\n", str, term->tty.fpgid);
+	printk(LOG_DEBUG, "tty: received %s, pgid=%d\n", str, term->tty.fpgid);
 	*/
 	char spestr[2] = {'^', ASCII_UNCTRL(spe)};
 
