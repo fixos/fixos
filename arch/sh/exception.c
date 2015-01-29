@@ -42,8 +42,8 @@ void exception_handler()
 	switch(evt) {
 	case EXP_CODE_ACCESS_READ:
 	case EXP_CODE_ACCESS_WRITE:
-		printk(LOG_ERROR, "> Address : %p\n", (void*)tea);
-		printk(LOG_ERROR, "> SPC Value = %p\n", spcval);
+		printk(LOG_ERR, "> Address : %p\n", (void*)tea);
+		printk(LOG_ERR, "> SPC Value = %p\n", spcval);
 		kdebug_oops("CPU Access Violation (R/W)");
 		break;
 
@@ -80,9 +80,9 @@ void exception_handler()
 
 	case EXP_CODE_BAD_INSTR:
 	case EXP_CODE_BAD_SLOTINSTR:
-		printk(LOG_ERROR, "> TEA value = %p\n", (void*)tea);
-		printk(LOG_ERROR, ">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
-		printk(LOG_ERROR, "> SPC Value = %p\n", spcval);
+		printk(LOG_ERR, "> TEA value = %p\n", (void*)tea);
+		printk(LOG_ERR, ">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
+		printk(LOG_ERR, "> SPC Value = %p\n", spcval);
 		if(EXP_CODE_BAD_SLOTINSTR)
 			kdebug_oops("Illegal slot instruction");
 		else
@@ -90,7 +90,7 @@ void exception_handler()
 		break;
 
 	case EXP_CODE_USER_BREAK:
-		printk(LOG_ERROR, "Unexpected (blocking):\nUser Break exception.\n");
+		printk(LOG_ERR, "Unexpected (blocking):\nUser Break exception.\n");
 		while(1);
 		break;
 
@@ -200,7 +200,7 @@ void tlbmiss_handler()
 
 		asm volatile("stc spc, %0":"=r"(spcval));
 		asm volatile("mov r15, %0":"=r"(stack));
-		printk(LOG_ERROR, "> Dereference %p\n> With PC=%p\n",
+		printk(LOG_ERR, "> Dereference %p\n> With PC=%p\n",
 				(void*)TEA, (void*)spcval);
 		kdebug_oops("Access to a forbiden page");
 	}
