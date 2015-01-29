@@ -43,7 +43,7 @@ $(LIB_NOSTRIP): $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(LIB): $(LIB_NOSTRIP)
-	$(STRIP_UNSHARED) $< $@ 
+	"$(STRIP_UNSHARED)" $< $@ 
 #	$(OBJCOPY) -S $@ $<
 
 # not really clean, but easier than an include containing dynamicaly created
@@ -56,7 +56,7 @@ $(LIBSTUB): $(LIB) stubs
 
 stubs: $(LIB)
 	rm -rf stubs/
-	$(MK_STUBS) $< $< stubs
+	"$(MK_STUBS)" $< $< stubs
 	
 
 %-pic.o: %.c
