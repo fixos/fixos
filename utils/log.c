@@ -2,6 +2,7 @@
 #include "types.h"
 #include "strconv.h"
 #include <fs/vfs_file.h>
+#include <sys/cmdline.h>
 
 // normally provide by GCC, with only builtins calls...
 // FIXME replace by in-kernel definition with __builtin_va_*
@@ -14,8 +15,8 @@ static print_callback_t current_kernel_print = NULL;
 // used by print_to_file()
 static struct file *current_log_file = NULL;
 
-// dynamic level, default is to display everything
-static int printk_dynamic_level = 0;
+// dynamic level, default is to display every non debug message
+static int printk_dynamic_level = LOG_INFO;
 
 static void print_to_file(const char *str);
 
@@ -125,3 +126,17 @@ void print_to_file(const char *str) {
 
 	vfs_write(current_log_file, str, len);
 }
+
+
+// for parsing command-line parameter "loglevel="
+static int parse_loglevel(const char *val) {
+	if((*val >= '0' && *val <= '7') && val[1] == '\0') {
+		printk_dynamic_level = *val - '0';
+		return 0;
+	}
+
+	printk(LOG_WARNING, "malformed 'loglevel' parameter\n");
+	return -1;
+}
+
+KERNEL_BOOT_ARG(loglevel, parse_loglevel);
