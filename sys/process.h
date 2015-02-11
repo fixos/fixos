@@ -66,6 +66,8 @@ struct process {
 	// virtual memory managing data :
 	struct addr_space addr_space;
 	struct page_dir *dir_list;
+	// address space areas (see sys/mem_area.h)
+	struct list_head mem_areas;
 
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];
