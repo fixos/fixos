@@ -8,7 +8,7 @@
 #include <utils/bitfield.h>
 #include <interface/fixos/fcntl.h>
 #include <interface/fixos/errno.h>
-#include <sys/mem_areas.h>
+#include <sys/mem_area.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>
@@ -111,7 +111,7 @@ struct process *process_alloc() {
 
 			arch_adrsp_init(& proc->addr_space);
 			proc->dir_list = NULL;
-			INIT_LIST_HEAD(proc->mem_areas);
+			INIT_LIST_HEAD(& proc->mem_areas);
 
 
 			sigemptyset(& proc->sig_blocked);

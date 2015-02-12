@@ -31,7 +31,7 @@ struct mem_area {
 	union {
 		struct {
 			// file structure of the file mapped to this area
-			struct file *f;
+			struct file *filep;
 
 			// origin's position in the file
 			size_t origin;
@@ -61,6 +61,7 @@ void mem_area_init();
  * Return a newly allocated memory area, not initialized.
  */
 struct mem_area *mem_area_alloc();
+void mem_area_free(struct mem_area *area);
 
 
 /**
