@@ -13,6 +13,7 @@
 #include <sys/memory.h>
 #include <utils/log.h>
 #include <sys/kdebug.h>
+#include <sys/mem_area.h>
 
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
@@ -155,6 +156,39 @@ void tlbmiss_handler()
 	vpn = MMU.PTEH.BIT.VPN; 
 	page = mem_find_page(curpr->dir_list,
 			(void*)(vpn << PM_PAGE_ORDER) );
+
+	// if page is not in dir list (or is invalid), maybe it exists in memory
+	// area (allocate it)
+	// FIXME not working for shared pages
+	if(page == NULL || !(page->private.flags & MEM_PAGE_VALID))  {
+		struct mem_area *area;
+		void *virtaddr;
+		
+		virtaddr = PM_PHYSICAL_ADDR(vpn);
+		area = mem_area_find(curpr, virtaddr);
+		if(area != NULL) {
+			union pm_page pmpage;
+			void *pmaddr;
+
+			// 'major' page fault, create and fill it
+			// FIXME UNCACHED due to temporary hack to be sure nothing is retained in cache
+			pmaddr = arch_pm_get_free_page(MEM_PM_UNCACHED);
+			if(pmaddr != NULL) {
+				pmpage.private.ppn = PM_PHYSICAL_PAGE(pmaddr);
+				pmpage.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID; // | MEM_PAGE_CACHED;
+				mem_insert_page(& curpr->dir_list, &pmpage, virtaddr);
+				
+				// FIXME get min(PM_PAGE_BYTES, max allowed) bytes
+				mem_area_copy_raw(area, (virtaddr - area->address), pmaddr, PM_PAGE_BYTES);	
+
+				// not optimized, but ensure page points to a valid page struct
+				page = mem_find_page(curpr->dir_list, virtaddr);
+
+				printk(LOG_DEBUG, "tlb major fault: page inserted (virt %p -> phy %p)\n",
+						virtaddr, PM_PHYSICAL_ADDR(page->private.ppn));
+			}
+		}
+	}
 
 	if(page != NULL) {
 		unsigned int flags;

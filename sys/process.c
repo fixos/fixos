@@ -196,6 +196,20 @@ void process_terminate(struct process *proc, int status) {
 	
 	// FIXME controlling terminal is process was session leader
 	
+
+	// remove all memory areas
+	struct list_head *cur_area;
+	
+	cur_area = proc->mem_areas.next; 
+	while(cur_area != & proc->mem_areas) {
+		struct list_head *next_area = cur_area->next;
+		struct mem_area *area = container_of(cur_area, struct mem_area, list);
+		mem_area_free(area);
+		cur_area = next_area;
+	}
+	INIT_LIST_HEAD(& proc->mem_areas);
+	
+	
 	// release the used address space, and free each allocated physical pages
 	arch_adrsp_release(& proc->addr_space);
 	for(curdir = proc->dir_list; curdir != NULL; curdir = nextdir) {
@@ -262,6 +276,20 @@ pid_t sys_fork() {
 	newproc->cwd = cur->cwd;
 
 	newproc->ctty = cur->ctty;
+
+	// copy each memory area
+	struct list_head *area_list;
+
+	list_for_each(area_list, & cur->mem_areas) {
+		// duplicate it
+		// FIXME file should be duplicated? Or a counter need to be used?
+		struct mem_area *old_area = container_of(area_list, struct mem_area, list);
+		struct mem_area *new_area;
+		
+		new_area = mem_area_alloc();
+		*new_area = *old_area;
+		mem_area_insert(newproc, new_area);
+	}
 
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
@@ -426,6 +454,20 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			if(cur->sig_array[i].sa_handler != SIG_IGN)
 				cur->sig_array[i].sa_handler = SIG_DFL;
 		}
+
+
+		// remove all memory areas
+		struct list_head *cur_area;
+		
+		cur_area = cur->mem_areas.next; 
+		while(cur_area != & cur->mem_areas) {
+			struct list_head *next_area = cur_area->next;
+			struct mem_area *area = container_of(cur_area, struct mem_area, list);
+			mem_area_free(area);
+			cur_area = next_area;
+		}
+		INIT_LIST_HEAD(& cur->mem_areas);
+
 
 		// use a new address space to avoid to use old TLB records
 		arch_adrsp_release(& cur->addr_space);

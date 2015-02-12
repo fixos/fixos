@@ -87,16 +87,36 @@ int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t s
 
 	if(area->flags & MEM_AREA_TYPE_ANON) {
 		// anonymous area, the current implementation do nothing...
-		ret = 0;
+		if(offset + size > area->max_size) {
+			printk(LOG_ERR, "mem_area: attempt to copy extra bytes (anon)\n");
+		}
+		else {
+			if(offset + size > area->anon.size && (area->flags & MEM_AREA_MAYGROW)) {
+				printk(LOG_DEBUG, "mem_area: extends area (%d->%d)\n",
+						area->anon.size, offset + size);
+			}
+			ret = 0;
+		}
 	}
 	else if(area->flags & MEM_AREA_TYPE_FILE) {
 		// file mapped to memory, for now use a generic way to handle them
 		// TODO improve this with map_area_ops struct to allow "override"
 		size_t nbread;
 
-		vfs_lseek(area->file.filep, SEEK_SET, offset);
+		vfs_lseek(area->file.filep, area->file.origin + offset, SEEK_SET);
 		nbread = vfs_read(area->file.filep, dest, size);
 		ret = nbread == size ? 0 : -1;
+
+		if(ret) {
+			printk(LOG_ERR, "mem_area: failed loading %d bytes from offset 0x%x"
+					" [absolute 0x%x] (read returns %d)\n",
+					size, offset, area->file.origin + offset, nbread);
+		}
+		else {
+			printk(LOG_DEBUG, "mem_area: loaded %d bytes @%p from file\n", size, dest);
+		}
+
+		//print_memory(LOG_DEBUG, dest, nbread);
 	}
 
 	return ret;
