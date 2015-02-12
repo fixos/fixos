@@ -8,6 +8,7 @@
 #include <utils/log.h>
 #include <utils/strutils.h>
 #include <sys/user.h>
+#include <sys/mem_area.h>
 
 
 // check static expected informations of the given header, returns non-zero
@@ -197,6 +198,22 @@ int elfloader_load_segment(struct file *filep, void *offset,
 		const struct elf_prog_header *ph, struct process *dest)
 {
 	if(ph->vaddr % PM_PAGE_BYTES == 0) {
+		// TODO replace with appropriate mem_area helper!
+		struct mem_area *area;
+
+		area = mem_area_alloc();
+		filep->count ++;
+		area->flags = MEM_AREA_TYPE_FILE;
+		area->file.filep = filep;
+		area->file.origin = ph->offset;
+		area->max_size = ph->memsz;
+		area->address = offset + ph->vaddr;
+		// FIXME area between filesz and memsz is not 0-filled as it should be!
+		
+		
+		mem_area_insert(dest, area);
+	
+		/*
 		int i;
 		void *vm_segaddr;
 
@@ -231,7 +248,7 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 			mem_insert_page(& dest->dir_list , &page, vm_segaddr);
 			printk(LOG_DEBUG, "[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
-		}
+		}*/
 		return 0;
 	}
 	else {
