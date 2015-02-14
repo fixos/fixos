@@ -205,11 +205,11 @@ int elfloader_load_segment(struct file *filep, void *offset,
 		filep->count ++;
 		area->flags = MEM_AREA_TYPE_FILE;
 		area->file.filep = filep;
-		area->file.origin = ph->offset;
+		area->file.base_offset = ph->offset;
 		area->max_size = ph->memsz;
+		// allow to fill with 0 any 0-initialized sections (like .bss)
+		area->file.infile_size = ph->filesz;
 		area->address = offset + ph->vaddr;
-		// FIXME area between filesz and memsz is not 0-filled as it should be!
-		
 		
 		mem_area_insert(dest, area);
 	

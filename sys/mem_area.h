@@ -34,7 +34,11 @@ struct mem_area {
 			struct file *filep;
 
 			// origin's position in the file
-			size_t origin;
+			size_t base_offset;
+
+			// size of the data effectively found in file, if not equals to
+			// max_size, bytes between them *should* be initialized as 0!
+			size_t infile_size;
 		} file;
 
 		struct {

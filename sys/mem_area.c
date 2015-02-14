@@ -3,6 +3,7 @@
 #include <utils/pool_alloc.h>
 #include <fs/vfs_file.h>
 #include <utils/log.h>
+#include <utils/strutils.h>
 
 
 // pool allocation data
@@ -102,18 +103,41 @@ int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t s
 		// file mapped to memory, for now use a generic way to handle them
 		// TODO improve this with map_area_ops struct to allow "override"
 		size_t nbread;
+		size_t readsize = size;
 
-		vfs_lseek(area->file.filep, area->file.origin + offset, SEEK_SET);
-		nbread = vfs_read(area->file.filep, dest, size);
-		ret = nbread == size ? 0 : -1;
+		// fill with 0 if needed
+		if(area->file.infile_size < offset + size) {
+			size_t zeroed_offset;
+			size_t zeroed_size;
 
-		if(ret) {
-			printk(LOG_ERR, "mem_area: failed loading %d bytes from offset 0x%x"
-					" [absolute 0x%x] (read returns %d)\n",
-					size, offset, area->file.origin + offset, nbread);
+			// partially
+			if(area->file.infile_size > offset) {
+				readsize = area->file.infile_size - offset;
+				zeroed_offset = readsize;
+				zeroed_size = (offset + size) - area->file.infile_size;
+			}
+			else {
+				zeroed_offset = 0;
+				zeroed_size = size;
+				readsize = 0;
+			}
+
+			memset(dest + zeroed_offset, 0, zeroed_size);
 		}
-		else {
-			printk(LOG_DEBUG, "mem_area: loaded %d bytes @%p from file\n", size, dest);
+
+		if(readsize > 0) {
+			vfs_lseek(area->file.filep, area->file.base_offset + offset, SEEK_SET);
+			nbread = vfs_read(area->file.filep, dest, readsize);
+			ret = nbread == readsize ? 0 : -1;
+
+			if(ret) {
+				printk(LOG_ERR, "mem_area: failed loading %d bytes from offset 0x%x"
+						" [absolute 0x%x] (read returns %d)\n",
+						readsize, offset, area->file.base_offset + offset, nbread);
+			}
+			else {
+				printk(LOG_DEBUG, "mem_area: loaded %d bytes @%p from file\n", readsize, dest);
+			}
 		}
 
 		//print_memory(LOG_DEBUG, dest, nbread);
