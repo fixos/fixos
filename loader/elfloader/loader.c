@@ -145,7 +145,6 @@ int elfloader_load_all(struct file *filep, void *offset, struct process *dest,
 
 			if(flags & ELF_LOAD_SET_BRK) {
 				dest->initial_brk = cur_brk;
-				dest->current_brk = cur_brk;
 			}
 		}
 	}

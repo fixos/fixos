@@ -56,6 +56,7 @@ struct elf_shared_lib {
 #define PROCESS_DEFAULT_STACK_SIZE		(64*1024)
 
 struct tty;
+struct mem_area;
 
 struct process {
 	// address on the kernel stack of the process, or NULL if running out of any
@@ -102,9 +103,9 @@ struct process {
 
 	// initial data break address (end of static .data/.bss)
 	void *initial_brk;
-	// the current_brk is the current address of the top of the heap (changed
-	// by sbrk() )
-	void *current_brk;
+	// this is the pointer to the main heap memory area (manipulated by sbrk())
+	// be careful : this area *should* exists in process mem_areas list!
+	struct mem_area *heap_area;
 
 	// for process cpu load (should not be used directly, see cpu_load.h)
 	uint8 load_cursamp;

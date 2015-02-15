@@ -125,7 +125,7 @@ struct process *process_alloc() {
 			proc->kticks = 0;
 
 			proc->initial_brk = NULL;
-			proc->current_brk = NULL;
+			proc->heap_area = NULL;
 
 #ifdef CONFIG_ELF_SHARED
 			proc->shared.file = NULL;
@@ -289,6 +289,11 @@ pid_t sys_fork() {
 		new_area = mem_area_alloc();
 		*new_area = *old_area;
 		mem_area_insert(newproc, new_area);
+
+		// check for heap, and translate to corresponding area
+		if(old_area == cur->heap_area) {
+			newproc->heap_area = new_area;
+		}
 	}
 
 	// copy each memory page with same virtual addresses
@@ -305,6 +310,7 @@ pid_t sys_fork() {
 			// TODO shared pages
 		}
 	}
+	newproc->initial_brk = cur->initial_brk;
 
 	// copy signal info
 	sigemptyset(& newproc->sig_pending);
@@ -537,70 +543,64 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 void *sys_sbrk(int incr) {
 	// current implementation is pretty simple (no check for stack/shared area)
 	struct process *cur;
+	struct mem_area *heap;
 
 	cur = process_get_current();
-	if(cur->initial_brk != NULL) {
+	heap = cur->heap_area;
+
+	// TODO remove initial_brk and dynamical find a good area to set heap
+	if(heap == NULL && cur->initial_brk != NULL) {
+		void *real_brk;
+		size_t brk_align;
+
+		heap = mem_area_alloc();
+
+		// create heap area, using initial location rounded to page align
+		brk_align = ((size_t)cur->initial_brk) % PM_PAGE_BYTES;
+		real_brk = brk_align == 0 ? cur->initial_brk
+			: cur->initial_brk + (PM_PAGE_BYTES - brk_align);
+		mem_area_set_anon(heap, real_brk, 0);
+		mem_area_insert(cur, heap);
+
+		cur->heap_area = heap;
+
+		printk(LOG_DEBUG, "sbrk: created heap memory area\n");
+	}
+	
+	
+	// heap area exists (maybe just created)
+	if(heap != NULL) {
 		void *ret;
 
-		if(cur->current_brk == NULL)
-			cur->current_brk = cur->initial_brk;
-		ret = cur->current_brk;
+		ret = heap->address;
 
 		printk(LOG_DEBUG, "sbrk: incr=%d\n", incr);
 
 		// add or remove the given size
 		if(incr > 0) {
-			// add pages to process if needed
-			unsigned int curalign;
-			void *lastpos;
-
-			lastpos = cur->current_brk - 1;
-			curalign = (((unsigned int) lastpos)) % PM_PAGE_BYTES;
-			if(curalign + incr >= PM_PAGE_BYTES) {
-				union pm_page page;
-				void *curvm;
-				int relincr;
-
-				relincr = incr - (PM_PAGE_BYTES - curalign);
-				curvm = lastpos + (PM_PAGE_BYTES - curalign);
-
-				page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
-				while(relincr >= 0) {
-					void *pageaddr;
-
-					printk(LOG_DEBUG, "sbrk: add page @%p\n", curvm);
-					pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
-					if(pageaddr == NULL) {
-						// FIXME clean before return
-						return (void*)-1;
-					}
-
-					page.private.ppn = PM_PHYSICAL_PAGE(pageaddr);
-					mem_insert_page(& cur->dir_list , &page, curvm);
-
-					relincr -= PM_PAGE_BYTES;
-					curvm += PM_PAGE_BYTES;
-				}
-			}
+			// just resize the heap area, allocation is done on page fault
+			// FIXME need a check to ensure no area are overlayed by the heap!
+			heap->max_size += incr;
 		}
 
 		else if(incr < 0) {
 			// remove pages if possible
 			int curalign;
+			void *current_brk;
 
 			// impossible to reduce the size beyond the original heap begin addr
-			incr = cur->current_brk + incr <= cur->initial_brk ?
-				cur->initial_brk - cur->current_brk : incr ;
+			current_brk = heap->address + heap->max_size;
+			incr = heap->max_size > -incr ? incr : -(heap->max_size);
 
-			curalign = (((unsigned int) cur->current_brk) - 1) % PM_PAGE_BYTES;
+			curalign = (((unsigned int) current_brk) - 1) % PM_PAGE_BYTES;
 			if(curalign + incr < 0 ) {
 				union pm_page *page;
 				void *curvm;
 				int nbpages;
 
-				nbpages = (-incr - ((unsigned int)(cur->current_brk) % PM_PAGE_BYTES)
+				nbpages = (-incr - ((unsigned int)(current_brk) % PM_PAGE_BYTES)
 						-1) / PM_PAGE_BYTES + 1;
-				curvm = cur->current_brk - ((unsigned int)(cur->current_brk)
+				curvm = current_brk - ((unsigned int)(current_brk)
 						% PM_PAGE_BYTES);
 
 				while(nbpages > 0) {
@@ -615,9 +615,11 @@ void *sys_sbrk(int incr) {
 					curvm -= PM_PAGE_BYTES;
 				}
 			}
+
+			// resize heap memory area
+			heap->max_size += incr;
 		}
 
-		cur->current_brk += incr;
 		return ret;
 	}
 	return (void*)-1;
