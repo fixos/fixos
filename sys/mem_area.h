@@ -43,7 +43,7 @@ struct mem_area {
 
 		struct {
 			// current size (useful in case of growing areas)
-			size_t size;
+			//size_t size;
 		} anon;
 
 		// device type?
@@ -66,6 +66,12 @@ void mem_area_init();
  */
 struct mem_area *mem_area_alloc();
 void mem_area_free(struct mem_area *area);
+
+
+/**
+ * Helper to set an allocated memory area as an anonymous area.
+ */
+void mem_area_set_anon(struct mem_area *area, void *vmaddr, size_t size);
 
 
 /**

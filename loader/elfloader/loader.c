@@ -42,21 +42,15 @@ int elfloader_load(struct file *filep, struct process *dest) {
 	struct elf_header header;
 
 	if(elfloader_load_all(filep, NULL, dest, &header, ELF_LOAD_SET_BRK) == 0) {
-		union pm_page page;
-		void *vmstack;
-
 		void *pageaddr;
 
-		// alloc physical page and set it as the VM process stack
-		vmstack = arch_pm_get_free_page(MEM_PM_CACHED);
-		if(vmstack == NULL) {
-			printk(LOG_ERR, "elfloader: no physical page\n");
-			return -1;
-		}
-		page.private.ppn = PM_PHYSICAL_PAGE(vmstack);
-		page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
-		mem_insert_page(& dest->dir_list , &page,
-				(void*)(ARCH_UNEWPROC_DEFAULT_STACK - PM_PAGE_BYTES));
+		// set user stack (the size used *is* a maximum, not the allocated one)
+		struct mem_area *user_stack;
+		user_stack = mem_area_alloc();
+		mem_area_set_anon(user_stack, (void*)(ARCH_UNEWPROC_DEFAULT_STACK 
+				- PROCESS_DEFAULT_STACK_SIZE), PROCESS_DEFAULT_STACK_SIZE);
+		mem_area_insert(dest, user_stack);
+
 
 		// set kernel stack address, for now any physical memory
 		pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
@@ -213,42 +207,6 @@ int elfloader_load_segment(struct file *filep, void *offset,
 		
 		mem_area_insert(dest, area);
 	
-		/*
-		int i;
-		void *vm_segaddr;
-
-		vfs_lseek(filep, ph->offset, SEEK_SET);
-
-		vm_segaddr = offset + ph->vaddr;
-		for(i=0; i<ph->memsz; i += PM_PAGE_BYTES, vm_segaddr += PM_PAGE_BYTES) {
-			ssize_t nbread;
-			ssize_t toread;
-			union pm_page page;
-			void *pageaddr;
-
-
-			pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
-			if(pageaddr == NULL) {
-				printk(LOG_ERR, "elfloader: no physical page\n");
-				// TODO really dirty way to exit, need to clean all done job!
-				return -1;
-			}
-
-			page.private.ppn = PM_PHYSICAL_PAGE(pageaddr);
-			page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
-
-			// if we have a page, copy data from file
-			toread = ph->filesz - i;
-			toread = toread > PM_PAGE_BYTES ? PM_PAGE_BYTES : toread;
-
-			if(toread > 0) {
-				nbread = vfs_read(filep, pageaddr, PM_PAGE_BYTES);
-				printk(LOG_DEBUG, "[I] %d bytes read from ELF.\n", nbread);
-			}
-
-			mem_insert_page(& dest->dir_list , &page, vm_segaddr);
-			printk(LOG_DEBUG, "[I] ELF load VM (%p -> %p)\n", pageaddr, vm_segaddr);
-		}*/
 		return 0;
 	}
 	else {

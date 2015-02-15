@@ -51,6 +51,10 @@ struct elf_shared_lib {
 #define PROC_LOAD_SAMPLES	4
 #define PROC_LOAD_SAMPMAX	64
 
+// various definitions related to processes :
+// default *maximum* user stack size (should be allocated when needed)
+#define PROCESS_DEFAULT_STACK_SIZE		(64*1024)
+
 struct tty;
 
 struct process {

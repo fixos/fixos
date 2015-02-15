@@ -33,6 +33,15 @@ void mem_area_free(struct mem_area *area) {
 }
 
 
+
+void mem_area_set_anon(struct mem_area *area, void *vmaddr, size_t size) {
+	// nothing more, for now...
+	area->flags = MEM_AREA_TYPE_ANON;
+	area->address = vmaddr;
+	area->max_size = size;
+}
+
+
 struct mem_area *mem_area_find(struct process *proc, void *address) {
 	// for now, the list is not sorted, so check for each
 	struct list_head *cur;
@@ -92,10 +101,6 @@ int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t s
 			printk(LOG_ERR, "mem_area: attempt to copy extra bytes (anon)\n");
 		}
 		else {
-			if(offset + size > area->anon.size && (area->flags & MEM_AREA_MAYGROW)) {
-				printk(LOG_DEBUG, "mem_area: extends area (%d->%d)\n",
-						area->anon.size, offset + size);
-			}
 			ret = 0;
 		}
 	}
@@ -125,6 +130,7 @@ int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t s
 			memset(dest + zeroed_offset, 0, zeroed_size);
 		}
 
+		ret = 0;
 		if(readsize > 0) {
 			vfs_lseek(area->file.filep, area->file.base_offset + offset, SEEK_SET);
 			nbread = vfs_read(area->file.filep, dest, readsize);
@@ -134,6 +140,7 @@ int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t s
 				printk(LOG_ERR, "mem_area: failed loading %d bytes from offset 0x%x"
 						" [absolute 0x%x] (read returns %d)\n",
 						readsize, offset, area->file.base_offset + offset, nbread);
+				ret = -1;
 			}
 			else {
 				printk(LOG_DEBUG, "mem_area: loaded %d bytes @%p from file\n", readsize, dest);
