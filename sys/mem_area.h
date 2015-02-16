@@ -88,7 +88,7 @@ struct mem_area_ops {
 	 * Any page which is out of the area after decreasing size will be removed
 	 * from the corresponding process address space by the caller.
 	 */
-	int (*area_resize)(struct mem_area *area, const struct mem_area *new_area);
+	int (*area_resize)(struct mem_area *area, size_t new_size);
 	
 
 	/**
@@ -136,7 +136,7 @@ int mem_area_insert(struct process *proc, struct mem_area *area);
 
 
 /**
- * Generic function call when a page fault occurs, inside a given area address
+ * Generic function called when a page fault occurs, inside a given area address
  * range.
  * The implementation specific operation is called to set the corresponding page.
  */
@@ -151,6 +151,16 @@ extern inline union pm_page mem_area_pagefault(struct mem_area *area,
 		return page;
 	}
 }
+
+/**
+ * Resize an area to the given new_size.
+ * If size is decreased and some memory pages associated with corresponding
+ * process are excluded of the given area, each one is released.
+ * TODO the design is not so good, process should be implicit?
+ * Return 0 for success, negative value else.
+ */
+int mem_area_resize(struct mem_area *area, size_t new_size, struct process *proc);
+
 
 /**
  * Helper for filesystem implementations, to handle MEM_AREA_PARTIAL.

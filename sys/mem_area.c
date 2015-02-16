@@ -106,6 +106,38 @@ int mem_area_insert(struct process *proc, struct mem_area *area) {
 }
 
 
+int mem_area_resize(struct mem_area *area, size_t new_size, struct process *proc) {
+	int ret = 0;
+	size_t old_size = area->max_size;
+
+	// first, call area-specific resize callback if any
+	if(area->ops != NULL && area->ops->area_resize != NULL)
+		ret = area->ops->area_resize(area, new_size);
+	else
+		area->max_size = new_size;
+
+	new_size = area->max_size;
+
+	// if no error occurs and decreasing the size of the area, release uneeded
+	// pages
+	if(ret == 0 && area->max_size < old_size) {
+		void *old_last_page = MEM_PAGE_BEGINING(area->address + old_size);
+		void *new_last_page = MEM_PAGE_BEGINING(area->address + new_size);
+		union pm_page *page;
+		
+		for( ; new_last_page < old_last_page; new_last_page += 1024) {
+			printk(LOG_DEBUG, "mem_area: release page @%p\n", new_last_page);
+
+			page = mem_find_page(proc->dir_list, new_last_page);
+			if(page != NULL) {
+				mem_release_page(page);
+			}
+		}
+	}
+
+	return ret;
+}
+
 
 size_t mem_area_fill_partial_page(struct mem_area *area, size_t offset, void *dest) {
 	size_t readsize = PM_PAGE_BYTES;

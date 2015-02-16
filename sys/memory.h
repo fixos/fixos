@@ -55,6 +55,11 @@ union pm_page {
 	( ((uint32)(addr) >> (PM_PAGE_ORDER)) & (MEM_DIRECTORY_PAGES - 1))
 
 
+// get the first byte's address of the physical page of the given address
+#define MEM_PAGE_BEGINING(addr) \
+	(void*)((uint32)(addr) & ~(PM_PAGE_BYTES-1))
+
+
 /**
  * Process address space is managed by a linked list of "pages directory".
  * Each directory describe a set of sequential virtual pages, and the virtual

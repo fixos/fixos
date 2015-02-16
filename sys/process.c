@@ -574,55 +574,12 @@ void *sys_sbrk(int incr) {
 	
 	// heap area exists (maybe just created)
 	if(heap != NULL) {
-		void *ret;
-
-		ret = heap->address;
+		void *ret = heap->address;
+		size_t new_size;
 
 		printk(LOG_DEBUG, "sbrk: incr=%d\n", incr);
-
-		// add or remove the given size
-		if(incr > 0) {
-			// just resize the heap area, allocation is done on page fault
-			// FIXME need a check to ensure no area are overlayed by the heap!
-			heap->max_size += incr;
-		}
-
-		else if(incr < 0) {
-			// remove pages if possible
-			int curalign;
-			void *current_brk;
-
-			// impossible to reduce the size beyond the original heap begin addr
-			current_brk = heap->address + heap->max_size;
-			incr = heap->max_size > -incr ? incr : -(heap->max_size);
-
-			curalign = (((unsigned int) current_brk) - 1) % PM_PAGE_BYTES;
-			if(curalign + incr < 0 ) {
-				union pm_page *page;
-				void *curvm;
-				int nbpages;
-
-				nbpages = (-incr - ((unsigned int)(current_brk) % PM_PAGE_BYTES)
-						-1) / PM_PAGE_BYTES + 1;
-				curvm = current_brk - ((unsigned int)(current_brk)
-						% PM_PAGE_BYTES);
-
-				while(nbpages > 0) {
-					printk(LOG_DEBUG, "sbrk: remove page @%p\n", curvm);
-
-					page = mem_find_page(cur->dir_list, curvm);
-					if(page != NULL) {
-						mem_release_page(page);
-					}
-
-					nbpages--;
-					curvm -= PM_PAGE_BYTES;
-				}
-			}
-
-			// resize heap memory area
-			heap->max_size += incr;
-		}
+		new_size = -incr > heap->max_size ? 0 : heap->max_size + incr;
+		mem_area_resize(heap, new_size, cur);
 
 		return ret;
 	}
