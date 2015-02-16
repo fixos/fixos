@@ -10,6 +10,19 @@
 static struct pool_alloc _mem_area_pool = POOL_INIT(struct mem_area);
 
 
+// anonymous area operations
+static union pm_page anon_area_pagefault(struct mem_area *area, void *addr_fault);
+
+static int anon_area_resize(struct mem_area *area, const struct mem_area *new_area);
+
+static void anon_area_release(struct mem_area *area);
+
+static struct mem_area_ops _anon_area_ops = {
+	.area_pagefault = anon_area_pagefault
+};
+
+
+
 void mem_area_init() {
 	printk(LOG_DEBUG, "mem_area: area/page=%d\n", _mem_area_pool.perpage);
 }
@@ -39,6 +52,7 @@ void mem_area_set_anon(struct mem_area *area, void *vmaddr, size_t size) {
 	area->flags = MEM_AREA_TYPE_ANON;
 	area->address = vmaddr;
 	area->max_size = size;
+	area->ops = &_anon_area_ops;
 }
 
 
@@ -92,64 +106,55 @@ int mem_area_insert(struct process *proc, struct mem_area *area) {
 }
 
 
-int mem_area_copy_raw(struct mem_area *area, size_t offset, void *dest, size_t size) {
-	int ret = -1;
 
-	if(area->flags & MEM_AREA_TYPE_ANON) {
-		// anonymous area, the current implementation do nothing...
-		if(offset + size > area->max_size) {
-			printk(LOG_ERR, "mem_area: attempt to copy extra bytes (anon)\n");
-		}
-		else {
-			ret = 0;
-		}
-	}
-	else if(area->flags & MEM_AREA_TYPE_FILE) {
-		// file mapped to memory, for now use a generic way to handle them
-		// TODO improve this with map_area_ops struct to allow "override"
-		size_t nbread;
-		size_t readsize = size;
+size_t mem_area_fill_partial_page(struct mem_area *area, size_t offset, void *dest) {
+	size_t readsize = PM_PAGE_BYTES;
 
+	if(area->flags & MEM_AREA_TYPE_FILE && area->flags & MEM_AREA_PARTIAL) {
 		// fill with 0 if needed
-		if(area->file.infile_size < offset + size) {
-			size_t zeroed_offset;
+		if(area->file.infile_size < offset + readsize) {
 			size_t zeroed_size;
 
 			// partially
 			if(area->file.infile_size > offset) {
 				readsize = area->file.infile_size - offset;
-				zeroed_offset = readsize;
-				zeroed_size = (offset + size) - area->file.infile_size;
+				zeroed_size = (offset + PM_PAGE_BYTES) - area->file.infile_size;
 			}
 			else {
-				zeroed_offset = 0;
-				zeroed_size = size;
+				zeroed_size = readsize;
 				readsize = 0;
 			}
 
-			memset(dest + zeroed_offset, 0, zeroed_size);
+			memset(dest + readsize, 0, zeroed_size);
 		}
-
-		ret = 0;
-		if(readsize > 0) {
-			vfs_lseek(area->file.filep, area->file.base_offset + offset, SEEK_SET);
-			nbread = vfs_read(area->file.filep, dest, readsize);
-			ret = nbread == readsize ? 0 : -1;
-
-			if(ret) {
-				printk(LOG_ERR, "mem_area: failed loading %d bytes from offset 0x%x"
-						" [absolute 0x%x] (read returns %d)\n",
-						readsize, offset, area->file.base_offset + offset, nbread);
-				ret = -1;
-			}
-			else {
-				printk(LOG_DEBUG, "mem_area: loaded %d bytes @%p from file\n", readsize, dest);
-			}
-		}
-
-		//print_memory(LOG_DEBUG, dest, nbread);
 	}
 
-	return ret;
+	return readsize;
 }
 
+
+// anonymous area operations :
+static union pm_page anon_area_pagefault(struct mem_area *area, void *addr_fault) {
+	union pm_page pmpage = { .private.ppn = 0, .private.flags = MEM_PAGE_PRIVATE };
+	size_t offset = addr_fault - area->address;
+	//size_t size = PM_PAGE_BYTES;
+
+	// anonymous area, the current implementation only allocate a page
+	if(offset < area->max_size) {
+		void *pmaddr;
+
+		// allocate a physical memory page
+		// FIXME UNCACHED due to temporary hack to be sure nothing is retained in cache
+		pmaddr = arch_pm_get_free_page(MEM_PM_UNCACHED);
+		if(pmaddr != NULL) {
+			pmpage.private.ppn = PM_PHYSICAL_PAGE(pmaddr);
+			pmpage.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID; // | MEM_PAGE_CACHED;
+		}
+		// FIXME what to do if out of memory?
+	}
+	else {
+		printk(LOG_ERR, "mem_area: attempt to copy extra bytes (anon)\n");
+	}
+
+	return pmpage;
+}

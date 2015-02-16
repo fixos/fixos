@@ -186,6 +186,7 @@ int check_elf_header(struct elf_header *h) {
 }
 
 
+#include <fs/casio_smemfs/file.h>
 
 int elfloader_load_segment(struct file *filep, void *offset,
 		const struct elf_prog_header *ph, struct process *dest)
@@ -196,13 +197,15 @@ int elfloader_load_segment(struct file *filep, void *offset,
 
 		area = mem_area_alloc();
 		filep->count ++;
-		area->flags = MEM_AREA_TYPE_FILE;
+		area->flags = MEM_AREA_TYPE_FILE | MEM_AREA_PARTIAL;
 		area->file.filep = filep;
 		area->file.base_offset = ph->offset;
 		area->max_size = ph->memsz;
 		// allow to fill with 0 any 0-initialized sections (like .bss)
 		area->file.infile_size = ph->filesz;
 		area->address = offset + ph->vaddr;
+		// FIXME temporary
+		area->ops = & smemfs_mem_ops;
 		
 		mem_area_insert(dest, area);
 	
@@ -235,6 +238,8 @@ int elfloader_load_dynlib(const char *soname, struct process *dest) {
 			struct elf_section_header symtab;
 
 			printk(LOG_DEBUG, "elfloader: library '%s' loaded!\n", absname);
+			// FIXME don't work anymore with the new memory area system, should
+			// be re-written!
 			if(elf_get_symtab(lib, &header, &symtab) == 0) {
 				struct elf_symbol sym;
 				uint32 *reloc_got_b = NULL;

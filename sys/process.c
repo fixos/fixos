@@ -424,6 +424,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			args_pos = nbargs * sizeof(char*);
 
 			printk(LOG_DEBUG, "execve: %d args\n", nbargs);
+			// FIXME use a memory area to store that (maybe the stack/heap ones?)
 			for(i=0 ; i<nbargs; i++) {
 				char *copied_arg = args_page + args_pos;
 				size_t curarg_size;
@@ -473,6 +474,9 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			cur_area = next_area;
 		}
 		INIT_LIST_HEAD(& cur->mem_areas);
+
+		// unset heap area
+		cur->heap_area = NULL;
 
 
 		// use a new address space to avoid to use old TLB records

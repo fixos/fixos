@@ -168,18 +168,11 @@ void tlbmiss_handler()
 		area = mem_area_find(curpr, virtaddr);
 		if(area != NULL) {
 			union pm_page pmpage;
-			void *pmaddr;
 
 			// 'major' page fault, create and fill it
-			// FIXME UNCACHED due to temporary hack to be sure nothing is retained in cache
-			pmaddr = arch_pm_get_free_page(MEM_PM_UNCACHED);
-			if(pmaddr != NULL) {
-				pmpage.private.ppn = PM_PHYSICAL_PAGE(pmaddr);
-				pmpage.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID; // | MEM_PAGE_CACHED;
+			pmpage = mem_area_pagefault(area, virtaddr);
+			if(pmpage.private.ppn != 0) {
 				mem_insert_page(& curpr->dir_list, &pmpage, virtaddr);
-				
-				// FIXME get min(PM_PAGE_BYTES, max allowed) bytes
-				mem_area_copy_raw(area, (virtaddr - area->address), pmaddr, PM_PAGE_BYTES);	
 
 				// not optimized, but ensure page points to a valid page struct
 				page = mem_find_page(curpr->dir_list, virtaddr);

@@ -13,6 +13,10 @@ const struct file_operations smemfs_file_operations = {
 };
 
 
+const struct mem_area_ops smemfs_mem_ops = {
+	.area_pagefault = smemfs_area_pagefault
+};
+
 
 int smemfs_release (struct file *filep) {
 	// nothing special to do for now
@@ -21,6 +25,63 @@ int smemfs_release (struct file *filep) {
 }
 
 
+/**
+ * Internal helper for reading data from a file
+ */
+static ssize_t smemfs_read_data (struct smemfs_file_preheader *header,
+		void *dest, size_t len, size_t atpos)
+{
+	int j, n;
+	ssize_t max_read;
+	struct smemfs_frag_header *frag;
+
+	size_t pos_frag;
+	size_t pos_tmp;
+	size_t pos_buf;
+	size_t file_size;
+
+	frag = (void*)(header+1);
+
+	file_size = smemfs_prim_get_file_size(header);
+	max_read = file_size - atpos;
+	max_read = max_read < len ? max_read : len;
+
+	n = atpos + max_read;
+	j = atpos;
+
+	// TODO check everything
+
+	// look for fragment containing the first byte
+	pos_tmp = 0;
+	while(pos_tmp + frag->data_size+1 <= atpos) {
+		pos_tmp += frag->data_size + 1;
+		frag++;
+	}
+
+	// compute offset inside the fragment
+	pos_frag = atpos - pos_tmp;
+
+	// read data fragment after fragment
+	pos_buf = 0;
+	while(j<n) {
+		// chunk_size is the number of bytes to read in the current fragment
+		size_t chunk_size = frag->data_size + 1 - pos_frag;
+		size_t toread = (j+chunk_size) < n ? chunk_size : n-j;
+
+		memcpy((char*)dest + pos_buf, (char*)(smemfs_prim_get_frag_data(frag)) + pos_frag, toread);
+		j += toread;
+		pos_buf += toread;
+
+		if(toread == chunk_size) {
+			// full fragment read, go to next
+			pos_frag = 0;
+			frag++;
+		}
+		else pos_frag += toread;
+	}
+
+	return max_read;
+}
 
 
 ssize_t smemfs_read (struct file *filep, void *dest, size_t len) {
@@ -35,60 +96,13 @@ ssize_t smemfs_read (struct file *filep, void *dest, size_t len) {
 		return 0;
 	}
 	else {
-		int j, n;
-		size_t max_read;
-		struct smemfs_file_preheader *header;
-		struct smemfs_frag_header *frag;
+		ssize_t ret;
 
-		size_t pos_frag;
-		size_t pos_tmp;
-		size_t pos_buf;
-		size_t file_size;
+		ret = smemfs_read_data(filep->inode->abstract, dest, len, filep->pos);
+		if(ret > 0)
+			filep->pos += ret;
 
-		header = filep->inode->abstract;
-		frag = (void*)(header+1);
-
-		file_size = smemfs_prim_get_file_size(header);
-		max_read = file_size - filep->pos;
-		max_read = max_read < len ? max_read : len;
-
-		n = filep->pos + max_read;
-		j = filep->pos;
-
-		// TODO check everything
-
-		// look for fragment containing the first byte
-		pos_tmp = 0;
-		while(pos_tmp + frag->data_size+1 <= filep->pos) {
-			pos_tmp += frag->data_size + 1;
-			frag++;
-		}
-
-		// compute offset inside the fragment
-		pos_frag = filep->pos - pos_tmp;
-
-		// read data fragment after fragment
-		pos_buf = 0;
-		while(j<n) {
-			// chunk_size is the number of bytes to read in the current fragment
-			size_t chunk_size = frag->data_size + 1 - pos_frag;
-			size_t toread = (j+chunk_size) < n ? chunk_size : n-j;
-
-			memcpy((char*)dest + pos_buf, (char*)(smemfs_prim_get_frag_data(frag)) + pos_frag, toread);
-			j += toread;
-			pos_buf += toread;
-
-			if(toread == chunk_size) {
-				// full fragment read, go to next
-				pos_frag = 0;
-				frag++;
-			}
-			else pos_frag += toread;
-		}
-
-		filep->pos += max_read;
-		//if(filep->pos >= file_size) filep->flags |= _FILE_EOF_REATCHED;
-		return max_read;
+		return ret;
 	}
 }
 
@@ -123,4 +137,52 @@ off_t smemfs_lseek (struct file *filep, off_t offset, int whence) {
 	}*/
 
 	return filep->pos;
+}
+
+
+union pm_page smemfs_area_pagefault(struct mem_area *area, void *addr_fault) {
+	size_t readsize;
+	void *pmaddr;
+	union pm_page pmpage;
+	size_t offset = addr_fault - area->address;
+
+	// allocate a physical memory page
+	// FIXME UNCACHED due to temporary hack to be sure nothing is retained in cache
+	pmaddr = arch_pm_get_free_page(MEM_PM_UNCACHED);
+	if(pmaddr != NULL) {
+		pmpage.private.ppn = PM_PHYSICAL_PAGE(pmaddr);
+		pmpage.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID; // | MEM_PAGE_CACHED;
+	}
+	// FIXME what to do if out of memory?
+	
+	// fill with zeroes if needed
+	readsize = mem_area_fill_partial_page(area, offset, pmaddr);
+	
+	if(readsize > 0) {
+		struct inode *inode = area->file.filep->inode;
+		size_t absoffset = area->file.base_offset + offset;
+		ssize_t nbread;
+		
+		nbread = smemfs_read_data(inode->abstract, pmaddr, readsize, absoffset);
+
+		if(nbread != readsize) {
+			printk(LOG_ERR, "smemfs_area: failed loading %d bytes from offset 0x%x"
+					" [absolute 0x%x] (read returns %d)\n",
+					readsize, offset, absoffset, nbread);
+		}
+		else {
+			printk(LOG_DEBUG, "smemfs_area: loaded %d bytes @%p from file\n",
+					readsize, pmaddr);
+		}
+	}
+
+	return pmpage;
+}
+
+int smemfs_area_resize(struct mem_area *area, const struct mem_area *new_area) {
+	return -1;
+}
+
+void smemfs_area_release(struct mem_area *area) {
+
 }
