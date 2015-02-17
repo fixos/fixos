@@ -34,7 +34,7 @@ struct mem_area {
 	size_t max_size;
 
 	// callback functions to manage this area
-	struct mem_area_ops *ops;
+	const struct mem_area_ops *ops;
 
 	// type-specific data (determined by flags)
 	union {
@@ -108,15 +108,23 @@ void mem_area_init();
 
 /**
  * Return a newly allocated memory area, not initialized.
+ * This function is mainly designed for helper usage.
  */
 struct mem_area *mem_area_alloc();
+
+/**
+ * Free an allocated memory area, *without* any clean checkup!
+ * Should not be used unless you are sure the given area is not valid,
+ * or already clean.
+ * Use mem_area_release() in other cases!
+ */
 void mem_area_free(struct mem_area *area);
 
 
 /**
- * Helper to set an allocated memory area as an anonymous area.
+ * Helper to create an anonymous memory area, at given address.
  */
-void mem_area_set_anon(struct mem_area *area, void *vmaddr, size_t size);
+struct mem_area *mem_area_make_anon(void *vmaddr, size_t size);
 
 
 /**
@@ -150,6 +158,17 @@ extern inline union pm_page mem_area_pagefault(struct mem_area *area,
 		union pm_page page = {.private.ppn = 0, .private.flags = MEM_PAGE_PRIVATE};
 		return page;
 	}
+}
+
+
+/**
+ * Release, and free if necessary, the given area, after calling the
+ * implementation-specific release callback if any.
+ */
+extern inline void mem_area_release(struct mem_area *area) {
+	if(area->ops != NULL && area->ops->area_release != NULL)
+		area->ops->area_release(area);
+	mem_area_free(area);
 }
 
 /**

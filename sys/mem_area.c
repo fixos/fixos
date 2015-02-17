@@ -13,12 +13,13 @@ static struct pool_alloc _mem_area_pool = POOL_INIT(struct mem_area);
 // anonymous area operations
 static union pm_page anon_area_pagefault(struct mem_area *area, void *addr_fault);
 
-static int anon_area_resize(struct mem_area *area, const struct mem_area *new_area);
+static int anon_area_resize(struct mem_area *area, size_t new_size);
 
-static void anon_area_release(struct mem_area *area);
+//static void anon_area_release(struct mem_area *area);
 
-static struct mem_area_ops _anon_area_ops = {
-	.area_pagefault = anon_area_pagefault
+static const struct mem_area_ops _anon_area_ops = {
+	.area_pagefault = anon_area_pagefault,
+	.area_resize = anon_area_resize
 };
 
 
@@ -47,12 +48,19 @@ void mem_area_free(struct mem_area *area) {
 
 
 
-void mem_area_set_anon(struct mem_area *area, void *vmaddr, size_t size) {
-	// nothing more, for now...
-	area->flags = MEM_AREA_TYPE_ANON;
-	area->address = vmaddr;
-	area->max_size = size;
-	area->ops = &_anon_area_ops;
+struct mem_area *mem_area_make_anon(void *vmaddr, size_t size) {
+	struct mem_area *area;
+	
+	area = mem_area_alloc();
+	if(area != NULL) {
+		// nothing more, for now...
+		area->flags = MEM_AREA_TYPE_ANON | MEM_AREA_PROT_R | MEM_AREA_PROT_W
+			| MEM_AREA_PROT_X;
+		area->address = vmaddr;
+		area->max_size = size;
+		area->ops = &_anon_area_ops;
+	}
+	return area;
 }
 
 
@@ -189,4 +197,13 @@ static union pm_page anon_area_pagefault(struct mem_area *area, void *addr_fault
 	}
 
 	return pmpage;
+}
+
+
+static int anon_area_resize(struct mem_area *area, size_t new_size) {
+	// handle only for debug purpose
+	printk(LOG_DEBUG, "mem_area: resize area @%p (%d->%d)\n", area->address,
+			area->max_size, new_size);
+	area->max_size = new_size;
+	return 0;
 }

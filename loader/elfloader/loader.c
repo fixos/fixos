@@ -46,8 +46,7 @@ int elfloader_load(struct file *filep, struct process *dest) {
 
 		// set user stack (the size used *is* a maximum, not the allocated one)
 		struct mem_area *user_stack;
-		user_stack = mem_area_alloc();
-		mem_area_set_anon(user_stack, (void*)(ARCH_UNEWPROC_DEFAULT_STACK 
+		user_stack = mem_area_make_anon((void*)(ARCH_UNEWPROC_DEFAULT_STACK 
 				- PROCESS_DEFAULT_STACK_SIZE), PROCESS_DEFAULT_STACK_SIZE);
 		mem_area_insert(dest, user_stack);
 
@@ -192,24 +191,12 @@ int elfloader_load_segment(struct file *filep, void *offset,
 		const struct elf_prog_header *ph, struct process *dest)
 {
 	if(ph->vaddr % PM_PAGE_BYTES == 0) {
-		// TODO replace with appropriate mem_area helper!
-		struct mem_area *area;
+		int prot;
 
-		area = mem_area_alloc();
-		filep->count ++;
-		area->flags = MEM_AREA_TYPE_FILE | MEM_AREA_PARTIAL;
-		area->file.filep = filep;
-		area->file.base_offset = ph->offset;
-		area->max_size = ph->memsz;
-		// allow to fill with 0 any 0-initialized sections (like .bss)
-		area->file.infile_size = ph->filesz;
-		area->address = offset + ph->vaddr;
-		// FIXME temporary
-		area->ops = & smemfs_mem_ops;
-		
-		mem_area_insert(dest, area);
-	
-		return 0;
+		// TODO use real permissions from ELF
+		prot = MEM_AREA_PROT_R | MEM_AREA_PROT_W | MEM_AREA_PROT_X;
+		return vfs_map_area(filep, ph->memsz, ph->offset, offset + ph->vaddr,
+				MEM_AREA_PARTIAL | prot, ph->filesz, dest);
 	}
 	else {
 		printk(LOG_ERR, "elfloader: segment begin not page-aligned.\n");

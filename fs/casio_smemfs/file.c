@@ -4,17 +4,21 @@
 #include <fs/inode.h>
 #include <interface/fixos/errno.h>
 #include "smemfs_primitives_ng.h"
+// used for memory areas...
+#include <fs/vfs_file.h>
 
 
 const struct file_operations smemfs_file_operations = {
 	.release = smemfs_release,
 	.read = smemfs_read,
-	.lseek = smemfs_lseek
+	.lseek = smemfs_lseek,
+	.map_area = smemfs_map_area
 };
 
 
 const struct mem_area_ops smemfs_mem_ops = {
-	.area_pagefault = smemfs_area_pagefault
+	.area_pagefault = smemfs_area_pagefault,
+	.area_release = smemfs_area_release
 };
 
 
@@ -140,6 +144,17 @@ off_t smemfs_lseek (struct file *filep, off_t offset, int whence) {
 }
 
 
+
+int smemfs_map_area(struct file *filep, struct mem_area *area) {
+	// not a lot of stuff to do for now...
+	area->ops = &smemfs_mem_ops;
+	area->file.filep = filep;
+	// increase file usage count (mirrored in smemfs_area_release)
+	filep->count++;
+	return 0;
+}
+
+
 union pm_page smemfs_area_pagefault(struct mem_area *area, void *addr_fault) {
 	size_t readsize;
 	void *pmaddr;
@@ -179,10 +194,13 @@ union pm_page smemfs_area_pagefault(struct mem_area *area, void *addr_fault) {
 	return pmpage;
 }
 
-int smemfs_area_resize(struct mem_area *area, const struct mem_area *new_area) {
+/*
+int smemfs_area_resize(struct mem_area *area, size_t new_size) {
 	return -1;
 }
+*/
 
 void smemfs_area_release(struct mem_area *area) {
-
+	// release the file, by closing it at vfs level?
+	vfs_close(area->file.filep);
 }

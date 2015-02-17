@@ -24,6 +24,8 @@ off_t smemfs_lseek (struct file *filep, off_t offset, int whence);
 
 
 // memory-mapped operations
+int smemfs_map_area(struct file *filep, struct mem_area *area);
+
 union pm_page smemfs_area_pagefault(struct mem_area *area, void *addr_fault);
 
 int smemfs_area_resize(struct mem_area *area, const struct mem_area *new_area);

@@ -204,7 +204,7 @@ void process_terminate(struct process *proc, int status) {
 	while(cur_area != & proc->mem_areas) {
 		struct list_head *next_area = cur_area->next;
 		struct mem_area *area = container_of(cur_area, struct mem_area, list);
-		mem_area_free(area);
+		mem_area_release(area);
 		cur_area = next_area;
 	}
 	INIT_LIST_HEAD(& proc->mem_areas);
@@ -470,7 +470,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		while(cur_area != & cur->mem_areas) {
 			struct list_head *next_area = cur_area->next;
 			struct mem_area *area = container_of(cur_area, struct mem_area, list);
-			mem_area_free(area);
+			mem_area_release(area);
 			cur_area = next_area;
 		}
 		INIT_LIST_HEAD(& cur->mem_areas);
@@ -557,13 +557,12 @@ void *sys_sbrk(int incr) {
 		void *real_brk;
 		size_t brk_align;
 
-		heap = mem_area_alloc();
-
 		// create heap area, using initial location rounded to page align
 		brk_align = ((size_t)cur->initial_brk) % PM_PAGE_BYTES;
 		real_brk = brk_align == 0 ? cur->initial_brk
 			: cur->initial_brk + (PM_PAGE_BYTES - brk_align);
-		mem_area_set_anon(heap, real_brk, 0);
+
+		heap = mem_area_make_anon(real_brk, 0);
 		mem_area_insert(cur, heap);
 
 		cur->heap_area = heap;
@@ -578,7 +577,8 @@ void *sys_sbrk(int incr) {
 		size_t new_size;
 
 		printk(LOG_DEBUG, "sbrk: incr=%d\n", incr);
-		new_size = -incr > heap->max_size ? 0 : heap->max_size + incr;
+		// avoid negative size (size_t is unsigned, be careful)
+		new_size = (incr < 0 && -incr > heap->max_size) ? 0 : heap->max_size + incr;
 		mem_area_resize(heap, new_size, cur);
 
 		return ret;
