@@ -32,5 +32,6 @@ int smemfs_area_resize(struct mem_area *area, const struct mem_area *new_area);
 
 void smemfs_area_release(struct mem_area *area);
 
+int smemfs_area_duplicate(struct mem_area *orig, struct mem_area *copy);
 
 #endif //_FS_SMEMFS_FILE_H

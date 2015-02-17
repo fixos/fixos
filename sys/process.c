@@ -279,15 +279,14 @@ pid_t sys_fork() {
 
 	// copy each memory area
 	struct list_head *area_list;
+	newproc->heap_area = NULL;
 
 	list_for_each(area_list, & cur->mem_areas) {
 		// duplicate it
-		// FIXME file should be duplicated? Or a counter need to be used?
 		struct mem_area *old_area = container_of(area_list, struct mem_area, list);
 		struct mem_area *new_area;
 		
-		new_area = mem_area_alloc();
-		*new_area = *old_area;
+		new_area = mem_area_clone(old_area);
 		mem_area_insert(newproc, new_area);
 
 		// check for heap, and translate to corresponding area

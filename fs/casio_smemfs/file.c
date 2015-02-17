@@ -18,7 +18,8 @@ const struct file_operations smemfs_file_operations = {
 
 const struct mem_area_ops smemfs_mem_ops = {
 	.area_pagefault = smemfs_area_pagefault,
-	.area_release = smemfs_area_release
+	.area_release = smemfs_area_release,
+	.area_duplicate = smemfs_area_duplicate
 };
 
 
@@ -204,3 +205,10 @@ void smemfs_area_release(struct mem_area *area) {
 	// release the file, by closing it at vfs level?
 	vfs_close(area->file.filep);
 }
+
+
+int smemfs_area_duplicate(struct mem_area *orig, struct mem_area *copy) {
+	copy->file.filep->count++;
+	return 0;
+}
+

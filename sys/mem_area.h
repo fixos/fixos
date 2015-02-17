@@ -95,6 +95,11 @@ struct mem_area_ops {
 	 * Called when the area is no longer used.
 	 */
 	void (*area_release)(struct mem_area *area);
+
+	/**
+	 * Called when the area is duplicated, like during a fork.
+	 */
+	int (*area_duplicate)(struct mem_area *orig, struct mem_area *copy);
 };
 
 
@@ -179,6 +184,20 @@ extern inline void mem_area_release(struct mem_area *area) {
  * Return 0 for success, negative value else.
  */
 int mem_area_resize(struct mem_area *area, size_t new_size, struct process *proc);
+
+
+/**
+ * Duplicate an area.
+ */
+extern inline struct mem_area *mem_area_clone(struct mem_area *area) {
+	struct mem_area *ret = mem_area_alloc();
+	if(ret != NULL) {
+		*ret = *area;
+		if(area->ops != NULL && area->ops->area_duplicate != NULL)
+			area->ops->area_duplicate(area, ret);
+	}
+	return ret;
+}
 
 
 /**
