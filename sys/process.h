@@ -55,6 +55,10 @@ struct elf_shared_lib {
 // default *maximum* user stack size (should be allocated when needed)
 #define PROCESS_DEFAULT_STACK_SIZE		(64*1024)
 
+// maximum pages allowed for execve's argv and envp data...
+#define PROCESS_ARG_MAX_PAGES	4
+
+
 struct tty;
 struct mem_area;
 
