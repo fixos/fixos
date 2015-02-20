@@ -90,4 +90,18 @@ int vfs_ioctl(struct file *filep, int cmd, void *data);
 int vfs_fstat(struct file *filep, struct stat *buf);
 
 
+struct process;
+
+/**
+ * Map size bytes of the object in memory, from given offset, to given address
+ * in the address space of a given process.
+ * Area permissions, and additionnal flags, may be provided, using constants
+ * from sys/mem_area.h
+ * from_file is important only if flag contains MEM_AREA_PARTIAL
+ *
+ * TODO make a 'hints' structure to reduce number of arguments?
+ */
+int vfs_map_area(struct file *filep, size_t size, size_t offset, void *address,
+		int flags, size_t infile_size, struct process *proc);
+
 #endif //_FS_VFS_FILE_H

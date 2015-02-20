@@ -8,6 +8,7 @@
 #include <utils/bitfield.h>
 #include <interface/fixos/fcntl.h>
 #include <interface/fixos/errno.h>
+#include <sys/mem_area.h>
 
 #include <loader/elfloader/loader.h>
 #include <fs/vfs_file.h>
@@ -110,6 +111,8 @@ struct process *process_alloc() {
 
 			arch_adrsp_init(& proc->addr_space);
 			proc->dir_list = NULL;
+			INIT_LIST_HEAD(& proc->mem_areas);
+
 
 			sigemptyset(& proc->sig_blocked);
 			sigemptyset(& proc->sig_pending);
@@ -122,7 +125,7 @@ struct process *process_alloc() {
 			proc->kticks = 0;
 
 			proc->initial_brk = NULL;
-			proc->current_brk = NULL;
+			proc->heap_area = NULL;
 
 #ifdef CONFIG_ELF_SHARED
 			proc->shared.file = NULL;
@@ -193,6 +196,20 @@ void process_terminate(struct process *proc, int status) {
 	
 	// FIXME controlling terminal is process was session leader
 	
+
+	// remove all memory areas
+	struct list_head *cur_area;
+	
+	cur_area = proc->mem_areas.next; 
+	while(cur_area != & proc->mem_areas) {
+		struct list_head *next_area = cur_area->next;
+		struct mem_area *area = container_of(cur_area, struct mem_area, list);
+		mem_area_release(area);
+		cur_area = next_area;
+	}
+	INIT_LIST_HEAD(& proc->mem_areas);
+	
+	
 	// release the used address space, and free each allocated physical pages
 	arch_adrsp_release(& proc->addr_space);
 	for(curdir = proc->dir_list; curdir != NULL; curdir = nextdir) {
@@ -260,6 +277,24 @@ pid_t sys_fork() {
 
 	newproc->ctty = cur->ctty;
 
+	// copy each memory area
+	struct list_head *area_list;
+	newproc->heap_area = NULL;
+
+	list_for_each(area_list, & cur->mem_areas) {
+		// duplicate it
+		struct mem_area *old_area = container_of(area_list, struct mem_area, list);
+		struct mem_area *new_area;
+		
+		new_area = mem_area_clone(old_area);
+		mem_area_insert(newproc, new_area);
+
+		// check for heap, and translate to corresponding area
+		if(old_area == cur->heap_area) {
+			newproc->heap_area = new_area;
+		}
+	}
+
 	// copy each memory page with same virtual addresses
 	// TODO copy-on-write system!
 	for(dir = cur->dir_list; dir != NULL; dir = dir->next) {
@@ -274,6 +309,7 @@ pid_t sys_fork() {
 			// TODO shared pages
 		}
 	}
+	newproc->initial_brk = cur->initial_brk;
 
 	// copy signal info
 	sigemptyset(& newproc->sig_pending);
@@ -334,6 +370,134 @@ pid_t sys_getppid() {
 }
 
 
+/**
+ * Internel helper for execve(), copy user-provided argument list (either argv
+ * or env) to up to 4 physical pages which will be mapped to process stack.
+ *
+ * pages is expected to be a NULL initialized array, and will be updated to
+ * contains pointers to allocated pages (subscript 0 is bottom of the stack).
+ * begin_pos is a pointer to the current position inside the stack, should
+ * be 0 on the first call and will be updated to next empty position.
+ *
+ * If pargc and/or pargv are not NULL, they may be used to get, respectively,
+ * the number of string arguments and the address of the argument array
+ * (in the process address space).
+ */
+static int copy_arg_array(void *pages[PROCESS_ARG_MAX_PAGES], size_t *begin_pos,
+		char *const args[], int *pargc, void **pargv)
+{
+	int nbargs;
+	void *vmaddr;
+	size_t abspos;
+	int curarg;
+
+	int curpage;
+	int pagepos;
+
+	int array_curpage;
+	int array_pagepos;
+
+	// count the number of arguments (ended by NULL)
+	for(nbargs=0; args[nbargs] != NULL; nbargs++);
+
+	// position of the first argument pointer (aligned)
+	abspos = *begin_pos + (nbargs+1) * sizeof(char*);
+	if(abspos % sizeof(char*) != 0)
+		abspos += sizeof(char*) - abspos % sizeof(char*);
+
+	array_curpage = (abspos - 1) >> PM_PAGE_ORDER;
+	array_pagepos = PM_PAGE_BYTES - (abspos - (array_curpage << PM_PAGE_ORDER));
+
+	// position of the first string (just after the last byte of the string)
+	curpage = abspos >> PM_PAGE_ORDER;
+	pagepos = array_pagepos > 0 ? array_pagepos : PM_PAGE_BYTES;
+
+	// keep the address of the strings in process address space
+	vmaddr = (void*)(ARCH_UNEWPROC_DEFAULT_STACK - abspos);
+
+
+	// prepare the first pages (at least for pointer array and first character)
+	int i;
+	for(i = (*begin_pos) >> PM_PAGE_ORDER; i <= curpage; i++) {
+		if(pages[i] == NULL) {
+			// TODO
+			pages[i] = arch_pm_get_free_page(MEM_PM_CACHED);
+		}
+	}
+
+
+	// give needed info to the caller
+	if(pargc != NULL)
+		*pargc = nbargs;
+	if(pargv != NULL)
+		*pargv = vmaddr;
+
+	printk(LOG_DEBUG, "execve: copying %d args at (%d,%d)\n", nbargs, curpage, pagepos);
+
+	for(curarg=0; curarg < nbargs; curarg++) {
+		int bytesdone;
+		int arglen;
+
+		// get the size of the current string (no strlen)
+		for(arglen=1; args[curarg][arglen-1] != '\0'; arglen++);
+
+		//printk(LOG_DEBUG, "execve: arg #%d (%d) at @%p\n", curarg, arglen, args[curarg]);
+
+		// copy it in the physical memory, page per page
+		bytesdone = 0;
+		while(bytesdone < arglen) {
+			int fraglen = arglen - bytesdone;
+			
+			if(fraglen > pagepos)
+				fraglen = pagepos;
+
+
+			// update counters...
+			pagepos -= fraglen;
+			bytesdone += fraglen;
+
+			// copy fraglen of content (we are on a stack, count backward!)
+			memcpy(pages[curpage] + pagepos, args[curarg] + arglen - bytesdone, fraglen);
+			//printk(LOG_DEBUG, "   #%d, copy %d bytes (%d, %d) from @%p\n",
+			//		curarg, fraglen, curpage, pagepos, args[curarg] + arglen - bytesdone);
+
+			if(pagepos <= 0) {
+				pagepos = PM_PAGE_BYTES;
+				curpage++;
+
+				// allocate the page for the given fragment if needed
+				if(pages[curpage] == NULL) {
+					// TODO
+					pages[curpage] = arch_pm_get_free_page(MEM_PM_CACHED);
+				}
+			}
+
+		}
+
+		// copy its address, as if it was in the process VM stack
+		vmaddr -= arglen;
+		* (char**)(pages[array_curpage] + array_pagepos) = vmaddr;
+		
+		// update array related counters
+		array_pagepos += sizeof(char*);
+		if(array_pagepos >= PM_PAGE_BYTES) {
+			array_pagepos = 0;
+			array_curpage++;
+		}
+
+		abspos += arglen;
+	}
+
+	// add the final NULL
+	* (char**)(pages[array_curpage] + array_pagepos) = NULL;
+
+	// align to long type to avoid alignment issue
+	if(abspos % sizeof(long) != 0)
+		abspos += sizeof(long) -  abspos % sizeof(long);
+	*begin_pos = abspos;
+	return 0;
+}
+
 
 
 int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
@@ -350,67 +514,29 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		struct process *cur;
 		int i;
 
-		// we need to copy argv[] and env[] somewhere before to destroy process
-		// virtual memory...
-		void *args_page;
-		size_t args_pos;
-
 		// values to be used as main() arguments
 		int arg_argc;
 		void *arg_argv;
+		void *arg_envp;
 
-		union pm_page page;
+		// pages of memory used for main() arguments
+		void *arg_pages[PROCESS_ARG_MAX_PAGES] = { NULL };
+		size_t arg_pos;
+
 
 		sched_preempt_block();
 		cur = process_get_current();
 
+		// copy argv from the original memory, before to remove everything
+		arg_argc = 0;
+		arg_argv = NULL;
+		arg_envp = NULL;
+		arg_pos = 0;
+		if(argv != NULL)
+			copy_arg_array(arg_pages, &arg_pos, argv, &arg_argc, &arg_argv);
+		if(envp != NULL)
+			copy_arg_array(arg_pages, &arg_pos, envp, NULL, &arg_envp);
 
-		args_page = arch_pm_get_free_page(MEM_PM_CACHED);
-		if(args_page == NULL) {
-			printk(LOG_ERR, "execve: not enought memory\n");
-			// TODO abort
-			while(1);
-		}
-		page.private.ppn = PM_PHYSICAL_PAGE(args_page);
-		page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
-		// do not map the page now, the process old address space must be cleaned
-
-		args_pos = 0;
-		// copy argv
-		if(argv != NULL) {
-			// compute number of arguments
-			int nbargs;
-			char **args_array = args_page;
-			for(nbargs=0; argv[nbargs] != NULL; nbargs++);
-
-			// space for argument pointer array
-			args_pos = nbargs * sizeof(char*);
-
-			printk(LOG_DEBUG, "execve: %d args\n", nbargs);
-			for(i=0 ; i<nbargs; i++) {
-				char *copied_arg = args_page + args_pos;
-				size_t curarg_size;
-				for(curarg_size = 0; argv[i][curarg_size] != '\0'; curarg_size++);
-				printk(LOG_DEBUG, "execve: arg%d (@%p) = %dbytes\n", i, argv[i], curarg_size);
-				curarg_size++;
-
-				// TODO check max size
-				strcpy(copied_arg, argv[i]);
-				// we want to store the VM address (not physical one) :
-				args_array[i] = (void*)(((unsigned int)copied_arg % PM_PAGE_BYTES)
-						+ ((unsigned int)ARCH_UNEWPROC_DEFAULT_ARGS)) ;
-
-				args_pos += curarg_size;
-			}
-
-			arg_argc = nbargs;
-			arg_argv = (void*)(((unsigned int)args_array % PM_PAGE_BYTES)
-				+ ((unsigned int)ARCH_UNEWPROC_DEFAULT_ARGS)) ;
-		}
-		else {
-			arg_argc = 0;
-			arg_argv = NULL;
-		}
 
 		// close/free all ressources not 'shared' through exec
 		for(i=0; i<PROCESS_MAX_FILE; i++) {
@@ -423,6 +549,23 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			if(cur->sig_array[i].sa_handler != SIG_IGN)
 				cur->sig_array[i].sa_handler = SIG_DFL;
 		}
+
+
+		// remove all memory areas
+		struct list_head *cur_area;
+		
+		cur_area = cur->mem_areas.next; 
+		while(cur_area != & cur->mem_areas) {
+			struct list_head *next_area = cur_area->next;
+			struct mem_area *area = container_of(cur_area, struct mem_area, list);
+			mem_area_release(area);
+			cur_area = next_area;
+		}
+		INIT_LIST_HEAD(& cur->mem_areas);
+
+		// unset heap area
+		cur->heap_area = NULL;
+
 
 		// use a new address space to avoid to use old TLB records
 		arch_adrsp_release(& cur->addr_space);
@@ -456,11 +599,23 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			// it's not the current proc kernel stack...)
 			int dummy;
 
-			// add virtual memory page for args
-			mem_insert_page(& cur->dir_list , &page, (void*)ARCH_UNEWPROC_DEFAULT_ARGS);
+			// add virtual memory pages for args (use user stack area)
+			for(i=0; i<PROCESS_ARG_MAX_PAGES; i++) {
+				if(arg_pages[i] != NULL) {
+					union pm_page page;
+
+					page.private.ppn = PM_PHYSICAL_PAGE(arg_pages[i]);
+					page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
+					mem_insert_page(& cur->dir_list , &page,
+							(void*)ARCH_UNEWPROC_DEFAULT_STACK - (i+1)*PM_PAGE_BYTES);
+				}
+			}
 			
 			cur->acnt->reg[4] = arg_argc;
 			cur->acnt->reg[5] = (uint32)arg_argv;
+			cur->acnt->reg[6] = (uint32)arg_envp;
+			// stack begins after arguments!
+			cur->acnt->reg[15] = (uint32)ARCH_UNEWPROC_DEFAULT_STACK - arg_pos;
 
 			// interrupt context is expected to be reseted by process_contextjmp() ?
 			interrupt_atomic_save(&dummy);
@@ -492,87 +647,40 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 void *sys_sbrk(int incr) {
 	// current implementation is pretty simple (no check for stack/shared area)
 	struct process *cur;
+	struct mem_area *heap;
 
 	cur = process_get_current();
-	if(cur->initial_brk != NULL) {
-		void *ret;
+	heap = cur->heap_area;
 
-		if(cur->current_brk == NULL)
-			cur->current_brk = cur->initial_brk;
-		ret = cur->current_brk;
+	// TODO remove initial_brk and dynamical find a good area to set heap
+	if(heap == NULL && cur->initial_brk != NULL) {
+		void *real_brk;
+		size_t brk_align;
+
+		// create heap area, using initial location rounded to page align
+		brk_align = ((size_t)cur->initial_brk) % PM_PAGE_BYTES;
+		real_brk = brk_align == 0 ? cur->initial_brk
+			: cur->initial_brk + (PM_PAGE_BYTES - brk_align);
+
+		heap = mem_area_make_anon(real_brk, 0);
+		mem_area_insert(cur, heap);
+
+		cur->heap_area = heap;
+
+		printk(LOG_DEBUG, "sbrk: created heap memory area\n");
+	}
+	
+	
+	// heap area exists (maybe just created)
+	if(heap != NULL) {
+		void *ret = heap->address;
+		size_t new_size;
 
 		printk(LOG_DEBUG, "sbrk: incr=%d\n", incr);
+		// avoid negative size (size_t is unsigned, be careful)
+		new_size = (incr < 0 && -incr > heap->max_size) ? 0 : heap->max_size + incr;
+		mem_area_resize(heap, new_size, cur);
 
-		// add or remove the given size
-		if(incr > 0) {
-			// add pages to process if needed
-			unsigned int curalign;
-			void *lastpos;
-
-			lastpos = cur->current_brk - 1;
-			curalign = (((unsigned int) lastpos)) % PM_PAGE_BYTES;
-			if(curalign + incr >= PM_PAGE_BYTES) {
-				union pm_page page;
-				void *curvm;
-				int relincr;
-
-				relincr = incr - (PM_PAGE_BYTES - curalign);
-				curvm = lastpos + (PM_PAGE_BYTES - curalign);
-
-				page.private.flags = MEM_PAGE_PRIVATE | MEM_PAGE_VALID | MEM_PAGE_CACHED;
-				while(relincr >= 0) {
-					void *pageaddr;
-
-					printk(LOG_DEBUG, "sbrk: add page @%p\n", curvm);
-					pageaddr = arch_pm_get_free_page(MEM_PM_CACHED);
-					if(pageaddr == NULL) {
-						// FIXME clean before return
-						return (void*)-1;
-					}
-
-					page.private.ppn = PM_PHYSICAL_PAGE(pageaddr);
-					mem_insert_page(& cur->dir_list , &page, curvm);
-
-					relincr -= PM_PAGE_BYTES;
-					curvm += PM_PAGE_BYTES;
-				}
-			}
-		}
-
-		else if(incr < 0) {
-			// remove pages if possible
-			int curalign;
-
-			// impossible to reduce the size beyond the original heap begin addr
-			incr = cur->current_brk + incr <= cur->initial_brk ?
-				cur->initial_brk - cur->current_brk : incr ;
-
-			curalign = (((unsigned int) cur->current_brk) - 1) % PM_PAGE_BYTES;
-			if(curalign + incr < 0 ) {
-				union pm_page *page;
-				void *curvm;
-				int nbpages;
-
-				nbpages = (-incr - ((unsigned int)(cur->current_brk) % PM_PAGE_BYTES)
-						-1) / PM_PAGE_BYTES + 1;
-				curvm = cur->current_brk - ((unsigned int)(cur->current_brk)
-						% PM_PAGE_BYTES);
-
-				while(nbpages > 0) {
-					printk(LOG_DEBUG, "sbrk: remove page @%p\n", curvm);
-
-					page = mem_find_page(cur->dir_list, curvm);
-					if(page != NULL) {
-						mem_release_page(page);
-					}
-
-					nbpages--;
-					curvm -= PM_PAGE_BYTES;
-				}
-			}
-		}
-
-		cur->current_brk += incr;
 		return ret;
 	}
 	return (void*)-1;

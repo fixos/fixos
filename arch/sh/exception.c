@@ -13,6 +13,7 @@
 #include <sys/memory.h>
 #include <utils/log.h>
 #include <sys/kdebug.h>
+#include <sys/mem_area.h>
 
 
 //void exception_handler() __attribute__ ((interrupt_handler, section(".handler.exception")));
@@ -83,7 +84,7 @@ void exception_handler()
 		printk(LOG_ERR, "> TEA value = %p\n", (void*)tea);
 		printk(LOG_ERR, ">   *TEA = (%p)\n", (void*)(*(int*)(tea-(tea%4))));
 		printk(LOG_ERR, "> SPC Value = %p\n", spcval);
-		if(EXP_CODE_BAD_SLOTINSTR)
+		if(evt == EXP_CODE_BAD_SLOTINSTR)
 			kdebug_oops("Illegal slot instruction");
 		else
 			kdebug_oops("Illegal instruction");
@@ -134,6 +135,9 @@ void exception_handler()
 }
 
 
+// used to avoid infinite tlb fault loops when exception are allowed inside
+// a page fault resolving process...
+static int _recurcive_tlbfault = 0;
 
 /**
  * This handler is very important for Virtual Memory, it has to check
@@ -147,14 +151,60 @@ void tlbmiss_handler()
 	union pm_page *page;
 	uint32 vpn;
 	struct process *curpr;
-	
+
 	// the process which cause the TLB miss should be the current one
 	curpr = _proc_current;
 
+	if(_recurcive_tlbfault) {
+		void *spcval;
+
+		asm volatile("stc spc, %0":"=r"(spcval));
+
+		printk(LOG_EMERG, "> [%d] Page fault %p, PC=%p\n", MMU.PTEH.BIT.ASID,
+				PM_PHYSICAL_ADDR(MMU.PTEH.BIT.VPN), spcval);
+		kdebug_oops("Recurcive page fault");
+	}
+	
 	// find the corresponding page, if exists
 	vpn = MMU.PTEH.BIT.VPN; 
 	page = mem_find_page(curpr->dir_list,
 			(void*)(vpn << PM_PAGE_ORDER) );
+
+	// if page is not in dir list (or is invalid), maybe it exists in memory
+	// area (allocate it)
+	// FIXME not working for shared pages
+	if(page == NULL || !(page->private.flags & MEM_PAGE_VALID))  {
+		struct mem_area *area;
+		void *virtaddr;
+
+		// allow exception to occurs (realy helpful for debugging...)
+		sched_preempt_block();
+		_recurcive_tlbfault = 1;
+		arch_int_weak_atomic_block(1);
+		interrupt_inhibit_all(0);
+		
+		virtaddr = PM_PHYSICAL_ADDR(vpn);
+		area = mem_area_find(curpr, virtaddr);
+		if(area != NULL) {
+			union pm_page pmpage;
+
+			// 'major' page fault, create and fill it
+			pmpage = mem_area_pagefault(area, virtaddr);
+			if(pmpage.private.ppn != 0) {
+				mem_insert_page(& curpr->dir_list, &pmpage, virtaddr);
+
+				// not optimized, but ensure page points to a valid page struct
+				page = mem_find_page(curpr->dir_list, virtaddr);
+
+				printk(LOG_DEBUG, "tlb major fault: page inserted (virt %p -> phy %p)\n",
+						virtaddr, PM_PHYSICAL_ADDR(page->private.ppn));
+			}
+		}
+
+		interrupt_inhibit_all(1);
+		_recurcive_tlbfault = 0;
+		sched_preempt_unblock();
+	}
 
 	if(page != NULL) {
 		unsigned int flags;

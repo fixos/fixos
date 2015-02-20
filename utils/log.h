@@ -1,6 +1,7 @@
 #ifndef _UTILS_LOG_H
 #define _UTILS_LOG_H
 
+#include <utils/types.h>
 
 // callack used to print a part of a printk() message
 typedef void(*print_callback_t)(const char*);
@@ -44,6 +45,12 @@ void printk_internal(int level, const char *format, ...) __attribute__ ((format 
 #define printk(level, format, ...) \
 	( (level) >= CONFIG_PRINTK_STATIC_LEVEL ? \
 		 printk_internal(level, format, ##__VA_ARGS__)  : (void)0)
+
+
+/**
+ * Helper for printing raw memory dump (from addr to addr+len)...
+ */
+void print_memory(int level, void *addr, size_t len);
 
 
 /**

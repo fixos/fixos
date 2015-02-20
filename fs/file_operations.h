@@ -15,6 +15,8 @@
 
 struct file;
 
+struct mem_area;
+
 struct file_operations {
 	/**
 	 * Release the file opened instance ("close" it).
@@ -47,6 +49,24 @@ struct file_operations {
 	 * data is specific to command and device, may be not used.
 	 */
 	int (*ioctl) (struct file *filep, int cmd, void *data);
+
+
+	/**
+	 * Create a memory map of this object in memory.
+	 * Devices may use it as they want to, for example to provide big buffers
+	 * shared with userland.
+	 * area should be set with all non-private fields having a valid value,
+	 * which is not very well defined...
+	 * At least field ops is not expected to be set, but the interface is not
+	 * well designed for now.
+	 * TODO either use a 'hints' argument with mem_area-like type, or define
+	 * exactly what should be set and what is set by this function itself
+	 *
+	 * NULL if device of filesystem do not implements memory mapped areas.
+	 *
+	 * Return 0 if mapping is accepted, negative value else.
+	 */
+	int (*map_area) (struct file *filep, struct mem_area *area);
 };
 
 #endif //_FS_FILE_OPERATIONS_H

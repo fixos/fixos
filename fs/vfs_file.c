@@ -7,6 +7,7 @@
 #include "file_system.h"
 #include "file_operations.h"
 #include "vfs_directory.h"
+#include <sys/mem_area.h>
 
 
 // pool allocation for file struct
@@ -156,4 +157,39 @@ int vfs_fstat(struct file *filep, struct stat *buf) {
 	else {
 		return -1;
 	}
+}
+
+
+int vfs_map_area(struct file *filep, size_t size, size_t offset, void *address,
+		int flags, size_t infile_size, struct process *proc)
+{
+	int ret = -EINVAL;
+
+	if(filep->op->map_area != NULL) {
+		struct mem_area *area;
+		area = mem_area_alloc();
+		if(area == NULL) {
+			ret = -ENOMEM;
+		}
+		else {
+			// prepare area struct from arguments
+			area->address = address;
+			area->max_size = size;
+			area->flags = flags | MEM_AREA_TYPE_FILE;
+			area->file.base_offset = offset;
+			area->file.infile_size = (flags & MEM_AREA_PARTIAL) ? infile_size : size;
+			area->file.filep = filep;
+			
+			ret = filep->op->map_area(filep, area);
+			if(ret == 0) {
+				ret = mem_area_insert(proc, area);
+			}
+			else {
+				// failed, free area (do not *release* it, free directly)
+				mem_area_free(area);
+			}
+		}
+	}
+	
+	return ret;
 }

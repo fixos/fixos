@@ -128,6 +128,42 @@ void print_to_file(const char *str) {
 }
 
 
+// global to reduce stack usage (better if used after... like... a stack overflow?)
+// 48 is enought for all line cases (2*16 bytes + '\0')
+static char _printmem_buf[48];
+
+// TODO use this in strutils
+const static char *_print_hexcar = "0123456789ABCDEF";
+
+void print_memory(int level, void *addr, size_t len) {
+	if(level >= printk_dynamic_level) {
+		int pos = 0;
+
+		printk(level, "Memory content [%p~%p] :\n", addr, addr+len);
+		while(pos < len) {
+			int bufpos;
+			size_t firstoffset = pos;
+
+			// prepare the next 16 bytes...
+			for(bufpos=0; pos<len && (pos - firstoffset) < 16; pos++, bufpos+=2) {
+				unsigned char c;
+
+				// add an extra space each 4 bytes to help readibility
+				if((pos - firstoffset) != 0 && (pos - firstoffset) % 4 == 0)
+					_printmem_buf[bufpos++] = ' ';
+
+				c = ((unsigned char*)addr)[pos];
+				_printmem_buf[bufpos] = _print_hexcar[(int)(c >> 4)];
+				_printmem_buf[bufpos+1] = _print_hexcar[(int)(c && 0x0F)];
+			}
+			_printmem_buf[bufpos] = '\0';
+
+			printk(level, "%p: %s\n", addr + firstoffset, _printmem_buf);
+		}
+	}
+}
+
+
 // for parsing command-line parameter "loglevel="
 static int parse_loglevel(const char *val) {
 	if((*val >= '0' && *val <= '7') && val[1] == '\0') {

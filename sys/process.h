@@ -51,7 +51,16 @@ struct elf_shared_lib {
 #define PROC_LOAD_SAMPLES	4
 #define PROC_LOAD_SAMPMAX	64
 
+// various definitions related to processes :
+// default *maximum* user stack size (should be allocated when needed)
+#define PROCESS_DEFAULT_STACK_SIZE		(64*1024)
+
+// maximum pages allowed for execve's argv and envp data...
+#define PROCESS_ARG_MAX_PAGES	4
+
+
 struct tty;
+struct mem_area;
 
 struct process {
 	// address on the kernel stack of the process, or NULL if running out of any
@@ -66,6 +75,8 @@ struct process {
 	// virtual memory managing data :
 	struct addr_space addr_space;
 	struct page_dir *dir_list;
+	// address space areas (see sys/mem_area.h)
+	struct list_head mem_areas;
 
 	// files opened by process, index is file descriptor
 	struct file *files[PROCESS_MAX_FILE];
@@ -96,9 +107,9 @@ struct process {
 
 	// initial data break address (end of static .data/.bss)
 	void *initial_brk;
-	// the current_brk is the current address of the top of the heap (changed
-	// by sbrk() )
-	void *current_brk;
+	// this is the pointer to the main heap memory area (manipulated by sbrk())
+	// be careful : this area *should* exists in process mem_areas list!
+	struct mem_area *heap_area;
 
 	// for process cpu load (should not be used directly, see cpu_load.h)
 	uint8 load_cursamp;

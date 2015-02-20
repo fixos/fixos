@@ -24,6 +24,7 @@
 #define ESRCH			16
 #define EACCES			17
 #define EPERM			18
+#define ENOMEM			19
 
 
 #endif //_FIXOS_INTERFACE_ERRNO_H

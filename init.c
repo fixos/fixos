@@ -38,6 +38,7 @@
 #include "sys/console.h"
 
 #include "sys/sysctl.h"
+#include "sys/mem_area.h"
 
 extern char cmdargs_begin;
 extern char cmdargs_end;
@@ -131,6 +132,7 @@ void init() {
 
 	//DBG_WAIT;
 	
+
 	// Initializing VFS and device sub-sytems, mount platform filesystems,
 	// register platform devices...
 	
@@ -214,6 +216,10 @@ void init() {
 
 	test_vfs();
 */
+
+	// memory area subsystem
+	mem_area_init();
+	
 
 	process_init();
 	sched_init();
