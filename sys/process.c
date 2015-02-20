@@ -517,6 +517,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		// values to be used as main() arguments
 		int arg_argc;
 		void *arg_argv;
+		void *arg_envp;
 
 		// pages of memory used for main() arguments
 		void *arg_pages[PROCESS_ARG_MAX_PAGES] = { NULL };
@@ -529,9 +530,13 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 		// copy argv from the original memory, before to remove everything
 		arg_argc = 0;
 		arg_argv = NULL;
+		arg_envp = NULL;
 		arg_pos = 0;
 		if(argv != NULL)
 			copy_arg_array(arg_pages, &arg_pos, argv, &arg_argc, &arg_argv);
+		if(envp != NULL)
+			copy_arg_array(arg_pages, &arg_pos, envp, NULL, &arg_envp);
+
 
 		// close/free all ressources not 'shared' through exec
 		for(i=0; i<PROCESS_MAX_FILE; i++) {
@@ -608,6 +613,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 			
 			cur->acnt->reg[4] = arg_argc;
 			cur->acnt->reg[5] = (uint32)arg_argv;
+			cur->acnt->reg[6] = (uint32)arg_envp;
 			// stack begins after arguments!
 			cur->acnt->reg[15] = (uint32)ARCH_UNEWPROC_DEFAULT_STACK - arg_pos;
 
