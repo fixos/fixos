@@ -22,6 +22,9 @@
 #include "device/usb/cdc_acm/acm_device.h"
 #include "device/usb/cdc_acm/cdc_acm.h"
 
+#include "device/serial/serial_device_protocol.h"
+#include "arch/sh/kdelay.h"
+
 #include "device/keyboard/fx9860/keyboard_device.h"
 #include "device/keyboard/fx9860/keyboard.h"
 #include "device/keyboard/fx9860/keymatrix.h"
@@ -223,6 +226,21 @@ void init() {
 
 	process_init();
 	sched_init();
+
+	// serial test
+	printk(LOG_INFO, "Starting serial port...\n");
+	serial_init();
+	printk(LOG_INFO, "Serial port started!\n");
+	kusleep(1000);
+
+	for(freq = 0; freq < 10; freq++) {
+		printk(LOG_INFO, "Send one byte...\n");
+		serial_transmit(freq + 'A');
+		printk(LOG_INFO, "Data sent!\n");
+		
+		kusleep(1000);
+	}
+
 	test_process();
 	
 

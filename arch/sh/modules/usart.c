@@ -1,4 +1,4 @@
-// #include <device/serial/serial_device_protocol.h> // File does not exist
+#include <device/serial/serial_device_protocol.h> 
 #include <arch/sh/7705_Casio.h>
 #include <arch/sh/interrupt.h>
 // #include <utils/strutils.h> // str basic functions
@@ -8,7 +8,7 @@
 #include <utils/log.h>
 
 // uncomment to enable verbose debug mode for SERIAL module
-//#define DEBUG_SERIAL
+// #define DEBUG_SERIAL
 
 /**
  * This file contains the implementation of serial_device_protocol.h interface
@@ -16,7 +16,8 @@
  */
 
 void stbcr_init(void) {
-	STBCR3.BIT._SCIF2 = 0; // Start clock for SCIF2
+	// Start clock for SCIF2
+	STBCR3.BIT._SCIF2 = 0;
 }
 
 void scscr_init(void) {
@@ -25,28 +26,37 @@ void scscr_init(void) {
 	SCIF2.SCSCR.BIT.ERIE = 0;
 	SCIF2.SCSCR.BIT.BRIE = 0;
 	SCIF2.SCSCR.BIT.DRIE = 0;
-	SCIF2.SCSCR.BIT.CKE = 0; // clock selection
+	// clock selection
+	SCIF2.SCSCR.BIT.CKE = 0;
 }
 
 void scsmr_init(void) {
-	SCIF2.SCSMR.BIT.SRC = 0; // sampling control (asynchronous mode only)
-	SCIF2.SCSMR.BIT.CA = 1; // 0: asynchronous mode, 1: clock synchronous mode
-	SCIF2.SCSMR.BIT.CHR = 0; // 0: 8-bits data, 1: 7-bits data
-	SCIF2.SCSMR.BIT._PE = 0; // 0: no parity-bit, 1: parity-bit added & checked
-	SCIF2.SCSMR.BIT.OE = 0; // 0: even-parity, 1: odd-parity
-	SCIF2.SCSMR.BIT.STOP = 1; // 0: 1 stop-bit, 1: 2 stop-bits
-	SCIF2.SCSMR.BIT.CKS = 0; // internal source clock, 00: src, 01: src/4, 10: src/16, 11: src/64
+	// sampling control (asynchronous mode only)
+	SCIF2.SCSMR.BIT.SRC = 0;
+	// 0: asynchronous mode, 1: clock synchronous mode
+	SCIF2.SCSMR.BIT.CA = 1;
+	// 0: 8-bits data, 1: 7-bits data
+	SCIF2.SCSMR.BIT.CHR = 0;
+	// 0: no parity-bit, 1: parity-bit added & checked
+	SCIF2.SCSMR.BIT._PE = 0;
+	// 0: even-parity, 1: odd-parity
+	SCIF2.SCSMR.BIT.OE = 0;
+	// 0: 1 stop-bit, 1: 2 stop-bits
+	SCIF2.SCSMR.BIT.STOP = 1;
+	// internal source clock, 00: src, 01: src/4, 10: src/16, 11: src/64
+	SCIF2.SCSMR.BIT.CKS = 0;
 }
 
 void scfcr_init(void) {
-	if(SCIF2.SCSMR.BIT.CA == 0) // only in asynchronous mode
-	{
+	// only in asynchronous mode
+	if(SCIF2.SCSMR.BIT.CA == 0) {
 		SCIF2.SCFCR.BIT.TSE = 1;
 		SCIF2.SCFCR.BIT.MCE = 0;
 	}
 	SCIF2.SCFCR.BIT.LOOP = 0;
 	SCIF2.SCFCR.BIT.RFRST = SCIF2.SCFCR.BIT.TFRST = 0;
-	SCIF2.SCFCR.BIT.RTRG = 0; // set the number of receive data bytes that sets the receive data full (RDF) flag in the serial status register (SCSSR)
+	// set the number of receive data bytes that sets the receive data full (RDF) flag in the serial status register (SCSSR)
+	SCIF2.SCFCR.BIT.RTRG = 0;
 	SCIF2.SCFCR.BIT.TTRG = 3;
 }
 
@@ -70,12 +80,13 @@ void sci_init(void) {
 	if(SCIF2.SCSSR.BIT.TDFE == 1) SCIF2.SCSSR.BIT.TDFE = 0;
 	if(SCIF2.SCSSR.BIT.RDF == 1) SCIF2.SCSSR.BIT.RDF = 0;
 
-	kdelay(1); // 1-bit interval
+	kusleep(1); // 1-bit interval
 
 	SCIF2.SCTDSR = 0;
 
 	SCIF2.SCSCR.BIT.TIE = SCIF2.SCSCR.BIT.RIE = 0;
-	SCIF2.SCSCR.BIT.TE = SCIF2.SCSCR.BIT.RE = 1; // enable Tx/Rx
+	// enable Tx/Rx
+	SCIF2.SCSCR.BIT.TE = SCIF2.SCSCR.BIT.RE = 1;
 }
 
 
@@ -83,7 +94,7 @@ void serial_init(void) {
 	stbcr_init();
 	sci_init();
 
-	kdelay(1); // 1-bit interval
+	kusleep(1); // 1-bit interval
 }
 
 /**
@@ -91,12 +102,10 @@ void serial_init(void) {
  * But if it's like serial_init, I have to recode all
  */
 
-
 void serial_transmit(unsigned char value) {
-	int i;
-	while (SCIF2.SCSSR.BIT.TDFE != 1);
+	while (SCIF2.SCSSR.BIT.TEND != 1);
 	SCIF2.SCFTDR = value;
-	kdelay(1);
+	kusleep(1);
 	SCIF2.SCSSR.BIT.TEND = SCIF2.SCSSR.BIT.TDFE = 0;
 }
 
@@ -123,6 +132,6 @@ void serial_receive_bytes(unsigned char *data, size_t max_length) {
 	}
 }
 
-void stop_serial_port(void) {
+void serial_stop(void) {
 	SCIF2.SCSCR.BIT.TE = SCIF2.SCSCR.BIT.RE = 0;
 }
