@@ -8,6 +8,7 @@ C_SRC_L:= \
 	kdelay.c\
 	modules/sdhi.c \
 	modules/usb.c \
+	modules/usart.c \
 	process.c rtc.c timer.c time.c \
 	freq.c \
 	signal.c \
