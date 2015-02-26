@@ -1,7 +1,5 @@
 #include "virtual_term.h"
-#include <utils/cyclic_fifo.h>
 #include <fs/file_operations.h>
-#include <sys/waitqueue.h>
 #include <interface/fixos/errno.h>
 #include <sys/tty.h>
 #include <sys/process.h>
@@ -53,15 +51,6 @@ struct vt_instance {
 	int saved_posx;
 	int saved_posy;
 
-	// for input control :
-	char fifo_buf[VT_INPUT_BUFFER];
-	struct cyclic_fifo fifo;
-
-	char line_buf[VT_LINE_BUFFER];
-	int line_pos;
-
-	struct wait_queue wqueue;
-
 	struct tty tty;
 
 	struct vt100_esc_state esc_state;
@@ -101,14 +90,19 @@ static int vt_tty_is_ready(struct tty *tty) {
 	return 1;
 }
 
+static int vt_tty_putchar(struct tty *tty, char c);
+
 static int vt_tty_write(struct tty *tty, const char *data, size_t len);
 
 static const struct tty_ops _vt_tty_ops = {
 	.ioctl_setwinsize = &vt_ioctl_setwinsize,
 	.ioctl_getwinsize = &vt_ioctl_getwinsize,
 	.is_ready = &vt_tty_is_ready,
-	.tty_write = &vt_tty_write
+	.tty_write = &vt_tty_write,
+	.putchar = &vt_tty_putchar
 };
+
+
 
 
 /**
@@ -132,22 +126,13 @@ void vt_init() {
 	for(i=0; i<VT_MAX_TERMINALS; i++) {
 		_tdisp->init_disp(& _vts[i].disp);
 
-		_vts[i].fifo.buffer = _vts[i].fifo_buf;
-		_vts[i].fifo.max_size = VT_INPUT_BUFFER;
-		_vts[i].fifo.size = 0;
-		_vts[i].fifo.top = 0;
-
-		_vts[i].line_pos = 0;
-
 		_vts[i].posx = 0;
 		_vts[i].posy = 0;
 		_vts[i].saved_posx = 0;
 		_vts[i].saved_posy = 0;
 
-		INIT_WAIT_QUEUE(& _vts[i].wqueue);
-
-		_vts[i].tty.controler = 0;
-		_vts[i].tty.fpgid = 0;
+		// set TTY default settings
+		tty_default_init(&_vts[i].tty);
 		_vts[i].tty.private = & _vts[i];
 		_vts[i].tty.ops = &_vt_tty_ops;
 
@@ -373,6 +358,58 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 	term->esc_state.discovery_state = newstate;
 }
 
+
+/**
+ * Echo a character to the screen, without flushing to display driver
+ */
+static void vt_echo_char(struct vt_instance *term, char c, int mayesc) {
+	if(!mayesc || (term->esc_state.discovery_state == VT100_STATE_NONE
+				&& c != '\x1B'))
+	{
+		// We aren't in a vt100 escape code
+		if(c == '\b') {
+			// backspace, should only go back (non destructive)
+			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+
+			term->posx--;
+			if(term->posx < 0) {
+				// this behavior is not POSIX, but (very?) useful
+				term->posx = _tdisp->cwidth - 1;
+				term->posy--;
+			}
+
+			// print cursor at current position
+			_tdisp->print_char(& term->disp, term->posx, term->posy,
+					VT_CURSOR_CHAR);
+		}
+		else if(c == '\n') {
+			// remove the current cursor display before line feed
+			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+			term->posx = 0;
+			term->posy++;
+		}
+		else if(c == '\r') term->posx=0;
+		else {
+			_tdisp->print_char(& term->disp, term->posx, term->posy, c);
+			term->posx++;
+		}
+		if(term->posx >= _tdisp->cwidth) {
+			term->posx = 0;
+			term->posy++;
+		}
+
+
+		if(term->posy >= _tdisp->cheight) {
+			_tdisp->scroll(&term->disp);
+			term->posy = _tdisp->cheight - 1;
+		}			
+	}
+	else {
+		// parse the character as a part of a VT100-like escape sequence
+		vt_read_escape_code(term, c);
+	}
+}
+
 /**
  * Function used to print characters (as well written to term and echoed input from
  * keyboard).
@@ -385,34 +422,7 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
-		if(!mayesc || (term->esc_state.discovery_state == VT100_STATE_NONE && str[i] != '\x1B')) {
-			// We aren't in a vt100 escape code
-			if(str[i] == '\n') {
-				// remove the current cursor display before line feed
-				_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
-				term->posx = 0;
-				term->posy++;
-			}
-			else if(str[i] == '\r') term->posx=0;
-			else {
-				_tdisp->print_char(& term->disp, term->posx, term->posy, str[i]);
-				term->posx++;
-			}
-			if(term->posx >= _tdisp->cwidth) {
-				term->posx = 0;
-				term->posy++;
-			}
-
-			
-			if(term->posy >= _tdisp->cheight) {
-				_tdisp->scroll(&term->disp);
-				term->posy = _tdisp->cheight - 1;
-			}			
-		}
-		else {
-			// parse the character as a part of a VT100-like escape sequence
-			vt_read_escape_code(term, str[i]);
-		}
+		vt_echo_char(term, str[i], mayesc);
 	}
 
 	// print cursor at current position
@@ -424,91 +434,15 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 
 
 
-// remove the previous echoed character from the display
-static void vt_unwind_echo_char(struct vt_instance *term) {
-	_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
+// called by TTY driver to display a single character, be kind and flush disp
+static int vt_tty_putchar(struct tty *tty, char c) {
+	struct vt_instance *term = tty->private;
+	vt_echo_char((struct vt_instance *)(tty->private), c, 1);
 
-	term->posx--;
-	if(term->posx < 0) {
-		term->posx = _tdisp->cwidth - 1;
-		term->posy--;
-	}
-
-	// print cursor at current position
-	_tdisp->print_char(& term->disp, term->posx, term->posy,
-			VT_CURSOR_CHAR);
-
+	// TODO flush only if active?
+	_tdisp->print_char(& term->disp, term->posx, term->posy, VT_CURSOR_CHAR);
 	_tdisp->flush(& term->disp);
-}
-
-
-// add the given character to line buffer and echo it if needed
-static void vt_add_character(struct vt_instance *term, char c) {
-	term->line_buf[term->line_pos] = c;
-	term->line_pos++;
-
-	// basic echo, need to be improved (do not copy_to_dd() each time...)
-	if(IS_ESC_CTRL(c)) {
-		char esc[2] = {'^', ASCII_UNCTRL(c)};
-		vt_term_print(term, esc, 2, 0);
-	}
-	else {
-		vt_term_print(term, &c, 1, 0);
-	}
-	_tdisp->flush(& term->disp);
-}
-
-
-// do special action for character < 0x20 (special ASCII chars)
-static void vt_do_special(struct vt_instance *term, char spe) {
-	/*
-	char str[3] = {'^', ' ', '\0'};
-	str[1] = ASCII_UNCTRL(spe);
-	printk(LOG_DEBUG, "tty: received %s, pgid=%d\n", str, term->tty.fpgid);
-	*/
-	char spestr[2] = {'^', ASCII_UNCTRL(spe)};
-
-	switch(spe) {
-		case ASCII_CTRL('C'):
-			// kill group
-			if(term->tty.fpgid != 0)
-				signal_pgid_raise(term->tty.fpgid, SIGINT);
-			vt_term_print(term, spestr, 2, 0);
-			_tdisp->flush(& term->disp);
-			break;
-
-		case ASCII_CTRL('Z'):
-			// stop foreground
-			if(term->tty.fpgid != 0)
-				signal_pgid_raise(term->tty.fpgid, SIGSTOP);
-			vt_term_print(term, spestr, 2, 0);
-			_tdisp->flush(& term->disp);
-			break;
-
-		case '\n':
-			vt_add_character(term, '\n');
-			cfifo_push(& term->fifo, term->line_buf, term->line_pos);
-			term->line_pos = 0;
-			wqueue_wakeup(& term->wqueue);
-			break;
-
-		case ASCII_CTRL('H'):
-			// backspace, remove last buffered char and echo space instead
-			if(term->line_pos > 0)  {
-				char removed = term->line_buf[term->line_pos-1];
-
-				// removed 2 characters if it was displayed as "^<char>"
-				if(IS_ESC_CTRL(removed))
-					vt_unwind_echo_char(term);
-
-				vt_unwind_echo_char(term);
-				term->line_pos--;
-			}
-			break;
-
-		default:
-			vt_add_character(term, spe);
-	}
+	return 0;
 }
 
 
@@ -520,17 +454,7 @@ void vt_key_stroke(int code) {
 		struct vt_instance *term;
 
 		term = & _vts[_vt_current];
-
-		// check the line buffer, and add the char to it if possible
-		if(term->line_pos < VT_LINE_BUFFER || code == 0x08) {
-			if(code < 0x20) {
-				// special character (should be improved)
-				vt_do_special(term, (char)code);	
-			}
-			else if(code < 0x80) {
-				vt_add_character(term, (char)code);
-			}
-		}
+		tty_input_char(& term->tty, (char)code);
 	}
 }
 
@@ -600,23 +524,7 @@ ssize_t vt_read(struct file *filep, void *dest, size_t len) {
 	
 	term = (int)(filep->private_data);
 	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		// TODO atomic fifo access
-		int curlen = 0;
-		volatile size_t *fifo_size = &(_vts[term].fifo.size);
-
-		// FIXME check behavior : should return the first line available
-		//while(curlen < len) {
-			size_t readlen;
-
-			wait_until_condition(& _vts[term].wqueue, (readlen=*fifo_size) > 0);
-
-			// at least 1 byte available in the FIFO
-			readlen = readlen + curlen > len ? len - curlen : readlen;
-			cfifo_pop(& _vts[term].fifo, dest, readlen);
-			curlen += readlen;
-		//}
-		
-		return curlen;
+		return tty_read(& _vts[term].tty, dest, len);
 	}
 
 	return -EINVAL;

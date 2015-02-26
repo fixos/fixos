@@ -104,7 +104,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_NEG: return KEY_; break;
 			case K_EXE: return '\n'; break;
 
-			case K_AC: return '\x7F'; break;
+			case K_AC: return ASCII_CTRL('U'); break;
 		}
 	}
 	else if(_kbd_status & KBD_STATE_SHIFT) {
@@ -167,7 +167,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_NEG: return KEY_; break;
 			case K_EXE: return '\n'; break;
 
-			case K_AC: return '\x7F'; break;
+			case K_AC: return ASCII_CTRL('U'); break;
 		}
 	}
 	else {
@@ -230,7 +230,7 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 			case K_NEG: return '_'; break;
 			case K_EXE: return '\n'; break;
 
-			case K_AC: return '\x7F'; break;
+			case K_AC: return ASCII_CTRL('U'); break;
 		}
 	}
 	return -1;

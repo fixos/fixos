@@ -10,8 +10,15 @@
 #include <interface/fixos/tty.h>
 #include <sys/process.h>
 #include <interface/fixos/errno.h>
+#include <utils/cyclic_fifo.h>
+#include <sys/waitqueue.h>
+
 
 struct tty_ops;
+
+// size of the input buffers
+#define TTY_INPUT_BUFFER	256
+#define TTY_LINE_BUFFER		128
 
 struct tty {
 	// pid of the process that control the given TTY (should be a session leader,
@@ -20,6 +27,20 @@ struct tty {
 	pid_t controler;
 	// foreground process group
 	pid_t fpgid;
+
+	// terminal I/O control settings
+	struct termios termios;
+
+	// input buffering with cyclic buffer
+	char fifo_buf[TTY_INPUT_BUFFER];
+	struct cyclic_fifo fifo;
+
+	// for line edition (canonical mode...)
+	char line_buf[TTY_LINE_BUFFER];
+	int line_pos;
+
+	// wait queue used to wait for available input
+	struct wait_queue wqueue;
 
 	// tty-specific operations
 	const struct tty_ops *ops;
@@ -32,11 +53,21 @@ struct tty {
 struct tty_ops {
 	int (*is_ready) (struct tty *tty);
 	int (*tty_write) (struct tty *tty, const char *data, size_t len);
+
+	// read/write a single character
+	int (*getchar) (struct tty *tty);
+	int (*putchar) (struct tty *tty, char c);
 	
 	// ioctl support
 	int (*ioctl_setwinsize)(struct tty *tty, const struct winsize *size);
 	int (*ioctl_getwinsize)(struct tty *tty, struct winsize *size);
 };
+
+
+/**
+ * Initialize given tty structure with default values.
+ */
+int tty_default_init(struct tty *tty);
 
 
 extern inline int tty_is_ready(struct tty *tty) {
@@ -50,6 +81,8 @@ extern inline int tty_write(struct tty *tty, const char *data, size_t len) {
 		return -EIO;
 	return tty->ops->tty_write(tty, data, len);
 }
+
+int tty_read(struct tty *tty, char *dest, size_t len);
 
 
 extern inline int tty_getwinsize(struct tty *tty, struct winsize *size) {
@@ -118,8 +151,17 @@ extern inline int tty_getsid(struct tty *tty, pid_t *sid) {
 }
 
 
-// used to dispatch tty-level ioctls using tty->ops and tty data
-// return special value -EFAULT if ioctl is not tty-level command
+/**
+ * Used to dispatch tty-level ioctls using tty->ops and tty data.
+ * return special value -EFAULT if ioctl is not tty-level command
+ */
 int tty_ioctl(struct tty *tty, int cmd, void *data);
+
+
+/**
+ * Add a character to given tty input, and do appropriate job with  it
+ * (canonical mode, echo, signal generation...) depending termios values.
+ */
+int tty_input_char(struct tty *tty, char c);
 
 #endif //_SYS_TTY_H
