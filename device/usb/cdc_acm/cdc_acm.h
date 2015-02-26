@@ -11,7 +11,8 @@
 #include <utils/types.h>
 
 
-struct usb_setup;
+//struct usb_setup;
+#include <device/usb/usb_device_protocol.h>
 
 
 /**
@@ -42,6 +43,12 @@ size_t cdc_acm_receive(char *dest, size_t size);
  * USB Setup handler (see usb_setup_handler_t and usb_set_setup_handler())
  */
 int cdc_acm_setup_handler(const struct usb_setup *setup);
+
+
+/**
+ * Set the low-level input character handler (called for each received byte).
+ */
+void cdc_acm_set_receive_callback(usb_receive_callback_t callback);
 
 
 #endif //_DEVICE_USB_CDC_ACM

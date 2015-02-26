@@ -157,9 +157,6 @@ static struct usb_endpoint_ability _cdc_enpoints[3] = {
 };
 
 
-
-
-
 void cdc_acm_init() {
 	// get a configuration for needed endpoints
 	if(usb_find_endpoint_config(3, _cdc_enpoints) == 0) {
@@ -366,3 +363,8 @@ size_t cdc_acm_receive(char *dest, size_t size) {
 	return 0;
 }
 
+
+// use the USB-level callback
+void cdc_acm_set_receive_callback(usb_receive_callback_t callback) {
+	usb_set_receive_callback(_epdesc1.b_endpoint_addr & 0x0F, callback);
+}

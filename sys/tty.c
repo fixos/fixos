@@ -4,7 +4,7 @@
 static const struct termios _tty_default_termios = {
 	.c_cc = {
 		ASCII_CTRL('D'),	// VEOF
-		'\n',	// VEOL
+		'\0',	// VEOL (\n and \r already handled)
 		'\b',	// VERASE
 		ASCII_CTRL('C'),	// VINTR
 		ASCII_CTRL('U'),	// VKILL

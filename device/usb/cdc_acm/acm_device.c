@@ -28,11 +28,14 @@ static int acm_tty_is_ready(struct tty *tty);
 
 static int acm_tty_write(struct tty *tty, const char *data, size_t len);
 
+static int acm_tty_putchar(struct tty *tty, char c);
+
 static const struct tty_ops _acm_tty_ops = {
 	.ioctl_setwinsize = NULL,
 	.ioctl_getwinsize = NULL,
 	.is_ready = &acm_tty_is_ready,
-	.tty_write = &acm_tty_write
+	.tty_write = &acm_tty_write,
+	.putchar = &acm_tty_putchar
 };
 
 static struct tty _acm_tty = {
@@ -43,9 +46,17 @@ static struct tty _acm_tty = {
 };
 
 
+// callback used to do TTY job for each input character
+static int acm_input_char(char c) {
+	tty_input_char(&_acm_tty, c);
+	return 0;
+}
+
 
 void acm_usb_init() {
+	tty_default_init(&_acm_tty);
 	cdc_acm_init();
+	cdc_acm_set_receive_callback(&acm_input_char);
 }
 
 
@@ -85,7 +96,8 @@ ssize_t acm_usb_write(struct file *filep, void *source, size_t len) {
 
 ssize_t acm_usb_read(struct file *filep, void *dest, size_t len) {
 	if(cdc_acm_is_ready()) {
-		return cdc_acm_receive(dest, len);
+		return tty_read(&_acm_tty, dest, len);
+		//return cdc_acm_receive(dest, len);
 	}
 	
 	return -EIO;
@@ -118,4 +130,10 @@ static int acm_tty_write(struct tty *tty, const char *data, size_t len) {
 		return cdc_acm_send(data, len);
 	}
 	return -EIO;
+}
+
+
+static int acm_tty_putchar(struct tty *tty, char c) {
+	acm_tty_write(tty, &c, 1);
+	return 0;
 }
