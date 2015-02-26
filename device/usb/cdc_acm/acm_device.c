@@ -38,13 +38,7 @@ static const struct tty_ops _acm_tty_ops = {
 	.putchar = &acm_tty_putchar
 };
 
-static struct tty _acm_tty = {
-	.ops = &_acm_tty_ops,
-	.private = NULL,
-	.controler = 0,
-	.fpgid = 0
-};
-
+static struct tty _acm_tty;
 
 // callback used to do TTY job for each input character
 static int acm_input_char(char c) {
@@ -55,6 +49,9 @@ static int acm_input_char(char c) {
 
 void acm_usb_init() {
 	tty_default_init(&_acm_tty);
+	_acm_tty.ops = &_acm_tty_ops;
+	_acm_tty.private = NULL;
+
 	cdc_acm_init();
 	cdc_acm_set_receive_callback(&acm_input_char);
 }
