@@ -15,6 +15,56 @@ struct winsize {
 };
 
 
+// type for special characters, termios' c_cc field
+typedef unsigned char cc_t;
+
+// type for terminal baud rate
+typedef unsigned int speed_t;
+
+// type for terminal modes
+typedef unsigned int tcflags_t;
+
+// subscripts for c_cc field :
+#define VEOF		0
+#define VEOL		1
+#define VERASE		2
+#define VINTR		3
+#define VKILL		4
+#define VMIN		5
+#define VQUIT		6
+#define VSTART		7
+#define VSTOP		8
+#define VSUSP		9
+#define VTIME		10
+
+#define NCCS		11
+
+struct termios {
+	tcflags_t c_iflag;
+	tcflags_t c_oflag;
+	tcflags_t c_cflag;
+	tcflags_t c_lflag;
+	cc_t c_cc[NCCS];
+};
+
+
+/**
+ * Flags for local mode (c_lflag field)
+ */
+#define ECHO		(1<<0)
+#define ECHOE		(1<<1)
+#define ECHOK		(1<<2)
+#define ECHONL		(1<<3)
+#define ICANON		(1<<4)
+#define IEXTEN		(1<<5)
+#define ISIG		(1<<6)
+#define NOFLSH		(1<<7)
+#define TOSTOP		(1<<8)
+// POSIX extension
+#define ECHOCTL		(1<<9)
+
+
+// IOCTL namespace
 #define TTYCTL			IOCTL_NAMESPACE('T', 'T')
 
 /**
