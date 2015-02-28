@@ -146,20 +146,15 @@ void vt_init() {
 /**
  * Move the cursor from its current position to (newx, newy), after checking
  * screen boundaries.
- * TODO the cursor should be implemented in terminal_disp directly to avoid
- * overwriting characters when moving it using VT100 sequences!
  */
 static void vt_move_cursor(struct vt_instance *term, int newx, int newy) {
-	_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
-
 	term->posx = newx > _tdisp->cwidth-1 ? _tdisp->cwidth-1
 		: (newx < 0 ? 0 : newx);
 	term->posy = newy > _tdisp->cheight-1 ? _tdisp->cheight-1
 		: (newy < 0 ? 0 : newy);
 
 	// print cursor at current position
-	_tdisp->print_char(& term->disp, term->posx, term->posy,
-			VT_CURSOR_CHAR);
+	_tdisp->set_cursor_pos(& term->disp, term->posx, term->posy);
 
 	_tdisp->flush(& term->disp);
 }
@@ -362,47 +357,40 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 /**
  * Echo a character to the screen, without flushing to display driver
  */
-static void vt_echo_char(struct vt_instance *term, char c, int mayesc) {
-	if(!mayesc || (term->esc_state.discovery_state == VT100_STATE_NONE
-				&& c != '\x1B'))
-	{
+static void vt_echo_char(struct vt_instance *term, char c) {
+	if((term->esc_state.discovery_state == VT100_STATE_NONE && c != '\x1B')) {
 		// We aren't in a vt100 escape code
 		if(c == '\b') {
 			// backspace, should only go back (non destructive)
-			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
-
 			term->posx--;
 			if(term->posx < 0) {
 				// this behavior is not POSIX, but (very?) useful
 				term->posx = _tdisp->cwidth - 1;
 				term->posy--;
 			}
-
-			// print cursor at current position
-			_tdisp->print_char(& term->disp, term->posx, term->posy,
-					VT_CURSOR_CHAR);
 		}
 		else if(c == '\n') {
 			// remove the current cursor display before line feed
-			_tdisp->print_char(& term->disp, term->posx, term->posy, ' ');
 			term->posx = 0;
 			term->posy++;
 		}
 		else if(c == '\r') term->posx=0;
 		else {
+			// any other character should just be displayed
 			_tdisp->print_char(& term->disp, term->posx, term->posy, c);
 			term->posx++;
 		}
+
 		if(term->posx >= _tdisp->cwidth) {
 			term->posx = 0;
 			term->posy++;
 		}
-
-
 		if(term->posy >= _tdisp->cheight) {
 			_tdisp->scroll(&term->disp);
 			term->posy = _tdisp->cheight - 1;
-		}			
+		}
+
+		_tdisp->set_cursor_pos(& term->disp, term->posx, term->posy);
 	}
 	else {
 		// parse the character as a part of a VT100-like escape sequence
@@ -411,25 +399,18 @@ static void vt_echo_char(struct vt_instance *term, char c, int mayesc) {
 }
 
 /**
- * Function used to print characters (as well written to term and echoed input from
- * keyboard).
- * If mayesc is not-zero, try to check VT100-like escape sequences from source data.
+ * Function used to print characters (as well written to term and echoed input
+ * from keyboard).
  */
-static void vt_term_print(struct vt_instance *term, const void *source, size_t len,
-		int mayesc)
+static void vt_term_print(struct vt_instance *term, const void *source,
+		size_t len)
 {
 	int i;
 	const unsigned char *str = source;
 
 	for(i=0; i<len; i++) {
-		vt_echo_char(term, str[i], mayesc);
+		vt_echo_char(term, str[i]);
 	}
-
-	// print cursor at current position
-	_tdisp->print_char(& term->disp, term->posx, term->posy, VT_CURSOR_CHAR);
-
-	// TODO flush only if active!
-	//disp_mono_copy_to_dd(_term_vram);
 }
 
 
@@ -437,10 +418,8 @@ static void vt_term_print(struct vt_instance *term, const void *source, size_t l
 // called by TTY driver to display a single character, be kind and flush disp
 static int vt_tty_putchar(struct tty *tty, char c) {
 	struct vt_instance *term = tty->private;
-	vt_echo_char((struct vt_instance *)(tty->private), c, 1);
+	vt_echo_char(term, c);
 
-	// TODO flush only if active?
-	_tdisp->print_char(& term->disp, term->posx, term->posy, VT_CURSOR_CHAR);
 	_tdisp->flush(& term->disp);
 	return 0;
 }
@@ -493,7 +472,7 @@ static struct tty *vt_get_tty(uint16 minor) {
 
 
 static ssize_t vt_prim_write(struct vt_instance *term, const void *source, size_t len) {
-	vt_term_print(term, source, len, 1);
+	vt_term_print(term, source, len);
 
 	// screen should be flushed only if it's the current active
 	if(term == &_vts[_vt_current])

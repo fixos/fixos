@@ -15,7 +15,10 @@ const struct text_display fx9860_text_display = {
 	.scroll = &fx9860_tdisp_scroll,
 	.set_color = &fx9860_tdisp_set_color,
 	.set_active = &fx9860_tdisp_set_active,
-	.flush = &fx9860_tdisp_flush
+	.flush = &fx9860_tdisp_flush,
+
+	.set_cursor_pos = &fx9860_tdisp_set_cursor_pos,
+	.set_cursor = &fx9860_tdisp_set_cursor
 };
 
 
@@ -23,6 +26,10 @@ const struct text_display fx9860_text_display = {
 void fx9860_tdisp_init_disp(struct tdisp_data *disp) {
 	disp->back = 0; //TODO white
 	disp->front = 1; //TODO black
+
+	disp->cursx = 0;
+	disp->cursy = 0;
+	disp->cursor = TEXT_CURSOR_NORMAL;
 	
 	disp->vram = arch_pm_get_free_page(MEM_PM_CACHED);
 	memset(disp->vram, 0, 1024);
@@ -68,11 +75,43 @@ void fx9860_tdisp_set_color(struct tdisp_data *disp, enum text_color front,
 void fx9860_tdisp_set_active(struct tdisp_data *disp, int active) {
 	// not a lot of stuff to do here, only update the display after activation
 	if(active == 1) {
-		disp_mono_copy_to_dd(disp->vram);
+		fx9860_tdisp_flush(disp);
 	}
 }
 
 
 void fx9860_tdisp_flush(struct tdisp_data *disp) {
+	// here is the little trick for cursor display : we display it only before
+	// flushing, and remove it juste before (so the VRAM is always "clean")
+	int cursor_displayed = 0;
+
+	if(disp->cursor != TEXT_CURSOR_DISABLE && disp->cursx < FX9860_TERM_WIDTH
+			&& disp->cursy < FX9860_TERM_HEIGHT)
+	{
+		cursor_displayed = 1;
+		term_prim_store_character(disp->cursx, disp->cursy, disp->vram);
+		// TODO display other kind of cursors (alpha/shift...)
+		term_prim_write_character(disp->cursx, disp->cursy,
+				DISPLAY_COLOR_BLACK, DISPLAY_COLOR_WHITE,
+				FX9860_TERM_CURSOR_CHAR, disp->vram);
+	}
+
 	disp_mono_copy_to_dd(disp->vram);
+	
+	if(cursor_displayed)
+		term_prim_restore_character(disp->cursx, disp->cursy, disp->vram);
+}
+
+
+// cursor related functions are not very useful because of some tricks done
+// to display it just before a display flush, but may be useful
+void fx9860_tdisp_set_cursor_pos(struct tdisp_data *disp, size_t posx,
+		size_t posy)
+{
+	disp->cursx = posx;
+	disp->cursy = posy;
+}
+
+void fx9860_tdisp_set_cursor(struct tdisp_data *disp, enum text_cursor curs) {
+	disp->cursor = curs;
 }
