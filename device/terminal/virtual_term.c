@@ -477,12 +477,43 @@ void vt_key_stroke(int code) {
 }
 
 
+// used to blink the cursor
+static int _vt_blink_scheduled = 0;
+
+static void vt_toggle_cursor();
+
+static void vt_cursor_schedule_blink() {
+	if(!_vt_blink_scheduled) {
+		stimer_add(&vt_toggle_cursor, NULL, TICKS_MSEC_NOTNULL(750));
+		_vt_blink_scheduled = 1;
+	}
+}
+
+static void vt_toggle_cursor() {
+	if(_vt_current >= 0 && _vt_current <VT_MAX_TERMINALS) {
+		// TODO handle case where cusor isn't displayed, etc...
+		if(_vts[_vt_current].disp.cursor == TEXT_CURSOR_NORMAL)
+			_vts[_vt_current].disp.cursor = TEXT_CURSOR_DISABLE;
+		else
+			_vts[_vt_current].disp.cursor = TEXT_CURSOR_NORMAL;
+
+		vt_delay_flush();
+
+		_vt_blink_scheduled = 0;
+		vt_cursor_schedule_blink();
+	}
+	else
+		_vt_blink_scheduled = 0;
+}
+
+
 void vt_set_active(int term) {
 	if(term >= -1 && term < VT_MAX_TERMINALS) {
 		if(term != _vt_current) {
 			_tdisp->set_active(& _vts[_vt_current].disp, 0);
 			if(term != -1) {
 				_tdisp->set_active(& _vts[term].disp, 1);
+				vt_cursor_schedule_blink();
 			}
 			_vt_current = term;
 		}
