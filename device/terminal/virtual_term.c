@@ -4,6 +4,8 @@
 #include <sys/tty.h>
 #include <sys/process.h>
 #include "text_display.h"
+#include <sys/stimer.h>
+#include <sys/time.h>
 
 #include <device/terminal/fx9860/text_display.h>
 
@@ -103,6 +105,11 @@ static const struct tty_ops _vt_tty_ops = {
 };
 
 
+// soft timer used to flush the display (VRAM to display)
+static void vt_flush_display(void *data);
+
+static int _vt_flush_delayed = 0;
+
 
 
 /**
@@ -142,6 +149,28 @@ void vt_init() {
 }
 
 
+/**
+ * Soft timer used to display the screen only once per tick if needed.
+ * This allow minimal drawing without catastrophic counterpart.
+ * FIXME add a TTY function to force flushing (e.g. after a kernel oops)
+ */
+static void vt_flush_display(void *data) {
+	(void)data;
+	if(_vt_current >= 0 && _vt_current < VT_MAX_TERMINALS) {
+		_tdisp->flush(& _vts[_vt_current].disp);
+	}
+	_vt_flush_delayed = 0;
+}
+
+
+// use a delay of more or less 20 ms after the first call
+static void vt_delay_flush() {
+	if(!_vt_flush_delayed) {
+		_vt_flush_delayed = 1;
+		stimer_add(&vt_flush_display, NULL, TICKS_MSEC_NOTNULL(20));
+	}
+}
+
 
 /**
  * Move the cursor from its current position to (newx, newy), after checking
@@ -156,7 +185,7 @@ static void vt_move_cursor(struct vt_instance *term, int newx, int newy) {
 	// print cursor at current position
 	_tdisp->set_cursor_pos(& term->disp, term->posx, term->posy);
 
-	_tdisp->flush(& term->disp);
+	vt_delay_flush();
 }
 
 /**
@@ -420,7 +449,7 @@ static int vt_tty_putchar(struct tty *tty, char c) {
 	struct vt_instance *term = tty->private;
 	vt_echo_char(term, c);
 
-	_tdisp->flush(& term->disp);
+	vt_delay_flush();
 	return 0;
 }
 
@@ -476,7 +505,7 @@ static ssize_t vt_prim_write(struct vt_instance *term, const void *source, size_
 
 	// screen should be flushed only if it's the current active
 	if(term == &_vts[_vt_current])
-		_tdisp->flush(&term->disp);
+		vt_delay_flush();
 
 	return len;
 }
