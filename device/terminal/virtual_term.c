@@ -96,12 +96,15 @@ static int vt_tty_putchar(struct tty *tty, char c);
 
 static int vt_tty_write(struct tty *tty, const char *data, size_t len);
 
+static int vt_tty_force_flush(struct tty *tty);
+
 static const struct tty_ops _vt_tty_ops = {
 	.ioctl_setwinsize = &vt_ioctl_setwinsize,
 	.ioctl_getwinsize = &vt_ioctl_getwinsize,
 	.is_ready = &vt_tty_is_ready,
 	.tty_write = &vt_tty_write,
-	.putchar = &vt_tty_putchar
+	.putchar = &vt_tty_putchar,
+	.force_flush = &vt_tty_force_flush
 };
 
 
@@ -169,6 +172,13 @@ static void vt_delay_flush() {
 		_vt_flush_delayed = 1;
 		stimer_add(&vt_flush_display, NULL, TICKS_MSEC_NOTNULL(20));
 	}
+}
+
+
+// direct flush without waiting delayed flushing
+static int vt_tty_force_flush(struct tty *tty) {
+	_tdisp->flush(& ((struct vt_instance*)tty->private)->disp);
+	return 0;
 }
 
 

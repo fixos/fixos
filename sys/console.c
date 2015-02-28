@@ -18,9 +18,6 @@
 
 static uint32 _console_node = (CONSOLE_TTY_MAJOR << 16) | CONSOLE_TTY_MINOR_BASE;
 
-// static file used for the console
-static struct file _console_file;
-
 int parse_console(const char *val) {
 	//printk(LOG_DEBUG, "ARG: console='%s'\n", val);
 	if(val != NULL) {
@@ -58,19 +55,16 @@ void console_make_active() {
 	if(console_dev != NULL) {
 		struct tty *tty;
 
-		_console_file.flags = 0;
-		_console_file.inode = NULL;
-		// FIXME use only the tty interface, not the file one!
 		tty = console_dev->get_tty(minor(_console_node));
-		if(console_dev->open(minor(_console_node), &_console_file) == 0) {
-			if(tty != NULL && !tty_is_ready(tty)) {
+		if(tty != NULL) {
+			if(!tty_is_ready(tty)) {
 				// wait until the TTY is ready
 				printk(LOG_INFO, "[console tty not ready...]\n");
 				while(!tty_is_ready(tty));
 				printk(LOG_INFO, "[ready!]\n");
 			}
-			// set printk(LOG_DEBUG, ) callback func
-			set_kernel_print_file(&_console_file);
+			// set printk() TTY
+			printk_set_console_tty(tty);
 			printk(LOG_INFO, "Now using console device for printk()!\n");
 		}
 		else {

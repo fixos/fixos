@@ -61,6 +61,9 @@ struct tty_ops {
 	// ioctl support
 	int (*ioctl_setwinsize)(struct tty *tty, const struct winsize *size);
 	int (*ioctl_getwinsize)(struct tty *tty, struct winsize *size);
+
+	// last chance to flush output from a TTY (e.g. after a oops)
+	int (*force_flush)(struct tty *tty);
 };
 
 
@@ -163,5 +166,17 @@ int tty_ioctl(struct tty *tty, int cmd, void *data);
  * (canonical mode, echo, signal generation...) depending termios values.
  */
 int tty_input_char(struct tty *tty, char c);
+
+
+/**
+ * Try to flush the output buffer of the given TTY (to be visible from user).
+ * Should be as simple as possible, because it may be called from unstable
+ * states, as a last chance to show something to the user.
+ */
+extern inline int tty_force_flush(struct tty *tty) {
+	if(tty->ops->force_flush != NULL)
+		return tty->ops->force_flush(tty);
+	return -EIO;
+}
 
 #endif //_SYS_TTY_H
