@@ -62,6 +62,14 @@ struct tty_ops {
 	int (*ioctl_setwinsize)(struct tty *tty, const struct winsize *size);
 	int (*ioctl_getwinsize)(struct tty *tty, struct winsize *size);
 
+	/**
+	 * Called when termios value should be changed.
+	 * If non-null, this callback should check and *set* the accepted value
+	 * in tty->termios before returning.
+	 * Partially accepted change behavior is implementation defined.
+	 */
+	int (*set_termios)(struct tty *tty, const struct termios *queried);
+
 	// last chance to flush output from a TTY (e.g. after a oops)
 	int (*force_flush)(struct tty *tty);
 };
@@ -150,6 +158,16 @@ extern inline int tty_getsid(struct tty *tty, pid_t *sid) {
 		return -EINVAL;
 
 	*sid = tty->controler;
+	return 0;
+}
+
+
+extern inline int tty_set_termios(struct tty *tty, const struct termios *ios)
+{
+	if(tty->ops->set_termios != NULL) {
+		return tty->ops->set_termios(tty, ios);
+	}
+	tty->termios = *ios;
 	return 0;
 }
 
