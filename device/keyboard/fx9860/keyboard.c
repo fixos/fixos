@@ -276,63 +276,76 @@ int kdb_convert_keymatrix_code(int matrixcode) {
 	return -1;
 }
 
+void kbd_shift_manager_standard(int code) {
+	if(_kbd_status & KBD_STATE_SHIFT)
+		_kbd_status &= ~KBD_STATE_SHIFT;
+	else
+		_kbd_status |= KBD_STATE_SHIFT;
+}
 
+void kbd_alpha_manager_F6(int code) {
+	if(code == K_F6) {
+		// Switch case.
+		_kbd_status ^= KBD_STATE_ALPHA_MAJ;
+	}
+	else if (code == K_ALPHA) {
+		if(_kbd_status & KBD_STATE_ALPHA) {
+			_kbd_status &= ~KBD_STATE_ALPHALOCK;
+		}
+		else {
+			if(_kbd_status & KBD_STATE_SHIFT)
+				_kbd_status |= KBD_STATE_ALPHALOCK;
+			else
+				_kbd_status |= KBD_STATE_ALPHA;
+		}
+	}
+}
+
+void kbd_alpha_manager_Ti(int code) {
+	if(_kbd_status & KBD_STATE_SHIFT) {
+		_kbd_status |= KBD_STATE_ALPHALOCK;
+		_kbd_status &= ~KBD_STATE_SHIFT;
+	}
+	else {
+		if(_kbd_status & KBD_STATE_ALPHALOCK) {
+			if(_kbd_status & KBD_STATE_ALPHA_MAJ)
+				_kbd_status &= ~KBD_STATE_ALPHA_MAJ;
+			else
+				_kbd_status &= ~KBD_STATE_ALPHALOCK;
+		}
+		else {
+			if(_kbd_status & KBD_STATE_ALPHA) {
+				if(_kbd_status & KBD_STATE_ALPHA_MAJ)
+					_kbd_status &= ~KBD_STATE_ALPHA_MAJ;
+				else
+					_kbd_status &= ~KBD_STATE_ALPHA;
+
+			}
+			else {
+				_kbd_status |= KBD_STATE_ALPHA;
+				_kbd_status |= KBD_STATE_ALPHA_MAJ;
+			}
+		}
+	}
+}
 
 
 void kbd_kpressed_handler(int code) {
 	// first, test if the key is a status modifier or a 'normal' key
 	/* This one works and could be kept in case of an ioctl thing or whatever.
-	if(code == K_F6) {
-		// Switch case.
-		_kbd_status ^= KBD_STATE_ALPHA_MAJ;
-	}
 	*/
 	if(code == K_SHIFT || code == K_ALPHA) {
 		// change the status and return
 		if(code == K_SHIFT) {
-			if(_kbd_status & KBD_STATE_SHIFT)
-				_kbd_status &= ~KBD_STATE_SHIFT;
-			else
-				_kbd_status |= KBD_STATE_SHIFT;
+			kbd_shift_manager_standard(code);
 		}
 		else {
 			/*
 			// For the F6 method.
-			if(_kbd_status & KBD_STATE_ALPHA) {
-				_kbd_status &= ~KBD_STATE_ALPHALOCK;
-			}
-			else {
-				if(_kbd_status & KBD_STATE_SHIFT)
-					_kbd_status |= KBD_STATE_ALPHALOCK;
-				else
-					_kbd_status |= KBD_STATE_ALPHA;
-			}*/
+			kbd_alpha_manager_F6(code);
+			*/
 			// Ti-8x-like alpha state management
-			if(_kbd_status & KBD_STATE_SHIFT) {
-				_kbd_status |= KBD_STATE_ALPHALOCK;
-				_kbd_status &= ~KBD_STATE_SHIFT;
-			}
-			else {
-				if(_kbd_status & KBD_STATE_ALPHALOCK) {
-					if(_kbd_status & KBD_STATE_ALPHA_MAJ)
-						_kbd_status &= ~KBD_STATE_ALPHA_MAJ;
-					else
-						_kbd_status &= ~KBD_STATE_ALPHALOCK;
-				}
-				else {
-					if(_kbd_status & KBD_STATE_ALPHA) {
-						if(_kbd_status & KBD_STATE_ALPHA_MAJ)
-							_kbd_status &= ~KBD_STATE_ALPHA_MAJ;
-						else
-							_kbd_status &= ~KBD_STATE_ALPHA;
-
-					}
-					else {
-						_kbd_status |= KBD_STATE_ALPHA;
-						_kbd_status |= KBD_STATE_ALPHA_MAJ;
-					}
-				}
-			}
+			kbd_alpha_manager_Ti(code);
 		}
 	}
 	else {
