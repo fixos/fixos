@@ -40,6 +40,8 @@
 #include "sys/sysctl.h"
 #include "sys/mem_area.h"
 
+#include "device/tty.h"
+
 extern char cmdargs_begin;
 extern char cmdargs_end;
 
@@ -89,15 +91,17 @@ void init() {
 
 	// console initialisation as soon as possible
 	dev_init();
-	// add virtual terminal device (on major 4)
-	virtual_term_device.init();
-	dev_register_device(&virtual_term_device, 4);
+	// add TTY device (on major 4)
+	ttydev_device.init();
+	dev_register_device(&ttydev_device, 4);
 
-	// add usb-acm device, major number 3
+	// add virtual terminal TTYs
+	vt_init();
+
 	// USB initialisation
 	usb_init();
-	_acm_usb_device.init();
-	dev_register_device(&_acm_usb_device, 3);
+	// add usb-acm TTY
+	acm_usb_init();
 
 	DBG_WAIT;
 

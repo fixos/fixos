@@ -44,9 +44,12 @@ int tty_ioctl(struct tty *tty, int cmd, void *data) {
 			return 0;
 		case TCSETS:
 			return tty_set_termios(tty, data);
-		default:
-			return -EFAULT;
 	}
+
+	// this point is reached if cmd is not recognized
+	if(tty->ops->ioctl != NULL)
+		return tty->ops->ioctl(tty, cmd, data);
+	return -EINVAL;
 }
 
 

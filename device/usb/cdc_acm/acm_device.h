@@ -11,20 +11,8 @@
 #include <fs/file.h>
 
 
-#define ACM_DEVICE_MINOR	0
-
-extern const struct device _acm_usb_device;
+#define ACM_USB_TTY_MINOR		6
 
 void acm_usb_init();
-
-int acm_usb_open(uint16 minor, struct file *filep);
-
-int acm_usb_release(struct file *filep);
-
-ssize_t acm_usb_write(struct file *filep, void *source, size_t len);
-
-ssize_t acm_usb_read(struct file *filep, void *dest, size_t len);
-
-int acm_usb_ioctl(struct file *filep, int cmd, void *data);
 
 #endif //_DEVICE_USB_CDC_ACM_ACM_DEVICE_H

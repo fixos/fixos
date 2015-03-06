@@ -7,13 +7,10 @@
 #include <sys/stimer.h>
 #include <sys/time.h>
 
+#include <device/tty.h>
 #include <device/terminal/fx9860/text_display.h>
 
 #include <utils/log.h>
-
-
-#define VT_INPUT_BUFFER		256
-#define VT_LINE_BUFFER		128
 
 
 // for VT100 escape code handling :
@@ -62,26 +59,8 @@ struct vt_instance {
 static struct vt_instance _vts[VT_MAX_TERMINALS];
 static int _vt_current;
 
-static struct tty *vt_get_tty(uint16 minor);
-
-const struct device virtual_term_device = {
-	.name = "v-term",
-	.init = &vt_init,
-	.open = &vt_open,
-	.get_tty = &vt_get_tty
-};
-
-
-static const struct file_operations _vt_fop = {
-	.release = &vt_release,
-	.write = &vt_write,
-	.read = &vt_read,
-	.ioctl = &vt_ioctl
-};
-
 
 static const struct text_display *_tdisp = &fx9860_text_display;
-
 
 static int vt_ioctl_getwinsize(struct tty *tty, struct winsize *size);
 
@@ -141,13 +120,14 @@ void vt_init() {
 		_vts[i].saved_posx = 0;
 		_vts[i].saved_posy = 0;
 
-		// set TTY default settings
+		vt_clear_escape_code(_vts + i);
+
+		// set TTY default settings, and add it to TTY device
 		tty_default_init(&_vts[i].tty);
 		_vts[i].tty.private = & _vts[i];
 		_vts[i].tty.ops = &_vt_tty_ops;
 
-		vt_clear_escape_code(_vts + i);
-
+		ttydev_set_minor(VT_MINOR_BASE + i, &_vts[i].tty);
 	}
 }
 
@@ -155,7 +135,6 @@ void vt_init() {
 /**
  * Soft timer used to display the screen only once per tick if needed.
  * This allow minimal drawing without catastrophic counterpart.
- * FIXME add a TTY function to force flushing (e.g. after a kernel oops)
  */
 static void vt_flush_display(void *data) {
 	(void)data;
@@ -521,68 +500,17 @@ void vt_set_active(int term) {
 }
 
 
+static int vt_tty_write(struct tty *tty, const char *data, size_t len) {
+	struct vt_instance *term = tty->private;
 
-int vt_open(uint16 minor, struct file *filep) {
-	if(minor < VT_MAX_TERMINALS) {
-		filep->op = &_vt_fop;
-		filep->private_data = (void*)((int)minor);
-		return 0;
-	}
-
-	return -ENXIO;
-}
-
-
-static struct tty *vt_get_tty(uint16 minor) {
-	if(minor < VT_MAX_TERMINALS) {
-		return &_vts[minor].tty;
-	}
-	return NULL;
-}
-
-
-static ssize_t vt_prim_write(struct vt_instance *term, const void *source, size_t len) {
-	vt_term_print(term, source, len);
+	vt_term_print(term, data, len);
 
 	// screen should be flushed only if it's the current active
 	if(term == &_vts[_vt_current])
 		vt_delay_flush();
-
 	return len;
 }
 
-
-static int vt_tty_write(struct tty *tty, const char *data, size_t len) {
-	return vt_prim_write(tty->private, data, len);
-}
-
-
-ssize_t vt_write(struct file *filep, void *source, size_t len) {
-	int term;
-	
-	term = (int)(filep->private_data);
-	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		return vt_prim_write(&_vts[term], source, len);
-	}
-	return -EINVAL;
-}
-
-
-ssize_t vt_read(struct file *filep, void *dest, size_t len) {
-	int term;
-	
-	term = (int)(filep->private_data);
-	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		return tty_read(& _vts[term].tty, dest, len);
-	}
-
-	return -EINVAL;
-}
-
-
-int vt_release(struct file *filep) {
-	return 0;
-}
 
 
 static int vt_ioctl_getwinsize(struct tty *tty, struct winsize *size) {
@@ -598,24 +526,6 @@ static int vt_ioctl_getwinsize(struct tty *tty, struct winsize *size) {
 static int vt_ioctl_setwinsize(struct tty *tty, const struct winsize *size) {
 	(void)tty;
 	(void)size;
-	return -EINVAL;
-}
-
-
-int vt_ioctl(struct file *filep, int cmd, void *data) {
-	int term;
-
-	term = (int)(filep->private_data);
-	if(term >= 0 && term <VT_MAX_TERMINALS) {
-		int ret;
-		ret = tty_ioctl(&_vts[term].tty, cmd, data);
-		if(ret == -EFAULT) {
-			// device-level ioctl command, if any
-		}
-		else {
-			return ret;
-		}
-	}
 	return -EINVAL;
 }
 
