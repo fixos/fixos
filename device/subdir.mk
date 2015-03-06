@@ -7,7 +7,8 @@ include device/usb/subdir.mk
 
 
 C_SRC_L:= \
-	device_registering.c
+	device_registering.c \
+	tty.c
 
 
 CURDIR:=device

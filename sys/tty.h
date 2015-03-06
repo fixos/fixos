@@ -55,10 +55,13 @@ struct tty_ops {
 	int (*tty_write) (struct tty *tty, const char *data, size_t len);
 
 	// read/write a single character
-	int (*getchar) (struct tty *tty);
+	//int (*getchar) (struct tty *tty);
 	int (*putchar) (struct tty *tty, char c);
 	
 	// ioctl support
+	int (*ioctl)(struct tty *tty, int cmd, void *data);
+	
+	// get/set terminal size (used by ioctl implementation)
 	int (*ioctl_setwinsize)(struct tty *tty, const struct winsize *size);
 	int (*ioctl_getwinsize)(struct tty *tty, struct winsize *size);
 
@@ -72,6 +75,16 @@ struct tty_ops {
 
 	// last chance to flush output from a TTY (e.g. after a oops)
 	int (*force_flush)(struct tty *tty);
+
+	/**
+	 * Called each time something get the control of the tty (such as a user
+	 * process after a open() on a TTY device, or from the kernel itself).
+	 * Negative value is expected if an error occurs.
+	 */
+	int (*open)(struct tty *tty);
+
+	// release an opened tty (should be called symmetrically with open)
+	void (*release)(struct tty *tty);
 };
 
 
@@ -174,7 +187,8 @@ extern inline int tty_set_termios(struct tty *tty, const struct termios *ios)
 
 /**
  * Used to dispatch tty-level ioctls using tty->ops and tty data.
- * return special value -EFAULT if ioctl is not tty-level command
+ * Any non-implemented command will cause a call to tty->ops->ioctl() if not
+ * NULL.
  */
 int tty_ioctl(struct tty *tty, int cmd, void *data);
 
@@ -195,6 +209,18 @@ extern inline int tty_force_flush(struct tty *tty) {
 	if(tty->ops->force_flush != NULL)
 		return tty->ops->force_flush(tty);
 	return -EIO;
+}
+
+
+extern inline int tty_open(struct tty *tty) {
+	if(tty->ops->open != NULL)
+		return tty->ops->open(tty);
+	return 0;
+}
+
+extern inline void tty_release(struct tty *tty) {
+	if(tty->ops->release != NULL)
+		tty->ops->release(tty);
 }
 
 #endif //_SYS_TTY_H
