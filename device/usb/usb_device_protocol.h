@@ -237,8 +237,19 @@ int usb_send(int endpoint, const char *data, size_t size);
  *
  * Returns the number of bytes effectively received, or negative value
  * if any error occurs or if endpoint can't receive any data.
+ * TODO should be marked obsolete (synchronous receive!)
  */
 int usb_receive(int endpoint, char *data, size_t size, int flags);
+
+
+typedef int (*usb_receive_callback_t)(char c);
+
+/**
+ * Callback used for each byte received asynchronously (a NULL callback
+ * will do nothing).
+ * Only some endpoints may support that.
+ */
+void usb_set_receive_callback(int endpoint, usb_receive_callback_t callback);
 
 
 /**

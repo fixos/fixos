@@ -18,6 +18,12 @@ enum text_color {
 	TEXT_COLOR_WHITE
 };
 
+// possible kind of cursor (will be extended to display shift/alpha modes)
+enum text_cursor {
+	TEXT_CURSOR_DISABLE,
+	TEXT_CURSOR_NORMAL
+};
+
 struct text_display {
 	size_t cwidth;
 	size_t cheight;
@@ -61,6 +67,18 @@ struct text_display {
 	 * Should be call each time we need to be sure the display is up to date.
 	 */
 	void (*flush)(struct tdisp_data *disp);
+
+	/**
+	 * Set cursor position, if supported.
+	 * Cursor in text_display interface is only a visual hint, it does nothing
+	 * like controlling where characters are displayed!
+	 */
+	void (*set_cursor_pos)(struct tdisp_data *disp, size_t posx, size_t posy);
+
+	/**
+	 * Set cursor type, if supported.
+	 */
+	void (*set_cursor)(struct tdisp_data *disp, enum text_cursor curs);
 };
 
 

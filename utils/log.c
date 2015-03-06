@@ -1,8 +1,8 @@
 #include "log.h"
 #include "types.h"
 #include "strconv.h"
-#include <fs/vfs_file.h>
 #include <sys/cmdline.h>
+#include <sys/tty.h>
 
 // normally provide by GCC, with only builtins calls...
 // FIXME replace by in-kernel definition with __builtin_va_*
@@ -12,13 +12,11 @@
 
 static print_callback_t current_kernel_print = NULL;
 
-// used by print_to_file()
-static struct file *current_log_file = NULL;
+// console TTY used (NULL if using early printk)
+static struct tty *_current_console_tty = NULL;
 
 // dynamic level, default is to display every non debug message
 static int printk_dynamic_level = LOG_INFO;
-
-static void print_to_file(const char *str);
 
 void printk_internal(int level, const char *str, ...)
 {
@@ -107,24 +105,30 @@ void set_kernel_print(print_callback_t func)
 }
 
 
-void set_kernel_print_file(struct file *logfile) {
-	current_log_file = logfile;
-	if(current_log_file != NULL) {
-		current_kernel_print = &print_to_file;
-	}
-	else {
-		current_kernel_print = NULL;
-	}
-}
-
-void print_to_file(const char *str) {
+static void printk_write_tty(const char *str) {
 	size_t len = 0;
 	
 	// no strlen() for now, basic implementation
 	while(str[len]!='\0')
 		len++;
 
-	vfs_write(current_log_file, str, len);
+	tty_write(_current_console_tty, str, len);
+}
+
+void printk_set_console_tty(struct tty *tty) {
+	_current_console_tty = tty;
+	if(_current_console_tty != NULL) {
+		current_kernel_print = &printk_write_tty;
+	}
+	else {
+		current_kernel_print = NULL;
+	}
+}
+
+
+void printk_force_flush() {
+	if(_current_console_tty != NULL)
+		tty_force_flush(_current_console_tty);
 }
 
 

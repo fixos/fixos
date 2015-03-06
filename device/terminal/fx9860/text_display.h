@@ -6,6 +6,12 @@
 struct tdisp_data {
 	int front;
 	int back;
+
+	// data to handle the visual cursor
+	size_t cursx;
+	size_t cursy;
+	enum text_cursor cursor;
+
 	unsigned char *vram;
 };
 
@@ -26,6 +32,10 @@ void fx9860_tdisp_set_active(struct tdisp_data *disp, int active);
 
 void fx9860_tdisp_flush(struct tdisp_data *disp);
 
+void fx9860_tdisp_set_cursor_pos(struct tdisp_data *disp, size_t posx,
+		size_t posy);
+
+void fx9860_tdisp_set_cursor(struct tdisp_data *disp, enum text_cursor curs);
 
 
 #endif //_DEVICE_TERMINAL_FX9860_TEXT_DISPLAY_H

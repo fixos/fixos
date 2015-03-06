@@ -61,11 +61,16 @@ typedef __kernel_time_t		time_t;
 	( (type *) ((void*)(element) - offsetof(type, field)) )
 
 
-// special control characters (^A, ^B,... ^[)
+// special control characters (^A, ^B,... ^[ and ^?)
 #define ASCII_CTRL(c) \
-	((c) - '@')
+	((c) == '?' ? 0x7f : (c) - '@')
 #define ASCII_UNCTRL(c) \
-	((c) + '@')
+	((c) == 0x7f ? '?' : (c) + '@')
+
+#define ASCII_IS_CTRL(c) \
+	( ((unsigned char)(c) < 0x20 && (c) != '\n' && (c) != '\t') \
+			|| (c) == '\x7f' \
+	) 
 
 // temporary location
 // TODO move them to a more consistant place

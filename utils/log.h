@@ -6,7 +6,7 @@
 // callack used to print a part of a printk() message
 typedef void(*print_callback_t)(const char*);
 
-struct file;
+struct tty;
 
 /**
  * Message level are using the same names than the POSIX syslog() priorities.
@@ -67,9 +67,16 @@ void set_kernel_print(print_callback_t func);
 
 
 /**
- * Set printk callback function to vfs_write(logfile, msg, strlen(msg)).
+ * Set printk callback function to tty_write(logfile, msg, strlen(msg)).
  * This function override the callback defined by set_kernel_print().
  */
-void set_kernel_print_file(struct file *logfile);
+void printk_set_console_tty(struct tty *tty);
+
+
+/**
+ * Should force the previous printk() content to be displayed to the
+ * underlying console if possible.
+ */
+void printk_force_flush();
 
 #endif //_UTILS_LOG_H
