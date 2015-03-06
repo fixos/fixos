@@ -7,11 +7,25 @@
 
 
 #define FX9860_TERM_CURSOR_CHAR	((char)177)
+
+
 /**
  * write a character with the terminal font
  */
-void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c, int back_c, char c, void *vram);
+void term_prim_write_character(unsigned int posx, unsigned int posy,
+		int front_c, int back_c, char c, void *vram);
 
+
+/**
+ * Special set of functions designed for cursor implementation.
+ * Save/restore the VRAM content of a character location (saved internally
+ * in a single slot, so each call to term_prim_store_character() destroy the
+ * previously stored data).
+ */
+void term_prim_store_character(unsigned int posx, unsigned int posy,
+		void *vram);
+void term_prim_restore_character(unsigned int posx, unsigned int posy,
+		void *vram);
 
 /**
  * Scroll up the terminal display from 1 character high

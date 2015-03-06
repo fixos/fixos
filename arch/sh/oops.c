@@ -98,6 +98,8 @@ void kdebug_oops(const char *errstr) {
 
 	kdebug_print_vmspace(proc);
 
+	printk_force_flush();
+
 	// print each kernel context information
 	kdebug_print_trace();
 
@@ -112,6 +114,8 @@ void kdebug_oops(const char *errstr) {
 		arch_print_trace((uint32*)(cont->reg[15]), (uint32*)(cont->previous) );
 		cont = cont->previous;
 	}
+
+	printk_force_flush();
 
 	while(1);
 }

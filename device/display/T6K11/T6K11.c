@@ -9,6 +9,14 @@ size_t disp_mono_height() {
 	return 64;
 }
 
+
+// TODO find a way to inline these functions AND to keep generic aspect
+uint32 disp_mono_get_pixel(int x, int y, void *vram) {
+	// no check on (x;y) to keep performances...
+	return !!( ((char*)vram)[y*16 + x/8] & (1 << x%8));
+}
+
+
 void disp_mono_draw_bitmap(int x, int y, unsigned char *bitmap, short w, short h, void *vvram)
 {
 	unsigned char *vram = vvram;

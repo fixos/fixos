@@ -8,18 +8,17 @@
 #include <sys/cmdline.h>
 #include <sys/tty.h>
 
-
-#define CONSOLE_USB_MAJOR		3
-#define CONSOLE_USB_MINOR_BASE	0
+#include <device/tty.h>
+#include <device/terminal/virtual_term.h>
+#include <device/usb/cdc_acm/acm_device.h>
 
 #define CONSOLE_TTY_MAJOR		4
-#define CONSOLE_TTY_MINOR_BASE	0
+#define CONSOLE_VT_MINOR_BASE	VT_MINOR_BASE
+#define CONSOLE_USB_MINOR_BASE	ACM_USB_TTY_MINOR
 
 
-static uint32 _console_node = (CONSOLE_TTY_MAJOR << 16) | CONSOLE_TTY_MINOR_BASE;
-
-// static file used for the console
-static struct file _console_file;
+static uint32 _console_node = makedev(CONSOLE_TTY_MAJOR,
+		CONSOLE_VT_MINOR_BASE);
 
 int parse_console(const char *val) {
 	//printk(LOG_DEBUG, "ARG: console='%s'\n", val);
@@ -27,16 +26,20 @@ int parse_console(const char *val) {
 		if(val[0]=='t' && val[1]=='t' && val[2]=='y') {
 			// check for ttyn
 			if(val[3] >= '1' && val[3] <= '9') {
-				_console_node = (CONSOLE_TTY_MAJOR << 16) | 
-					(CONSOLE_TTY_MINOR_BASE + val[3] - '1');
+				uint16 minorvt = val[3] - '1' + CONSOLE_VT_MINOR_BASE;
 
-				printk(LOG_INFO, "console: will use tty%d soon\n", val[3]-'0');
-				return 0;
+				if(minorvt < CONSOLE_VT_MINOR_BASE + VT_MAX_TERMINALS) {
+					_console_node = makedev(CONSOLE_TTY_MAJOR, minorvt);
+					printk(LOG_INFO, "console: will use tty%d soon\n",
+							val[3]-'0');
+					return 0;
+				}
 			}
 
 			// check for USB0
 			else if(!strcmp(val+3, "USB0")) {
-				_console_node = (CONSOLE_USB_MAJOR << 16) | CONSOLE_USB_MINOR_BASE;
+				_console_node = makedev(CONSOLE_TTY_MAJOR, 
+						CONSOLE_USB_MINOR_BASE);
 				printk(LOG_INFO, "console: will use USB soon\n");
 				return 0;
 			}
@@ -58,19 +61,17 @@ void console_make_active() {
 	if(console_dev != NULL) {
 		struct tty *tty;
 
-		_console_file.flags = 0;
-		_console_file.inode = NULL;
-		// FIXME use only the tty interface, not the file one!
-		tty = console_dev->get_tty(minor(_console_node));
-		if(console_dev->open(minor(_console_node), &_console_file) == 0) {
-			if(tty != NULL && !tty_is_ready(tty)) {
+		tty = ttydev_get_minor(minor(_console_node));
+		if(tty != NULL) {
+			tty_open(tty);
+			if(!tty_is_ready(tty)) {
 				// wait until the TTY is ready
 				printk(LOG_INFO, "[console tty not ready...]\n");
 				while(!tty_is_ready(tty));
 				printk(LOG_INFO, "[ready!]\n");
 			}
-			// set printk(LOG_DEBUG, ) callback func
-			set_kernel_print_file(&_console_file);
+			// set printk() TTY
+			printk_set_console_tty(tty);
 			printk(LOG_INFO, "Now using console device for printk()!\n");
 		}
 		else {

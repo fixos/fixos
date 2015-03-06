@@ -33,6 +33,9 @@ static struct cyclic_fifo _usb_fifo_ep1o = {
 // setup callback
 usb_setup_callback_t _usb_setup_callback = NULL;
 
+// ep1 receive callback
+usb_receive_callback_t _usb_ep1_receive_callback = NULL;
+
 
 // debug stuff
 extern int _magic_lock;
@@ -169,6 +172,12 @@ int usb_receive(int endpoint, char *data, size_t size, int flags) {
 
 	//printk(LOG_DEBUG, "recv: ret(%d)", ret);
 	return ret;
+}
+
+
+void usb_set_receive_callback(int endpoint, usb_receive_callback_t callback) {
+	if(endpoint == USB_EP_EP1)
+		_usb_ep1_receive_callback = callback;
 }
 
 
@@ -354,24 +363,32 @@ void usb_sh3_interrupt_handler() {
 		int i;
 		int nbreceived = USB.EPSZ1;
 
-		// try to copy received data to ep1 buffer
-		if(_usb_fifo_ep1o.size + nbreceived <= _usb_fifo_ep1o.max_size) {
-
-			// copy in cyclic FIFO need some additionnal things :
-			int bufpos = (_usb_fifo_ep1o.top + _usb_fifo_ep1o.size) % _usb_fifo_ep1o.max_size;
-			for(i=0; i<nbreceived; i++, bufpos = bufpos >= _usb_fifo_ep1o.max_size - 1 ? 0 : bufpos+1 ) {
-				_usb_fifo_ep1o.buffer[bufpos] = USB.EPDR1;
-			}
-			_usb_fifo_ep1o.size += nbreceived;
-
+		// call the async receive callback?
+		if(_usb_ep1_receive_callback != NULL) {
+			for(i=0; i<nbreceived; i++)
+				_usb_ep1_receive_callback(USB.EPDR1);
 			USB.TRG.BIT.EP1RDFN = 1;
 		}
 		else {
-			//printk(LOG_DEBUG, "usb: no enougth space for ep1o\n");
-			// in addition, EP1FULL interrupt is disabled
-			// the function usb_sh3_ep1_read() is used to signal some part of
-			// the buffer was read, and maybe EP1FULL can be re-enabled
-			USB.IER0.BIT.EP1FULL = 0;
+			// try to copy received data to ep1 buffer
+			if(_usb_fifo_ep1o.size + nbreceived <= _usb_fifo_ep1o.max_size) {
+
+				// copy in cyclic FIFO need some additionnal things :
+				int bufpos = (_usb_fifo_ep1o.top + _usb_fifo_ep1o.size) % _usb_fifo_ep1o.max_size;
+				for(i=0; i<nbreceived; i++, bufpos = bufpos >= _usb_fifo_ep1o.max_size - 1 ? 0 : bufpos+1 ) {
+					_usb_fifo_ep1o.buffer[bufpos] = USB.EPDR1;
+				}
+				_usb_fifo_ep1o.size += nbreceived;
+
+				USB.TRG.BIT.EP1RDFN = 1;
+			}
+			else {
+				//printk(LOG_DEBUG, "usb: no enougth space for ep1o\n");
+				// in addition, EP1FULL interrupt is disabled
+				// the function usb_sh3_ep1_read() is used to signal some part of
+				// the buffer was read, and maybe EP1FULL can be re-enabled
+				USB.IER0.BIT.EP1FULL = 0;
+			}
 		}
 
 		USB.IFR0.BIT.EP1FULL = 0;

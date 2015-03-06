@@ -140,6 +140,18 @@ static const unsigned char _font_3x5[129][5] = {
 };
 
 
+
+// union used to be sure char_bmp is 4-bytes aligned
+union bmp_fast_4x6{
+	unsigned char char_bmp[6]; // 4*6 bitmap, containing character and borders
+	unsigned int fast[2]; // for fast operations
+};
+
+
+// used to store/restore a single character area
+static union bmp_fast_4x6 _stored_char;
+
+
 void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c, int back_c, char c, void *vram) {
 
 	unsigned int backcolor, frontcolor;
@@ -152,11 +164,7 @@ void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c
 			&& (y>-5) && (y<64))
 	{
 		const unsigned char *raw_char;
-		// union used to be sure char_bmp is 4-bytes aligned
-		union {
-			unsigned char char_bmp[6]; // 6*4 bitmap, containing character and borders
-			unsigned int fast[2]; // for fast operations
-		} bmp;
+		union bmp_fast_4x6 bmp;
 
 		if(c>=0)
 			raw_char = _font_3x5[(int)c];
@@ -175,6 +183,33 @@ void term_prim_write_character(unsigned int posx, unsigned int posy, int front_c
 
 		disp_mono_draw_bitmap(x, y, bmp.char_bmp, 4, 6, vram);
 	}
+}
+
+
+void term_prim_store_character(unsigned int posx, unsigned int posy,
+		void *vram)
+{
+	int x = posx * 4;
+	int y = posy * 6;
+	int i, j;
+
+	// the algorithm used here is... hum... a bit stupid and slow?
+	for(j=0; j<6; j++) {
+		char curline = 0x00;
+		for(i=0; i<4; i++) {
+			curline |= (disp_mono_get_pixel(x+i, y+j, vram)) << i;
+		}
+		_stored_char.char_bmp[j] = curline;
+	}
+}
+
+
+void term_prim_restore_character(unsigned int posx, unsigned int posy,
+		void *vram)
+{
+	int x = posx * 4;
+	int y = posy * 6;
+	disp_mono_draw_bitmap(x, y, _stored_char.char_bmp, 4, 6, vram);
 }
 
 

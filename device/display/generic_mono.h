@@ -30,6 +30,11 @@ void disp_mono_copy_to_dd(void *vram);
 void disp_mono_set_pixel(int x, int y, uint32 color, void *vram);
 
 /**
+ * Read a pixel from the VRAM, and return its color.
+ */
+uint32 disp_mono_get_pixel(int x, int y, void *vram);
+
+/**
  * Returns width/height of the display, in pixels.
  */
 size_t disp_mono_width();

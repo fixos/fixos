@@ -1,6 +1,5 @@
 #include "tests.h"
 
-#include "device/display/T6K11/T6K11.h"
 #include "device/terminal/generic_early_term.h"
 #include "arch/sh/interrupt.h"
 #include "arch/sh/mmu.h"
