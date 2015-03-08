@@ -304,7 +304,15 @@ static int vt_parse_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	case 'J':
 		// TODO Erase the screen down to the bottom from the current line. If an argument is given and == 1, erase up to the top instead.
-		// If an argument is given and == 2, clear the whole screen with the background color and go to cursor home.			
+		if(term->esc_state.arguments_index >= 0 
+				&& term->esc_state.arguments[0] == 2)
+		{
+			// If an argument is given and == 2, clear the whole screen with the
+			// background color and go to cursor home.
+			_tdisp->clear(& term->disp);
+			vt_move_cursor(term, 0, 0);
+			vt_delay_flush();
+		}
 		break;
 	case 'p':
 		// TODO Bind a string to a keyboard key
@@ -348,7 +356,6 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 				term->esc_state.arguments_index++;
 				// check if there are too much arguments for our simple parser
 				if(term->esc_state.arguments_index == VT100_MAX_INTARGS) {
-					vt_clear_escape_code(term);
 					newstate = VT100_STATE_NONE;
 				}
 			} else {
@@ -368,6 +375,8 @@ static void vt_read_escape_code(struct vt_instance *term, char str_char) {
 		break;
 	}
 
+	if(newstate == VT100_STATE_NONE)
+		vt_clear_escape_code(term);
 	term->esc_state.discovery_state = newstate;
 }
 

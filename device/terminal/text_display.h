@@ -79,6 +79,14 @@ struct text_display {
 	 * Set cursor type, if supported.
 	 */
 	void (*set_cursor)(struct tdisp_data *disp, enum text_cursor curs);
+
+
+	/**
+	 * Clear the whole screen (using the current background color).
+	 * TODO should be more generic, to allow erasing of a given part
+	 * of the screen.
+	 */
+	void (*clear)(struct tdisp_data *disp);
 };
 
 

@@ -18,7 +18,9 @@ const struct text_display fx9860_text_display = {
 	.flush = &fx9860_tdisp_flush,
 
 	.set_cursor_pos = &fx9860_tdisp_set_cursor_pos,
-	.set_cursor = &fx9860_tdisp_set_cursor
+	.set_cursor = &fx9860_tdisp_set_cursor,
+
+	.clear = &fx9860_tdisp_clear
 };
 
 
@@ -114,4 +116,9 @@ void fx9860_tdisp_set_cursor_pos(struct tdisp_data *disp, size_t posx,
 
 void fx9860_tdisp_set_cursor(struct tdisp_data *disp, enum text_cursor curs) {
 	disp->cursor = curs;
+}
+
+
+void fx9860_tdisp_clear(struct tdisp_data *disp) {
+	memset(disp->vram, disp->back ? 0xFF : 0x00, 1024);
 }

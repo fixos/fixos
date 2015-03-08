@@ -37,5 +37,6 @@ void fx9860_tdisp_set_cursor_pos(struct tdisp_data *disp, size_t posx,
 
 void fx9860_tdisp_set_cursor(struct tdisp_data *disp, enum text_cursor curs);
 
+void fx9860_tdisp_clear(struct tdisp_data *disp);
 
 #endif //_DEVICE_TERMINAL_FX9860_TEXT_DISPLAY_H
