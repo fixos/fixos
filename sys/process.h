@@ -16,19 +16,6 @@
 #include <arch/memory.h>
 
 
-// process status
-#define PROCESS_STATE_RUNNING			2
-// used at process creation :
-#define PROCESS_STATE_CREATE			3
-// used after calling exit()
-#define PROCESS_STATE_ZOMBIE			5
-// sleeping states
-#define PROCESS_STATE_STOPPED			4
-#define PROCESS_STATE_INTERRUPTIBLE		6
-#define PROCESS_STATE_UNINTERRUPTIBLE	7
-
-
-
 // maximum files opened at a time by a process
 #define PROCESS_MAX_FILE		12
 

@@ -29,12 +29,24 @@
 #define WCONTINUED	(1<<2)
 
 
+// FiXos specific definitions of process status
+#define PROCESS_STATE_RUNNING			2
+// used at process creation :
+#define PROCESS_STATE_CREATE			3
+// used after calling exit()
+#define PROCESS_STATE_ZOMBIE			5
+// sleeping states
+#define PROCESS_STATE_STOPPED			4
+#define PROCESS_STATE_INTERRUPTIBLE		6
+#define PROCESS_STATE_UNINTERRUPTIBLE	7
+
+
+
 // process information for user (through sysctl() interfaces)
 struct proc_uinfo {
 	__kernel_pid_t pid;
 	__kernel_pid_t ppid;
 
-	// FIXME state definition here
 	int state;
 	int exit_status; // only valid when state is PROCESS_STATE_ZOMBIE
 
