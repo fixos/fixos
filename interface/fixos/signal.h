@@ -55,9 +55,11 @@ struct sigaction {
 
 
 // callback value (sa_sigaction of sa_handler) to restore default handling
-#define SIG_DFL		((void*)-1)
+#define SIG_DFL		((void(*)(int))0)
 // callback value (sa_sigaction of sa_handler) ignore signal if possible
-#define SIG_IGN		((void*)-3)
+#define SIG_IGN		((void(*)(int))-3)
+// used as an error value by some functions in user space
+#define SIG_ERR		((void(*)(int))-1)
 
 
 /**
