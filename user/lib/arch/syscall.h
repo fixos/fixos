@@ -6,7 +6,7 @@
 #define _SYSCALL_(name,id) \
 	void name(int a, int b, int c, int d) \
 	{ \
-		asm volatile ("trapa %0;" : : "n"(id) ); \
+		__asm__ volatile ("trapa %0;" : : "n"(id) ); \
 	}
 
 #endif //_SYSCALL_ARCH_SYSCALL_H

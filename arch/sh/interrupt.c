@@ -51,8 +51,7 @@ void interrupt_init() {
 
 void interrupt_set_vbr(void *vbr)
 {
-      asm("mov %0, r2"::"r"(vbr):"r2");
-      asm("ldc r2,vbr");
+      __asm__ volatile ("ldc %0, vbr" : : "r"(vbr));
 }
 
 
@@ -60,8 +59,7 @@ void interrupt_set_vbr(void *vbr)
 void* interrupt_get_vbr(void)
 {
       void *ptr;
-      asm("stc vbr,r2":::"r2");
-      asm("mov.l r2, %0":"=m"(ptr));
+      __asm__ volatile ("stc vbr, %0" : "=r"(ptr));
       return ptr;
 }
 
@@ -71,7 +69,7 @@ void arch_int_weak_atomic_block(int mode) {
 	// use I3~I0 of SR register to set interrupt priorities
 	int value = mode == 0 ? INTERRUPT_PVALUE_LOW-1 : INTERRUPT_PVALUE_CRITICAL-1;
 
-	asm volatile (	"stc sr, r1;"
+	__asm__ volatile (	"stc sr, r1;"
 					"mov %0, r0;"
 					"and #0xF, r0;"
 					"shll2 r0;"
@@ -187,26 +185,26 @@ interrupt_callback_t interrupt_get_callback(unsigned int interruptID) {
 // defined in sys/interrupt.h
 void interrupt_atomic_save(int *state) {
 	unsigned int sr;
-	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+	__asm__ volatile (	"stc sr, %0" : "=r"(sr) : : );
 	*state = sr & 0x000000F0; // only I3-I0 bits
 	// re-write SR with highest priority
 	sr = sr | 0x000000F0;
-	asm volatile (	"ldc %0, sr" : : "r"(sr) : );
+	__asm__ volatile (	"ldc %0, sr" : : "r"(sr) : );
 }
 
 
 void interrupt_atomic_restore(int state) {
 	unsigned int sr;
-	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+	__asm__ volatile (	"stc sr, %0" : "=r"(sr) : : );
 	sr = (sr & (~0x000000F0) ) | (state & 0x000000F0);
-	asm volatile (	"ldc %0, sr" : : "r"(sr) : );
+	__asm__ volatile (	"ldc %0, sr" : : "r"(sr) : );
 
 }
 
 
 int interrupt_in_atomic() {
 	unsigned int sr;
-	asm volatile (	"stc sr, %0" : "=r"(sr) : : );
+	__asm__ volatile (	"stc sr, %0" : "=r"(sr) : : );
 
 	return ( sr & 0x000000F0) == 0xF0;
 }

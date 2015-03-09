@@ -56,9 +56,9 @@ int elf_load_kernel(const char *path, const char *cmdline, void *cmd_addr,
 	unsigned int new_sr;
 
 	// TODO avoid any exception during kernel copy!!!
-	asm volatile ("stc sr, %0" : "=r"(old_sr) );
+	__asm__ volatile ("stc sr, %0" : "=r"(old_sr) );
 	new_sr = old_sr | (1 << 28); // BL bit set to 1
-	asm volatile ("ldc %0, sr" : : "r"(new_sr) );
+	__asm__ volatile ("ldc %0, sr" : : "r"(new_sr) );
 
 	if(smem_open(path, &kernel) == 0) {
 		// check for ELF informations
@@ -116,7 +116,7 @@ int elf_load_kernel(const char *path, const char *cmdline, void *cmd_addr,
 		ret = -2;
 	}
 
-	asm volatile ("ldc %0, sr" : : "r"(old_sr) );
+	__asm__ volatile ("ldc %0, sr" : : "r"(old_sr) );
 	return ret;
 }
 

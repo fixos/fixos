@@ -35,8 +35,8 @@ void exception_handler()
 	struct process *cur;
 	
 	(void)(tea);
-	asm volatile ("stc spc, %0" : "=r"(spcval) );
-	asm volatile ("mov r15, %0" : "=r"(stackval) );
+	__asm__ volatile ("stc spc, %0" : "=r"(spcval) );
+	__asm__ volatile ("mov r15, %0" : "=r"(stackval) );
 
 	cur = process_get_current();
 
@@ -64,7 +64,7 @@ void exception_handler()
 				interrupt_inhibit_all(0);
 
 				// call given function, and store return value in context-saved r0
-				asm volatile ("mov %0, r0;"
+				__asm__ volatile ("mov %0, r0;"
 						"mov.l @(16, r0), r4;"
 						"mov.l @(20, r0), r5;"
 						"mov.l @(24, r0), r6;"
@@ -119,7 +119,7 @@ void exception_handler()
 		break;
 	}
 	
-	asm volatile ("stc spc, %0" : "=r"(spcval) );
+	__asm__ volatile ("stc spc, %0" : "=r"(spcval) );
 
 	// avoid verbosity for TRAPA
 	if(evt != EXP_CODE_TRAPA)
@@ -158,7 +158,7 @@ void tlbmiss_handler()
 	if(_recurcive_tlbfault) {
 		void *spcval;
 
-		asm volatile("stc spc, %0":"=r"(spcval));
+		__asm__ volatile("stc spc, %0":"=r"(spcval));
 
 		printk(LOG_EMERG, "> [%d] Page fault %p, PC=%p\n", MMU.PTEH.BIT.ASID,
 				PM_PHYSICAL_ADDR(MMU.PTEH.BIT.VPN), spcval);
@@ -248,8 +248,8 @@ void tlbmiss_handler()
 		int spcval;
 		void *stack;
 
-		asm volatile("stc spc, %0":"=r"(spcval));
-		asm volatile("mov r15, %0":"=r"(stack));
+		__asm__ volatile("stc spc, %0":"=r"(spcval));
+		__asm__ volatile("mov r15, %0":"=r"(stack));
 		printk(LOG_ERR, "> Dereference %p\n> With PC=%p\n",
 				(void*)TEA, (void*)spcval);
 		kdebug_oops("Access to a forbiden page");

@@ -18,7 +18,7 @@ void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **ol
 	if(old_cnt != NULL)
 		*old_cnt = cnt->previous;
 
-	asm volatile (
+	__asm__ volatile (
 			"mov %0, r0 ;"
 			"mov r0, r15;"
 			"add #64, r0;"
@@ -65,7 +65,7 @@ int arch_process_mode(struct process *proc) {
 
 void arch_idle_func();
 
-asm (
+__asm__ (
 		"	.section \".text\" ;"
 		"	.align 1 ;"
 		"_arch_idle_func:"

@@ -58,7 +58,7 @@ extern inline unsigned char mmu_getasid() {
 // PPN must be given like a 1K page number (even for 4K page!)
 extern inline void mmu_tlb_fillload(unsigned int ppn, unsigned short flags) {
 	MMU.PTEL.LONG = (ppn << 10) | flags;
-	asm volatile ("ldtlb":::"memory" );
+	__asm__ volatile ("ldtlb":::"memory" );
 }
 
 

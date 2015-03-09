@@ -330,7 +330,7 @@ pid_t sys_fork() {
 			+ ( ((unsigned int)cur->acnt) % PM_PAGE_BYTES);
 
 	// compute the position in stack
-	asm volatile ("mov r15, %0" : "=r"(cur_stack));
+	__asm__ volatile ("mov r15, %0" : "=r"(cur_stack));
 	// WARNING : only works if *ONE* page is used for kernel stack!
 	kstack -= PM_PAGE_BYTES - ((unsigned int)(cur_stack)  % PM_PAGE_BYTES);
 
@@ -623,7 +623,7 @@ int sys_execve(const char *filename, char *const argv[], char *const envp[]) {
 
 			printk(LOG_DEBUG, "exec: ready, r15=%p\n", (void*)(cur->acnt->reg[15]));
 			// this job is done using inline assembly to avoid GCC stack usage
-			 asm volatile (
+			 __asm__ volatile (
 					"mov %0, r15;"
 					"mov %1, r0;"
 					"mov %2, r4;"

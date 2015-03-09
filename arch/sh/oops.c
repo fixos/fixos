@@ -48,7 +48,7 @@ static void arch_print_trace(uint32 *stack, uint32 *bottom) {
 	int i;
 
 	/*
-	asm volatile ("mov r14, %0;"
+	__asm__ volatile ("mov r14, %0;"
 				"mov r15, %1"
 				: "=r"(cur), "=r"(stack) : : );
 				*/
@@ -75,7 +75,7 @@ void kdebug_print_trace() {
 
 	proc = process_get_current();
 
-	asm volatile ("mov r15, %0" : "=r"(stack) : : );
+	__asm__ volatile ("mov r15, %0" : "=r"(stack) : : );
 	arch_print_trace(stack, (uint32*)(proc->acnt));//proc->kernel_stack);
 }
 
