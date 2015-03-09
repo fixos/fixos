@@ -29,7 +29,7 @@ void vfs_file_init();
  * Allocate a new file structure.
  * Returns NULL if allocation can't be done.
  */
-extern inline struct file *vfs_file_alloc() {
+static inline struct file *vfs_file_alloc() {
 	return pool_alloc(&_vfs_file_palloc);
 }
 
@@ -37,7 +37,7 @@ extern inline struct file *vfs_file_alloc() {
 /**
  * Free an allocated file structure.
  */
-extern inline void vfs_file_free(struct file *filep) {
+static inline void vfs_file_free(struct file *filep) {
 	pool_free(&_vfs_file_palloc, filep);
 }
 

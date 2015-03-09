@@ -10,7 +10,7 @@
 struct process;
 
 
-// extern inline void arch_kernel_contextjmp(struct _context_info *cnt)
+// static inline void arch_kernel_contextjmp(struct _context_info *cnt)
 //	__attribute__ ((noreturn)) ;
 
 void arch_kernel_contextjmp(struct _context_info *cnt, struct _context_info **old_cnt);

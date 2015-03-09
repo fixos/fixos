@@ -176,7 +176,7 @@ void process_free(struct process *proc);
 /**
  * Return the running process at the time this function is called.
  */
-extern inline struct process *process_get_current() {
+static inline struct process *process_get_current() {
 	return _proc_current;
 }
 

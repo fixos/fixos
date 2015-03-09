@@ -153,7 +153,7 @@ int mem_area_insert(struct process *proc, struct mem_area *area);
  * range.
  * The implementation specific operation is called to set the corresponding page.
  */
-extern inline union pm_page mem_area_pagefault(struct mem_area *area,
+static inline union pm_page mem_area_pagefault(struct mem_area *area,
 		void *addrfault)
 {
 	if(area->ops != NULL && area->ops->area_pagefault != NULL) {
@@ -170,7 +170,7 @@ extern inline union pm_page mem_area_pagefault(struct mem_area *area,
  * Release, and free if necessary, the given area, after calling the
  * implementation-specific release callback if any.
  */
-extern inline void mem_area_release(struct mem_area *area) {
+static inline void mem_area_release(struct mem_area *area) {
 	if(area->ops != NULL && area->ops->area_release != NULL)
 		area->ops->area_release(area);
 	mem_area_free(area);
@@ -189,7 +189,7 @@ int mem_area_resize(struct mem_area *area, size_t new_size, struct process *proc
 /**
  * Duplicate an area.
  */
-extern inline struct mem_area *mem_area_clone(struct mem_area *area) {
+static inline struct mem_area *mem_area_clone(struct mem_area *area) {
 	struct mem_area *ret = mem_area_alloc();
 	if(ret != NULL) {
 		*ret = *area;

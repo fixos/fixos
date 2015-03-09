@@ -94,13 +94,13 @@ struct tty_ops {
 int tty_default_init(struct tty *tty);
 
 
-extern inline int tty_is_ready(struct tty *tty) {
+static inline int tty_is_ready(struct tty *tty) {
 	if(tty->ops->is_ready == NULL)
 		return 1;
 	return tty->ops->is_ready(tty);
 }
 
-extern inline int tty_write(struct tty *tty, const char *data, size_t len) {
+static inline int tty_write(struct tty *tty, const char *data, size_t len) {
 	if(tty->ops->tty_write == NULL)
 		return -EIO;
 	return tty->ops->tty_write(tty, data, len);
@@ -109,7 +109,7 @@ extern inline int tty_write(struct tty *tty, const char *data, size_t len) {
 int tty_read(struct tty *tty, char *dest, size_t len);
 
 
-extern inline int tty_getwinsize(struct tty *tty, struct winsize *size) {
+static inline int tty_getwinsize(struct tty *tty, struct winsize *size) {
 	if(tty->ops->ioctl_getwinsize == NULL) {
 		size->ws_col = 80;
 		size->ws_row = 24;
@@ -118,14 +118,14 @@ extern inline int tty_getwinsize(struct tty *tty, struct winsize *size) {
 	return tty->ops->ioctl_getwinsize(tty, size);
 }
 
-extern inline int tty_setwinsize(struct tty *tty, const struct winsize *size) {
+static inline int tty_setwinsize(struct tty *tty, const struct winsize *size) {
 	if(tty->ops->ioctl_setwinsize == NULL)
 		return -EINVAL;
 	return tty->ops->ioctl_setwinsize(tty, size);
 }
 
 
-extern inline int tty_setctty(struct tty *tty, int arg) {
+static inline int tty_setctty(struct tty *tty, int arg) {
 	(void)arg;
 	if(_proc_current->ctty != NULL)
 		return -EINVAL;
@@ -137,7 +137,7 @@ extern inline int tty_setctty(struct tty *tty, int arg) {
 }
 
 
-extern inline int tty_noctty(struct tty *tty) {
+static inline int tty_noctty(struct tty *tty) {
 	if(_proc_current->ctty != tty)
 		return -EINVAL;
 
@@ -150,7 +150,7 @@ extern inline int tty_noctty(struct tty *tty) {
 	return 0;
 }
 
-extern inline int tty_setpgrp(struct tty *tty, const pid_t *pid) {
+static inline int tty_setpgrp(struct tty *tty, const pid_t *pid) {
 	if(pid == NULL)
 		return -EINVAL;
 
@@ -158,7 +158,7 @@ extern inline int tty_setpgrp(struct tty *tty, const pid_t *pid) {
 	return 0;
 }
 
-extern inline int tty_getpgrp(struct tty *tty, pid_t *pid) {
+static inline int tty_getpgrp(struct tty *tty, pid_t *pid) {
 	if(pid == NULL)
 		return -EINVAL;
 
@@ -166,7 +166,7 @@ extern inline int tty_getpgrp(struct tty *tty, pid_t *pid) {
 	return 0;
 }
 
-extern inline int tty_getsid(struct tty *tty, pid_t *sid) {
+static inline int tty_getsid(struct tty *tty, pid_t *sid) {
 	if(sid == NULL)
 		return -EINVAL;
 
@@ -175,7 +175,7 @@ extern inline int tty_getsid(struct tty *tty, pid_t *sid) {
 }
 
 
-extern inline int tty_set_termios(struct tty *tty, const struct termios *ios)
+static inline int tty_set_termios(struct tty *tty, const struct termios *ios)
 {
 	if(tty->ops->set_termios != NULL) {
 		return tty->ops->set_termios(tty, ios);
@@ -205,20 +205,20 @@ int tty_input_char(struct tty *tty, char c);
  * Should be as simple as possible, because it may be called from unstable
  * states, as a last chance to show something to the user.
  */
-extern inline int tty_force_flush(struct tty *tty) {
+static inline int tty_force_flush(struct tty *tty) {
 	if(tty->ops->force_flush != NULL)
 		return tty->ops->force_flush(tty);
 	return -EIO;
 }
 
 
-extern inline int tty_open(struct tty *tty) {
+static inline int tty_open(struct tty *tty) {
 	if(tty->ops->open != NULL)
 		return tty->ops->open(tty);
 	return 0;
 }
 
-extern inline void tty_release(struct tty *tty) {
+static inline void tty_release(struct tty *tty) {
 	if(tty->ops->release != NULL)
 		tty->ops->release(tty);
 }

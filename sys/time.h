@@ -46,7 +46,7 @@ void time_do_tick();
  * Add time described in t1 and t2, and write the result in res.
  * res may points to the same location as t1 or t2.
  */
-extern inline void time_add_hr(const struct timespec *t1,
+static inline void time_add_hr(const struct timespec *t1,
 		const struct timespec *t2, struct timespec *res)
 {
 	res->tv_sec = t1->tv_sec + t2->tv_sec;

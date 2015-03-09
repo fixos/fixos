@@ -14,5 +14,5 @@ G1A_WRAPPER:=c_g1awrapper
 
 
 # global tool options
-CFLAGS:=-g -Wall -m3 -mb -Os -fno-builtin $(CFLAGS)
+CFLAGS:=-g -std=c99 -Wall -m3 -mb -Os -fno-builtin $(CFLAGS)
 LDFLAGS:=-nostdlib $(LDFLAGS)

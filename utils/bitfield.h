@@ -15,17 +15,17 @@
 #define BITFIELD_STATIC(name, bits) \
 	uint32 name[(bits-1) / BITFIELD_BITS + 1]
 
-extern inline int bitfield_get(const uint32 *bitfield, int bit) {
+static inline int bitfield_get(const uint32 *bitfield, int bit) {
 	return !!(bitfield[bit/BITFIELD_BITS] & (1 << (bit%BITFIELD_BITS)) );
 }
 
 
-extern inline void bitfield_set(uint32 *bitfield, int bit) {
+static inline void bitfield_set(uint32 *bitfield, int bit) {
 	bitfield[bit/BITFIELD_BITS] |= (1 << (bit%BITFIELD_BITS) );
 }
 
 
-extern inline void bitfield_clear(uint32 *bitfield, int bit) {
+static inline void bitfield_clear(uint32 *bitfield, int bit) {
 	bitfield[bit/BITFIELD_BITS] &= ~(1 << (bit%BITFIELD_BITS) );
 }
 
@@ -33,7 +33,7 @@ extern inline void bitfield_clear(uint32 *bitfield, int bit) {
 /**
  * Change the given bit to the given value.
  */
-extern inline void bitfield_set_value(uint32 *bitfield, int bit, int val) {
+static inline void bitfield_set_value(uint32 *bitfield, int bit, int val) {
 	if(val)
 		bitfield_set(bitfield, bit);
 	else
@@ -41,7 +41,7 @@ extern inline void bitfield_set_value(uint32 *bitfield, int bit, int val) {
 }
 
 
-extern inline void bitfield_all_clear(uint32 *bitfield, int size) {
+static inline void bitfield_all_clear(uint32 *bitfield, int size) {
 	int i;
 	for(i=0; i < ((size-1) / BITFIELD_BITS + 1); i++)
 			bitfield[i] = 0x00000000;

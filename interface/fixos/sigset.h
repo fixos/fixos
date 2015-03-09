@@ -13,27 +13,27 @@ typedef __kernel_uint32 sigset_t;
 
 // not exactly the POSIX specification, but should be usefull :
 
-extern inline int sigemptyset(sigset_t *set) {
+static inline int sigemptyset(sigset_t *set) {
 	*set = 0;
 	return 0;
 }
 
-extern inline int sigfillset(sigset_t *set) {
+static inline int sigfillset(sigset_t *set) {
 	*set = 0xFFFFFFFF;
 	return 0;
 }
 
-extern inline int sigaddset(sigset_t *set, int sig) {
+static inline int sigaddset(sigset_t *set, int sig) {
 	*set |= (1<<sig);
 	return 0;
 }
 
-extern inline int sigdelset(sigset_t *set, int sig) {
+static inline int sigdelset(sigset_t *set, int sig) {
 	*set &= ~(1<<sig);
 	return 0;
 }
 
-extern inline int sigismember(sigset_t *set, int sig) {
+static inline int sigismember(sigset_t *set, int sig) {
 	return (*set & (1<<sig)) != 0;
 }
 

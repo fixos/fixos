@@ -16,7 +16,7 @@
  * call monotnick_ticks() if not needed).
  * Should be called before any usage of the load data.
  */
-extern inline void load_proc_update(struct process *p, clock_t cur_ticks) {
+static inline void load_proc_update(struct process *p, clock_t cur_ticks) {
 	clock_t deltasample;
 
 	deltasample = cur_ticks/PROC_LOAD_SAMPMAX - p->load_last/PROC_LOAD_SAMPMAX;
@@ -52,7 +52,7 @@ extern inline void load_proc_update(struct process *p, clock_t cur_ticks) {
 }
 
 
-extern inline void load_proc_addtick(struct process *p) {
+static inline void load_proc_addtick(struct process *p) {
 	load_proc_update(p, time_monotonic_ticks());
 	p->load_cursamp++;
 }
@@ -63,7 +63,7 @@ extern inline void load_proc_addtick(struct process *p) {
  * The returned value is 100 times the percent of CPU usage.
  * TODO fixed point!
  */
-extern inline int load_proc_average(struct process *p) {
+static inline int load_proc_average(struct process *p) {
 	int i;
 	int ret;
 
