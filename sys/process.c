@@ -43,6 +43,7 @@ static int _process_number = 0;
 // virtual task for idle
 struct process _proc_idle_task = {
 	.pid = 0,
+	.parent = NULL,
 	.dir_list = NULL,
 	.state = PROCESS_STATE_RUNNING,
 	.acnt = NULL,
@@ -105,7 +106,7 @@ struct process *process_alloc() {
 
 			proc->pid = process_get_pid();
 			proc->pgid = 1; // group of init?
-			proc->ppid = 0;
+			proc->parent = NULL;
 			proc->state = PROCESS_STATE_CREATE;
 			proc->ctty = NULL;
 
@@ -262,7 +263,7 @@ pid_t sys_fork() {
 	newproc = process_alloc();
 
 	newproc->pgid = cur->pgid;
-	newproc->ppid = cur->pid;
+	newproc->parent = cur;
 	for(i=0; i<PROCESS_MAX_FILE; i++) {
 		// for each valid file descriptor, increment usage counter
 		newproc->files[i] = cur->files[i];
@@ -366,7 +367,7 @@ pid_t sys_getpid() {
 }
 
 pid_t sys_getppid() {
-	return process_get_current()->ppid;
+	return process_get_ppid();
 }
 
 
@@ -798,18 +799,16 @@ pid_t sys_getpgid(pid_t pid) {
 }
 
 
-int process_is_descendant(struct process *proc, pid_t other) {
-	struct process *cur;
+int process_is_descendant(struct process *proc, pid_t otherpid) {
+	struct process *other = process_from_pid(otherpid);
 
-	for(cur=proc; cur!=NULL && cur->ppid != other && cur->pid != 1;
-		cur = process_from_pid(cur->ppid));
-	
-	if(cur != NULL) {
-		if(cur->ppid == other)
+	if(other != NULL) {
+		struct process *cur;
+
+		for(cur=proc; cur != NULL && cur->parent != other; cur = cur->parent);
+		
+		if(cur != NULL && cur->parent->pid == otherpid)
 			return 1;
-	}
-	else {
-		printk(LOG_DEBUG, "proc: bad process hierarchy\n");
 	}
 	return 0;
 }
@@ -827,7 +826,7 @@ static void copy_proc_user(struct process *proc, void *userbuf) {
 	uinfo->uticks = proc->uticks;
 
 	uinfo->pid = proc->pid;
-	uinfo->ppid = proc->ppid;
+	uinfo->ppid = process_get_ppid(proc);
 
 	uinfo->state = proc->state;
 	uinfo->exit_status = proc->exit_status;

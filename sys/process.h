@@ -59,6 +59,9 @@ struct process {
 	pid_t pid;
 	pid_t pgid;
 
+	// parent, or NULL (no other process than swaper and init should use NULL)
+	struct process *parent;
+
 	// virtual memory managing data :
 	struct addr_space addr_space;
 	struct page_dir *dir_list;
@@ -78,7 +81,6 @@ struct process {
 	sigset_t sig_pending;
 	struct sigaction sig_array[SIGNAL_INDEX_MAX];
 
-	pid_t ppid;
 	int state;
 	int exit_status; // only valid when state is PROCESS_STATE_ZOMBIE
 
@@ -178,6 +180,14 @@ void process_free(struct process *proc);
  */
 static inline struct process *process_get_current() {
 	return _proc_current;
+}
+
+
+/**
+ * Return the pid of the parent process, or 0 if not available.
+ */
+static inline pid_t process_get_ppid() {
+	return _proc_current->parent == NULL ? 0 : _proc_current->parent->pid;
 }
 
 

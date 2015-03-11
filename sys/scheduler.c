@@ -212,7 +212,7 @@ pid_t sys_wait(int *status) {
 	// do not return before a child is in Zombie state
 	
 	int ret = 0;
-	pid_t ppid = process_get_current()->pid;
+	struct process *proc = process_get_current();
 
 	while(ret == 0) {
 		int i;
@@ -222,7 +222,7 @@ pid_t sys_wait(int *status) {
 		for(i=0; i<SCHED_MAX_TASKS; i++) {
 			//printk(LOG_DEBUG, "task %d", i);
 			//printk(LOG_DEBUG, "->%p\n", _tasks[i]);
-			if(_tasks[i] != NULL && _tasks[i]->ppid == ppid) {
+			if(_tasks[i] != NULL && _tasks[i]->parent == proc) {
 				if(_tasks[i]->state == PROCESS_STATE_ZOMBIE) {
 					ret = _tasks[i]->pid;
 					if(status != NULL)
